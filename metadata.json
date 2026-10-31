@@ -1,0 +1,6 @@
+{
+  "name": "SmileCare Dental",
+  "description": "Dental Clinic Appointment & Token Management System with Claymorphism UI",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

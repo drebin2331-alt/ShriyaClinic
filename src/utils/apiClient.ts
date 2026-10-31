@@ -1,0 +1,318 @@
+import { 
+  PatientRecord, 
+  ClinicVisit, 
+  QueueToken, 
+  Appointment, 
+  Invoice, 
+  PaymentRecord, 
+  PrescriptionRecord, 
+  FeeApprovalRecord, 
+  AuditEvent,
+  PatientEnquiry
+} from '../types';
+
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  };
+
+  try {
+    const saved = localStorage.getItem('smilecare_auth_user');
+    if (saved) {
+      const user = JSON.parse(saved);
+      headers['x-actor-id'] = user.id || 'usr-admin-01';
+      headers['x-actor-name'] = user.name || 'Dr. Rajesh Patel';
+      headers['x-actor-role'] = user.role || 'admin';
+    }
+  } catch (e) {
+    // Fall back to default
+  }
+
+  return headers;
+}
+
+export interface ClinicSyncState {
+  patients: PatientRecord[];
+  visits: ClinicVisit[];
+  tokens: QueueToken[];
+  appointments: Appointment[];
+  invoices: Invoice[];
+  payments: PaymentRecord[];
+  prescriptions: PrescriptionRecord[];
+  feeApprovals: FeeApprovalRecord[];
+  auditEvents: AuditEvent[];
+  enquiries?: PatientEnquiry[];
+  serverTime: string;
+}
+
+export const apiClient = {
+  async getState(): Promise<ClinicSyncState> {
+    const res = await fetch('/api/state', {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to fetch state: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async registerPatient(data: {
+    name: string;
+    phone: string;
+    gender: 'Male' | 'Female' | 'Other';
+    dateOfBirth?: string;
+    age?: number;
+    secondaryPhone?: string;
+    email?: string;
+    address?: string;
+    referralSource?: string;
+    emergencyContact?: { name: string; phone: string; relation: string };
+    assignedDoctorId?: string;
+    assignedDoctorName?: string;
+    reasonForVisit?: string;
+    allowDuplicate?: boolean;
+  }): Promise<{ patient: PatientRecord; opNumber: string }> {
+    const res = await fetch('/api/patients', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      const err = new Error(json.error || 'Failed to register patient');
+      (err as any).existingPatient = json.existingPatient;
+      throw err;
+    }
+    return json;
+  },
+
+  async updatePatient(id: string, data: Partial<PatientRecord>): Promise<{ patient: PatientRecord }> {
+    const res = await fetch(`/api/patients/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to update patient');
+    }
+    return json;
+  },
+
+  async checkInPatient(data: {
+    patientId: string;
+    doctorId?: string;
+    appointmentId?: string;
+    reasonForVisit?: string;
+    priority?: 'Normal' | 'Urgent' | 'Emergency';
+    chairId?: string;
+    isWalkIn?: boolean;
+  }): Promise<{ visit: ClinicVisit; token: QueueToken }> {
+    const res = await fetch('/api/check-in', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      const err = new Error(json.error || 'Failed to check in patient');
+      (err as any).activeToken = json.activeToken;
+      throw err;
+    }
+    return json;
+  },
+
+  async callToken(id: string, chairId?: string, chairName?: string): Promise<{ token: QueueToken; visit?: ClinicVisit }> {
+    const res = await fetch(`/api/tokens/${encodeURIComponent(id)}/call`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ chairId, chairName })
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to call token');
+    }
+    return json;
+  },
+
+  async holdToken(id: string): Promise<{ token: QueueToken }> {
+    const res = await fetch(`/api/tokens/${encodeURIComponent(id)}/hold`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to hold token');
+    }
+    return json;
+  },
+
+  async skipToken(id: string, reason?: string): Promise<{ token: QueueToken }> {
+    const res = await fetch(`/api/tokens/${encodeURIComponent(id)}/skip`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ reason })
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to skip token');
+    }
+    return json;
+  },
+
+  async startConsultation(visitIdOrToken: string): Promise<{ visit: ClinicVisit; token?: QueueToken }> {
+    const res = await fetch('/api/consultations/start', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ visitIdOrToken })
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to start consultation');
+    }
+    return json;
+  },
+
+  async completeConsultation(data: {
+    visitId: string;
+    chiefComplaint?: string;
+    diagnosis: string;
+    clinicalFindings?: string;
+    treatmentPerformed: string;
+    doctorNotes?: string;
+    followUpDate?: string;
+    followUpReason?: string;
+  }): Promise<{ visit: ClinicVisit; token?: QueueToken; message: string }> {
+    const res = await fetch('/api/consultations/complete', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to complete consultation');
+    }
+    return json;
+  },
+
+  async approveFee(data: {
+    visitId: string;
+    patientId?: string;
+    patientName?: string;
+    patientOpNumber?: string;
+    doctorId?: string;
+    doctorName?: string;
+    consultationFee: number;
+    items: Array<{ description: string; quantity: number; unitPrice: number }>;
+    discountType?: 'amount' | 'percentage';
+    discountValue?: number;
+    discountReason?: string;
+    taxRate?: number;
+  }): Promise<{ feeApproval: FeeApprovalRecord; invoice: Invoice; visit?: ClinicVisit }> {
+    const res = await fetch('/api/consultations/fee-approval', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to approve fee');
+    }
+    return json;
+  },
+
+  async createPrescription(data: {
+    visitId: string;
+    patientId: string;
+    items: Array<{
+      medicine: string;
+      dosage: string;
+      route?: string;
+      frequency: string;
+      duration: string;
+      instructions: string;
+    }>;
+    diagnosis?: string;
+    doctorNotes?: string;
+    followUpDate?: string;
+  }): Promise<{ prescription: PrescriptionRecord; visit?: ClinicVisit }> {
+    const res = await fetch('/api/prescriptions', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to create prescription');
+    }
+    return json;
+  },
+
+  async recordPayment(data: {
+    invoiceId: string;
+    amount: number;
+    paymentMethod: string;
+    referenceNumber?: string;
+    notes?: string;
+  }): Promise<{ payment: PaymentRecord; invoice: Invoice; receiptNumber: string; remainingBalance: number }> {
+    const res = await fetch('/api/payments', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to record payment');
+    }
+    return json;
+  },
+
+  async closeVisit(visitId: string, adminNotes?: string): Promise<{ visit: ClinicVisit; token?: QueueToken }> {
+    const res = await fetch(`/api/visits/${encodeURIComponent(visitId)}/close`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ adminNotes })
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to close visit');
+    }
+    return json;
+  },
+
+  async rescheduleAppointment(id: string, newDate: string, newTimeSlot: string, reason?: string): Promise<{ appointment: Appointment }> {
+    const res = await fetch(`/api/appointments/${encodeURIComponent(id)}/reschedule`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ newDate, newTimeSlot, reason })
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to reschedule appointment');
+    }
+    return json;
+  },
+
+  async cancelAppointment(id: string, reason?: string): Promise<{ appointment: Appointment }> {
+    const res = await fetch(`/api/appointments/${encodeURIComponent(id)}/cancel`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ reason })
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to cancel appointment');
+    }
+    return json;
+  },
+
+  async getAuditLog(): Promise<{ auditEvents: AuditEvent[] }> {
+    const res = await fetch('/api/audit', {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      throw new Error('Failed to fetch audit log');
+    }
+    return res.json();
+  }
+};

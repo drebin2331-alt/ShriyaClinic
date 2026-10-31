@@ -1,0 +1,245 @@
+@import "tailwindcss";
+
+@layer utilities {
+  /* Modern Professional Healthcare Cards */
+  .clay-card,
+  .clinic-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .clinic-card-hover:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.03);
+    transform: translateY(-1px);
+  }
+
+  .clay-card-flat,
+  .clinic-card-flat {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+  }
+
+  .clay-card-accent,
+  .clinic-card-teal {
+    background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
+    border: 1px solid #99f6e4;
+    border-radius: 14px;
+    box-shadow: 0 2px 6px 0 rgba(13, 148, 136, 0.07);
+  }
+
+  .clay-card-mint {
+    background-color: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 14px;
+    box-shadow: 0 1px 3px 0 rgba(22, 101, 52, 0.05);
+  }
+
+  .clay-card-dark {
+    background-color: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 14px;
+    color: #ffffff;
+    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.18);
+  }
+
+  .clinic-glass {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+  }
+
+  /* Enterprise Action Buttons with Subtle Elevation */
+  .clay-btn-primary,
+  .clinic-btn-primary {
+    background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+    color: #ffffff;
+    border: 1px solid #0f766e;
+    border-radius: 9px;
+    box-shadow: 0 2px 4px 0 rgba(13, 148, 136, 0.25);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    transition: all 0.15s ease-in-out;
+  }
+  .clay-btn-primary:hover,
+  .clinic-btn-primary:hover {
+    background: linear-gradient(135deg, #115e59 0%, #0f766e 100%);
+    box-shadow: 0 4px 8px 0 rgba(13, 148, 136, 0.3);
+    transform: translateY(-0.5px);
+  }
+
+  .clay-btn-secondary,
+  .clinic-btn-secondary {
+    background-color: #ffffff;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+    font-weight: 600;
+    transition: all 0.15s ease-in-out;
+  }
+  .clay-btn-secondary:hover,
+  .clinic-btn-secondary:hover {
+    background-color: #f8fafc;
+    color: #0f172a;
+    border-color: #94a3b8;
+  }
+
+  .clay-btn-mint,
+  .clinic-btn-emerald {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    color: #ffffff;
+    border: 1px solid #047857;
+    border-radius: 9px;
+    box-shadow: 0 2px 4px 0 rgba(5, 150, 105, 0.25);
+    font-weight: 600;
+    transition: all 0.15s ease-in-out;
+  }
+  .clay-btn-mint:hover,
+  .clinic-btn-emerald:hover {
+    background: linear-gradient(135deg, #047857 0%, #059669 100%);
+    box-shadow: 0 4px 8px 0 rgba(5, 150, 105, 0.3);
+    transform: translateY(-0.5px);
+  }
+
+  .clay-btn-danger {
+    background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+    color: #ffffff;
+    border: 1px solid #b91c1c;
+    border-radius: 9px;
+    box-shadow: 0 2px 4px 0 rgba(220, 38, 38, 0.25);
+    font-weight: 600;
+    transition: all 0.15s ease-in-out;
+  }
+  .clay-btn-danger:hover {
+    background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
+    box-shadow: 0 4px 8px 0 rgba(220, 38, 38, 0.3);
+  }
+
+  .clay-btn-warning {
+    background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+    color: #ffffff;
+    border: 1px solid #b45309;
+    border-radius: 9px;
+    box-shadow: 0 2px 4px 0 rgba(217, 119, 6, 0.25);
+    font-weight: 600;
+    transition: all 0.15s ease-in-out;
+  }
+  .clay-btn-warning:hover {
+    background: linear-gradient(135deg, #b45309 0%, #d97706 100%);
+  }
+
+  /* Enterprise Inputs */
+  .clay-input,
+  .clinic-input {
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    color: #0f172a;
+    box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+    transition: all 0.15s ease-in-out;
+  }
+  .clay-input:focus,
+  .clinic-input:focus {
+    border-color: #0d9488;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  }
+
+  .clay-inset,
+  .clinic-inset {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Ensure images, svgs, and embeds never cause horizontal viewport blowout on small phones */
+img, svg, video, canvas, audio, iframe, embed, object {
+  max-width: 100%;
+}
+
+h1, h2, h3, .font-heading {
+  font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  overflow-wrap: break-word;
+}
+
+/* Crisp Modern scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Dedicated Print Stylesheet */
+@media print {
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  header, aside, nav, footer, .print\:hidden {
+    display: none !important;
+  }
+
+  .shriya-pad-root,
+  #prescription-sheet, 
+  #receipt-sheet, 
+  #shriya-prescription-sheet, 
+  #doctor-modal-prescription-sheet, 
+  #printable-prescription-dialog-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+  }
+
+  @page {
+    margin: 6mm 8mm;
+    size: A4 portrait;
+  }
+}
+
+
