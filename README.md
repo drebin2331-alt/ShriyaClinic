@@ -133,3 +133,4 @@ To create an optimized, minified production build:
 npm run build
 ```
 The output will be placed in the `dist/` directory ready for deployment on Vercel, Netlify, or any static hosting service.
+

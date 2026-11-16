@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { PatientRecord, ClinicVisit, PrescriptionRecord } from '../../types';
+import { PatientRecord, ClinicVisit, PrescriptionRecord, MedicineRecord } from '../../types';
 import { ClayButton } from '../common/ClayButton';
 import { 
   X, 
@@ -13,7 +13,13 @@ import {
   Download, 
   FileText, 
   Eye, 
-  Edit3 
+  Edit3,
+  Database,
+  ChevronDown,
+  Sparkles,
+  History,
+  AlertTriangle,
+  RotateCcw
 } from 'lucide-react';
 import { 
   ClinicPrescriptionSheet, 
@@ -30,19 +36,10 @@ interface DoctorPrescriptionModalProps {
   patientId?: string;
   patientName?: string;
   doctorName?: string;
+  prescriptionToEdit?: PrescriptionRecord | null;
   onPrescriptionCreated?: (prescription: PrescriptionRecord) => void;
+  onDeletePrescription?: (id: string) => void;
 }
-
-const COMMON_DENTAL_MEDICATIONS = [
-  { medicine: 'Amoxicillin + Clavulanate (Augmentin)', dosage: '625mg', route: 'Oral', frequency: 'BD', duration: '5 days', instructions: 'After food' },
-  { medicine: 'Amoxicillin', dosage: '500mg', route: 'Oral', frequency: 'TDS', duration: '5 days', instructions: 'After food' },
-  { medicine: 'Ibuprofen + Paracetamol (Combiflam)', dosage: '400mg/325mg', route: 'Oral', frequency: 'SOS / TDS', duration: '3 days', instructions: 'After food (with antacid)' },
-  { medicine: 'Ketorolac Tromethamine (Ketorol-DT)', dosage: '10mg', route: 'Oral', frequency: 'SOS', duration: '3 days', instructions: 'Disperse in warm water' },
-  { medicine: 'Metronidazole (Flagyl)', dosage: '400mg', route: 'Oral', frequency: 'TDS', duration: '5 days', instructions: 'After meals' },
-  { medicine: 'Chlorhexidine Gluconate Mouthwash', dosage: '10ml', route: 'Topical rinse', frequency: 'BD', duration: '7 days', instructions: 'Swish for 60 seconds, no food for 30m' },
-  { medicine: 'Pantoprazole (Pan-40)', dosage: '40mg', route: 'Oral', frequency: 'OD', duration: '5 days', instructions: 'Before breakfast' },
-  { medicine: 'Triamcinolone Acetonide (Kenacort 0.1%)', dosage: 'Pea size', route: 'Topical application', frequency: 'TDS', duration: '5 days', instructions: 'Apply over ulcer after meals' }
-];
 
 export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = ({
   isOpen,
@@ -53,12 +50,28 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
   patientId,
   patientName,
   doctorName,
-  onPrescriptionCreated
+  prescriptionToEdit,
+  onPrescriptionCreated,
+  onDeletePrescription
 }) => {
-  const { createPrescription, addToast, patients, visits } = useApp();
+  const { 
+    createPrescription, 
+    updatePrescription, 
+    deletePrescription, 
+    addToast, 
+    patients, 
+    visits, 
+    medicines, 
+    saveMedicine,
+    prescriptions 
+  } = useApp();
   const { currentUser } = useAuth();
 
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
+  const [activeDropdownRowId, setActiveDropdownRowId] = useState<string | null>(null);
+  const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [editingRxId, setEditingRxId] = useState<string | null>(null);
 
   const targetPatientId = patient?.id || patientId;
   const targetVisitId = visit?.id || visitId;
@@ -69,23 +82,27 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
     (targetVisitId ? visits.find((v) => v.id === targetVisitId) : undefined) ||
     (targetPatientId ? visits.find((v) => v.patientId === targetPatientId && v.status !== 'Cancelled') : undefined);
 
-  const [diagnosis, setDiagnosis] = useState<string>(
-    resolvedVisit?.diagnosis || resolvedPatient?.currentTreatment || ''
-  );
+  // All previous prescriptions for this patient
+  const patientPrescriptions = React.useMemo(() => {
+    const list = (prescriptions || []).filter(
+      (p) =>
+        p.patientId === resolvedPatient?.id ||
+        (resolvedPatient?.opNumber && p.patientOpNumber === resolvedPatient.opNumber) ||
+        (resolvedPatient?.name && p.patientName === resolvedPatient.name)
+    );
+    if (resolvedPatient?.prescriptions) {
+      resolvedPatient.prescriptions.forEach((rx) => {
+        if (!list.some((existing) => existing.id === rx.id)) {
+          list.push(rx);
+        }
+      });
+    }
+    return list.sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
+  }, [prescriptions, resolvedPatient]);
+
+  const [diagnosis, setDiagnosis] = useState<string>('');
   const [doctorNotes, setDoctorNotes] = useState<string>('');
-  const [followUpDate, setFollowUpDate] = useState<string>(resolvedVisit?.followUpDate || '');
-
-  useEffect(() => {
-    if (resolvedVisit?.diagnosis) {
-      setDiagnosis(resolvedVisit.diagnosis);
-    } else if (resolvedPatient?.currentTreatment) {
-      setDiagnosis(resolvedPatient.currentTreatment);
-    }
-    if (resolvedVisit?.followUpDate) {
-      setFollowUpDate(resolvedVisit.followUpDate);
-    }
-  }, [resolvedVisit?.id, resolvedVisit?.diagnosis, resolvedPatient?.currentTreatment, resolvedVisit?.followUpDate]);
-
+  const [followUpDate, setFollowUpDate] = useState<string>('');
   const [items, setItems] = useState<Array<{
     id: string;
     medicine: string;
@@ -96,63 +113,224 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
     instructions: string;
   }>>([
     {
-      id: 'rx-1',
-      medicine: 'Amoxicillin + Clavulanate (Augmentin)',
-      dosage: '625mg',
+      id: `rx-${Date.now()}`,
+      medicine: '',
+      dosage: '',
       route: 'Oral',
-      frequency: 'BD (Twice daily)',
+      frequency: 'BD',
       duration: '5 days',
-      instructions: 'After food'
-    },
-    {
-      id: 'rx-2',
-      medicine: 'Ibuprofen + Paracetamol (Combiflam)',
-      dosage: '400mg/325mg',
-      route: 'Oral',
-      frequency: 'SOS (For severe pain)',
-      duration: '3 days',
       instructions: 'After food'
     }
   ]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!isOpen) return null;
+  const applyPrescription = (rx: PrescriptionRecord, isEditMode = true) => {
+    setEditingRxId(isEditMode ? rx.id : null);
+    setDiagnosis(rx.diagnosis || resolvedVisit?.diagnosis || resolvedPatient?.currentTreatment || '');
+    setDoctorNotes(rx.doctorNotes || '');
+    setFollowUpDate(rx.followUpDate || resolvedVisit?.followUpDate || '');
+    if (rx.items && rx.items.length > 0) {
+      setItems(
+        rx.items.map((it, idx) => ({
+          id: it.id || `rx-item-${Date.now()}-${idx}`,
+          medicine: it.medicine || '',
+          dosage: it.dosage || '',
+          route: it.route || 'Oral',
+          frequency: it.frequency || 'BD',
+          duration: it.duration || '5 days',
+          instructions: it.instructions || 'After food'
+        }))
+      );
+    }
+  };
 
-  const handleAddItem = () => {
-    setItems((prev) => [
-      ...prev,
+  // Populate state when opening modal or changing prescriptionToEdit
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // 1. Explicit prescription to edit passed as prop
+    if (prescriptionToEdit) {
+      applyPrescription(prescriptionToEdit, true);
+      return;
+    }
+
+    // 2. Check if the active visit already has a prescription recorded
+    const existingVisitRx = 
+      resolvedVisit?.prescriptionRecord || 
+      patientPrescriptions.find((p) => p.visitId === resolvedVisit?.id);
+
+    if (existingVisitRx) {
+      applyPrescription(existingVisitRx, true);
+      return;
+    }
+
+    // 3. If patient has any saved previous prescriptions, auto-load the latest one so doctor sees it immediately!
+    if (patientPrescriptions && patientPrescriptions.length > 0) {
+      applyPrescription(patientPrescriptions[0], true);
+      return;
+    }
+
+    // 4. Brand new prescription initialization (when no previous prescription exists)
+    setEditingRxId(null);
+    setDiagnosis(resolvedVisit?.diagnosis || resolvedPatient?.currentTreatment || '');
+    setDoctorNotes('');
+    setFollowUpDate(resolvedVisit?.followUpDate || '');
+    setItems([
       {
         id: `rx-${Date.now()}`,
         medicine: '',
-        dosage: '500mg',
+        dosage: '',
         route: 'Oral',
         frequency: 'BD',
         duration: '5 days',
         instructions: 'After food'
       }
     ]);
+  }, [isOpen, prescriptionToEdit, resolvedVisit?.id, patientPrescriptions.length]);
+
+  const loadPreviousPrescription = (rx: PrescriptionRecord, asCopy = false) => {
+    if (!asCopy) {
+      setEditingRxId(rx.id);
+    } else {
+      setEditingRxId(null);
+    }
+    setDiagnosis(rx.diagnosis || '');
+    setDoctorNotes(rx.doctorNotes || '');
+    setFollowUpDate(rx.followUpDate || '');
+    if (rx.items && rx.items.length > 0) {
+      setItems(
+        rx.items.map((it, idx) => ({
+          id: asCopy ? `rx-copy-${Date.now()}-${idx}` : (it.id || `rx-item-${Date.now()}-${idx}`),
+          medicine: it.medicine || '',
+          dosage: it.dosage || '',
+          route: it.route || 'Oral',
+          frequency: it.frequency || 'BD',
+          duration: it.duration || '5 days',
+          instructions: it.instructions || 'After food'
+        }))
+      );
+    }
+    setShowHistoryDropdown(false);
+    addToast(
+      asCopy ? 'Copied to New Rx 📋' : 'Loaded Prescription ℞',
+      asCopy ? `Medicines from ${rx.id} copied into fresh prescription.` : `Editing saved prescription ${rx.id}.`,
+      'info'
+    );
+  };
+
+  const handleStartFresh = () => {
+    setEditingRxId(null);
+    setDiagnosis(resolvedVisit?.diagnosis || resolvedPatient?.currentTreatment || '');
+    setDoctorNotes('');
+    setFollowUpDate(resolvedVisit?.followUpDate || '');
+    setItems([
+      {
+        id: `rx-${Date.now()}`,
+        medicine: '',
+        dosage: '',
+        route: 'Oral',
+        frequency: 'BD',
+        duration: '5 days',
+        instructions: 'After food'
+      }
+    ]);
+    addToast('New Prescription', 'Form reset for a brand new prescription.', 'info');
+  };
+
+  const handleDelete = async () => {
+    if (!editingRxId) return;
+    try {
+      setIsSubmitting(true);
+      if (onDeletePrescription) {
+        onDeletePrescription(editingRxId);
+      } else {
+        await deletePrescription(editingRxId);
+      }
+      setShowDeleteConfirm(false);
+      onClose();
+    } catch (err: any) {
+      addToast('Delete Failed', err.message || 'Could not delete prescription', 'danger');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getFilteredMedicines = (searchQuery: string) => {
+    const list = medicines || [];
+    if (!searchQuery || !searchQuery.trim()) return list;
+    const q = searchQuery.toLowerCase().trim();
+    return list.filter(
+      (m) =>
+        m.name.toLowerCase().includes(q) ||
+        (m.dosage && m.dosage.toLowerCase().includes(q)) ||
+        (m.category && m.category.toLowerCase().includes(q))
+    );
+  };
+
+  const handleSelectMedicine = (itemId: string, selectedMed: MedicineRecord) => {
+    setItems((prev) =>
+      prev.map((it) => {
+        if (it.id !== itemId) return it;
+        return {
+          ...it,
+          medicine: selectedMed.name,
+          dosage: selectedMed.dosage || it.dosage || '500mg',
+          route: selectedMed.route || it.route || 'Oral',
+          frequency: selectedMed.frequency || it.frequency || 'BD',
+          duration: selectedMed.duration || it.duration || '5 days',
+          instructions: selectedMed.instructions || it.instructions || 'After food'
+        };
+      })
+    );
+    setActiveDropdownRowId(null);
+  };
+
+  const handleSaveToCatalog = async (item: typeof items[0]) => {
+    if (!item.medicine.trim()) return;
+    try {
+      await saveMedicine({
+        name: item.medicine.trim(),
+        dosage: item.dosage.trim(),
+        route: item.route,
+        frequency: item.frequency,
+        duration: item.duration,
+        instructions: item.instructions
+      });
+      addToast('Medicine Saved to DB 💾', `"${item.medicine.trim()}" added to clinic database. It is now saved for future prescriptions.`, 'success');
+    } catch (err: any) {
+      addToast('Error', err.message || 'Failed to save medicine.', 'danger');
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const handleAddItem = () => {
+    const newId = `rx-${Date.now()}`;
+    setItems((prev) => [
+      ...prev,
+      {
+        id: newId,
+        medicine: '',
+        dosage: '',
+        route: 'Oral',
+        frequency: 'BD',
+        duration: '5 days',
+        instructions: 'After food'
+      }
+    ]);
+    setActiveDropdownRowId(newId);
   };
 
   const handleRemoveItem = (id: string) => {
     setItems((prev) => prev.filter((it) => it.id !== id));
+    if (activeDropdownRowId === id) setActiveDropdownRowId(null);
   };
 
   const handleItemChange = (id: string, field: string, val: string) => {
     setItems((prev) =>
       prev.map((it) => (it.id === id ? { ...it, [field]: val } : it))
     );
-  };
-
-  const handleAddPreset = (preset: typeof COMMON_DENTAL_MEDICATIONS[0]) => {
-    setItems((prev) => [
-      ...prev,
-      {
-        id: `rx-${Date.now()}`,
-        ...preset
-      }
-    ]);
-    addToast('Medicine Added', `Added ${preset.medicine} to prescription.`, 'info');
   };
 
   // Compile full prescription data for Shriya clinic pad
@@ -163,13 +341,14 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
   });
 
   const sheetData: ClinicPrescriptionData = {
+    id: editingRxId || undefined,
     date: todayFormatted,
     patientName: resolvedPatient?.name || patientName || 'Patient',
     patientOpNumber: resolvedPatient?.opNumber || resolvedPatient?.id || targetPatientId || '',
     patientAge: resolvedPatient?.age,
     patientGender: resolvedPatient?.gender,
     patientPhone: resolvedPatient?.phone,
-    doctorName: resolvedVisit?.doctorName || resolvedPatient?.assignedDoctorName || doctorName || currentUser.name || 'Dr. EBIN BRITTO. M.',
+    doctorName: resolvedVisit?.doctorName || resolvedPatient?.assignedDoctorName || doctorName || currentUser?.name || 'Dr. EBIN BRITTO. M.',
     doctorDegree: 'BDS',
     doctorRegNo: '26719/KDC',
     diagnosis: diagnosis.trim() || undefined,
@@ -221,34 +400,67 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
     }
 
     try {
-      const result = await createPrescription({
-        visitId: finalVisitId || `vis-${finalPatientId}-${new Date().toISOString().split('T')[0]}`,
-        patientId: finalPatientId,
-        items: items.filter((it) => it.medicine.trim()),
-        diagnosis,
-        doctorNotes,
-        followUpDate: followUpDate || undefined
-      });
+      // Auto-save any newly typed custom medicines to the database catalog
+      for (const item of items) {
+        if (item.medicine.trim()) {
+          const exists = (medicines || []).some(
+            (m) => m.name.toLowerCase().trim() === item.medicine.toLowerCase().trim()
+          );
+          if (!exists) {
+            saveMedicine({
+              name: item.medicine.trim(),
+              dosage: item.dosage.trim(),
+              route: item.route,
+              frequency: item.frequency,
+              duration: item.duration,
+              instructions: item.instructions
+            }).catch(() => {});
+          }
+        }
+      }
+
+      let prescriptionResult: PrescriptionRecord;
+
+      if (editingRxId) {
+        // UPDATE EXISTING PRESCRIPTION
+        const result = await updatePrescription(editingRxId, {
+          items: items.filter((it) => it.medicine.trim()),
+          diagnosis,
+          doctorNotes,
+          followUpDate: followUpDate || undefined
+        });
+        prescriptionResult = result.prescription;
+      } else {
+        // CREATE NEW PRESCRIPTION
+        const result = await createPrescription({
+          visitId: finalVisitId || `vis-${finalPatientId}-${new Date().toISOString().split('T')[0]}`,
+          patientId: finalPatientId,
+          items: items.filter((it) => it.medicine.trim()),
+          diagnosis,
+          doctorNotes,
+          followUpDate: followUpDate || undefined
+        });
+        prescriptionResult = result.prescription;
+      }
 
       if (shouldPrintAfter) {
         printPrescriptionElement('doctor-modal-prescription-sheet', sheetData.patientName, sheetData.patientOpNumber);
       }
 
       if (onPrescriptionCreated) {
-        onPrescriptionCreated(result.prescription);
+        onPrescriptionCreated(prescriptionResult);
       }
       onClose();
-      addToast('Prescription Saved ℞', `Official prescription recorded for ${resolvedPatient?.name || 'patient'}.`, 'success');
     } catch (err: any) {
-      addToast('Error', err.message || 'Failed to create prescription.', 'danger');
+      addToast('Error', err.message || 'Failed to save prescription.', 'danger');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-      <div className="bg-white w-full max-w-4xl rounded-3xl p-5 sm:p-7 shadow-2xl border border-slate-200 max-h-[94vh] overflow-y-auto space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+      <div className="bg-white w-full max-w-4xl rounded-3xl p-3.5 sm:p-7 shadow-2xl border border-slate-200 max-h-[96vh] overflow-y-auto space-y-4">
         
         {/* ========================================================= */}
         {/* MODAL HEADER & TOOLBAR                                    */}
@@ -262,10 +474,16 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
               <span className="text-xs font-bold text-slate-500">
                 Attending: <strong className="text-slate-800">{sheetData.doctorName}</strong>
               </span>
+              {editingRxId && (
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-emerald-600" />
+                  <span>Editing Rx #{editingRxId}</span>
+                </span>
+              )}
             </div>
             <h3 className="text-lg sm:text-xl font-black text-slate-900 mt-1 flex items-center gap-2">
               <Stethoscope className="w-5 h-5 text-blue-900 shrink-0" />
-              <span>Digital Clinical Prescription (℞)</span>
+              <span>{editingRxId ? `Edit Digital Clinical Prescription (Rx #${editingRxId})` : 'Digital Clinical Prescription (℞)'}</span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
               Patient: <strong className="text-slate-900">{resolvedPatient?.name || patientName || 'Patient'}</strong>{' '}
@@ -333,6 +551,125 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
           </div>
         </div>
 
+        {/* ========================================================= */}
+        {/* PREVIOUS SAVED PRESCRIPTIONS HISTORY SELECTOR             */}
+        {/* ========================================================= */}
+        {patientPrescriptions.length > 0 && (
+          <div className="relative">
+            <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="p-1 rounded-lg bg-teal-50 text-teal-700">
+                  <History className="w-4 h-4" />
+                </span>
+                <span className="text-xs font-bold text-slate-700">
+                  Patient Prescription Records ({patientPrescriptions.length}):
+                </span>
+                {editingRxId ? (
+                  <span className="text-xs font-extrabold text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    Active: {editingRxId}
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    Writing New Prescription
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowHistoryDropdown(!showHistoryDropdown)}
+                  className="px-2.5 py-1 rounded-lg bg-white border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 flex items-center gap-1 cursor-pointer shadow-2xs"
+                >
+                  <span>Select from Saved Prescriptions</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showHistoryDropdown ? 'rotate-180' : ''}`} />
+                </button>
+
+                {editingRxId && (
+                  <button
+                    type="button"
+                    onClick={handleStartFresh}
+                    className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 font-bold text-xs hover:bg-blue-100 flex items-center gap-1 cursor-pointer"
+                    title="Clear and write a separate new prescription"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Write New Blank Rx</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Dropdown Menu of Patient's Prescriptions */}
+            {showHistoryDropdown && (
+              <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl shadow-xl border border-slate-300 z-50 p-2 max-h-72 overflow-y-auto space-y-1.5 animate-in fade-in">
+                <div className="px-2.5 py-1 font-extrabold text-[11px] text-slate-500 uppercase tracking-wider flex items-center justify-between border-b border-slate-100 pb-1.5">
+                  <span>Saved Prescriptions for {resolvedPatient?.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowHistoryDropdown(false)}
+                    className="text-slate-400 hover:text-slate-700 text-xs font-black cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+                {patientPrescriptions.map((rx) => {
+                  const isCurrent = editingRxId === rx.id;
+                  return (
+                    <div
+                      key={rx.id}
+                      className={`p-2.5 rounded-xl border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition-colors ${
+                        isCurrent
+                          ? 'bg-blue-50/70 border-blue-300 font-bold'
+                          : 'bg-white hover:bg-slate-50 border-slate-200'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-extrabold text-blue-900">{rx.id}</span>
+                          <span className="text-slate-400">•</span>
+                          <span className="text-slate-600 font-medium">{rx.date}</span>
+                          <span className="text-slate-400">•</span>
+                          <span className="text-slate-700 font-semibold">{rx.doctorName}</span>
+                          {isCurrent && (
+                            <span className="bg-blue-200/80 text-blue-900 text-[10px] font-black px-1.5 py-0.2 rounded">
+                              CURRENTLY EDITING
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-slate-600 font-medium text-[11px] mt-0.5">
+                          <strong>Diagnosis:</strong> {rx.diagnosis || 'General Consultation'} •{' '}
+                          <strong>Meds ({rx.items?.length || 0}):</strong>{' '}
+                          {rx.items?.map((m) => m.medicine).filter(Boolean).join(', ') || 'None'}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => loadPreviousPrescription(rx, false)}
+                          className="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 font-bold text-xs flex items-center gap-1 cursor-pointer"
+                        >
+                          <Edit3 className="w-3 h-3 text-teal-700" />
+                          <span>Load / Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => loadPreviousPrescription(rx, true)}
+                          className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1 cursor-pointer"
+                          title="Copy these medicines into a new prescription"
+                        >
+                          <RotateCcw className="w-3 h-3 text-slate-500" />
+                          <span>Repeat Meds</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Allergy Alert Warning Banner */}
         {resolvedPatient?.medicalHistory?.allergies && resolvedPatient.medicalHistory.allergies.length > 0 && (
           <div className="p-3 bg-rose-50 rounded-xl border-2 border-rose-300 flex items-center justify-between text-xs text-rose-950 animate-in fade-in">
@@ -348,29 +685,55 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
           </div>
         )}
 
+        {/* Delete Confirmation Box */}
+        {showDeleteConfirm && (
+          <div className="p-4 bg-rose-50 border-2 border-rose-400 rounded-2xl space-y-3 animate-in fade-in">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-rose-100 text-rose-700 rounded-xl">
+                <AlertTriangle className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <h4 className="font-black text-rose-950 text-sm">
+                  Delete Prescription #{editingRxId}?
+                </h4>
+                <p className="text-xs text-rose-800 font-medium mt-0.5">
+                  This will permanently delete this prescription record from the patient profile, visit history, and audit ledger. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-rose-200">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-3 py-1.5 rounded-lg bg-white border border-rose-200 text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer"
+              >
+                Cancel Keep Rx
+              </button>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleDelete}
+                className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{isSubmitting ? 'Deleting...' : 'Confirm Delete Prescription'}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ========================================================= */}
         {/* VIEW 1: COMPOSE / EDIT PRESCRIPTION FORM                  */}
         {/* ========================================================= */}
         {viewMode === 'edit' && (
-          <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-4 text-xs">
-            {/* Fast Medicine Presets */}
-            <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-1.5">
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
-                ⚡ Quick Dental Presets (Click to add to Rx):
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {COMMON_DENTAL_MEDICATIONS.map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleAddPreset(preset)}
-                    className="px-2.5 py-1 rounded-lg bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-[11px] font-semibold text-slate-700 transition-colors cursor-pointer shadow-2xs"
-                  >
-                    + {preset.medicine.split(' ')[0]} ({preset.dosage})
-                  </button>
-                ))}
-              </div>
-            </div>
+          <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-4 text-xs relative">
+            {/* Backdrop for closing active dropdown on outside click */}
+            {activeDropdownRowId && (
+              <div 
+                className="fixed inset-0 z-30 cursor-default" 
+                onClick={() => setActiveDropdownRowId(null)} 
+              />
+            )}
 
             {/* Diagnosis & Indication */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -399,9 +762,15 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
             {/* Prescription Medicine Items */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">
-                  Medications to Prescribe ({items.length})
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">
+                    Medications to Prescribe ({items.length})
+                  </span>
+                  <span className="text-[10px] text-blue-900 bg-blue-50 font-bold px-2 py-0.5 rounded-full border border-blue-200 flex items-center gap-1">
+                    <Database className="w-3 h-3 text-blue-700" />
+                    <span>Database-backed selection</span>
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={handleAddItem}
@@ -412,22 +781,123 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
                 </button>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {items.map((item, idx) => (
-                  <div key={item.id} className="p-3 bg-white rounded-xl border border-slate-200 space-y-2 shadow-2xs">
+                  <div key={item.id} className="p-3 bg-white rounded-xl border border-slate-200 space-y-2.5 shadow-2xs relative">
+                    
+                    {/* Top Row: Index + Medicine Input + Delete Button (Mobile & Desktop) */}
                     <div className="flex items-center gap-2">
-                      <span className="w-5 text-slate-400 font-mono font-bold text-center text-xs">{idx + 1}.</span>
-                      <div className="flex-1">
-                        <input
-                          type="text"
-                          required
-                          value={item.medicine}
-                          onChange={(e) => handleItemChange(item.id, 'medicine', e.target.value)}
-                          placeholder="Medicine Name (e.g. Amoxicillin + Clavulanate)"
-                          className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-bold text-xs"
-                        />
+                      <span className="w-5 text-slate-400 font-mono font-bold text-center text-xs shrink-0">{idx + 1}.</span>
+                      
+                      {/* Searchable Database Medicine Dropdown Input */}
+                      <div className="flex-1 relative">
+                        <div className="relative flex items-center">
+                          <input
+                            type="text"
+                            required
+                            value={item.medicine}
+                            onFocus={() => setActiveDropdownRowId(item.id)}
+                            onChange={(e) => {
+                              handleItemChange(item.id, 'medicine', e.target.value);
+                              setActiveDropdownRowId(item.id);
+                            }}
+                            placeholder="Select from database or type medicine name..."
+                            className="w-full px-2.5 py-2 sm:py-1.5 pr-8 rounded-lg border border-slate-300 font-bold text-xs focus:ring-2 focus:border-blue-500 bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setActiveDropdownRowId(activeDropdownRowId === item.id ? null : item.id)}
+                            className="absolute right-2 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer p-1"
+                            title="Toggle medicine database dropdown"
+                          >
+                            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${activeDropdownRowId === item.id ? 'rotate-180 text-blue-600' : ''}`} />
+                          </button>
+                        </div>
+
+                        {/* Interactive Dropdown Menu from Database */}
+                        {activeDropdownRowId === item.id && (
+                          <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-2xl border border-slate-300 z-40 max-h-56 overflow-y-auto p-1.5 animate-in fade-in zoom-in-95 duration-100">
+                            <div className="flex items-center justify-between px-2.5 py-1 bg-slate-50 rounded-lg text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1 border border-slate-100">
+                              <span className="flex items-center gap-1.5">
+                                <Database className="w-3 h-3 text-blue-600" />
+                                <span>Clinic Database Medicines ({getFilteredMedicines(item.medicine).length})</span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setActiveDropdownRowId(null)}
+                                className="text-slate-400 hover:text-slate-700 font-black cursor-pointer text-xs"
+                              >
+                                ✕
+                              </button>
+                            </div>
+
+                            <div className="space-y-0.5">
+                              {getFilteredMedicines(item.medicine).map((med) => (
+                                <button
+                                  key={med.id || med.name}
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    handleSelectMedicine(item.id, med);
+                                  }}
+                                  className="w-full text-left px-2.5 py-1.5 hover:bg-blue-50 rounded-lg flex items-center justify-between group transition-colors cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-slate-800 group-hover:text-blue-900 text-xs">
+                                      {med.name}
+                                    </span>
+                                    {med.dosage && (
+                                      <span className="text-[10px] bg-slate-100 group-hover:bg-blue-100 text-slate-600 group-hover:text-blue-800 font-mono px-1.5 py-0.5 rounded font-semibold">
+                                        {med.dosage}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-center gap-1.5">
+                                    {med.frequency && (
+                                      <span className="text-[10px] text-slate-400 group-hover:text-blue-600 font-medium">
+                                        {med.frequency}
+                                      </span>
+                                    )}
+                                    {med.category && (
+                                      <span className="text-[9px] bg-slate-100 text-slate-500 font-bold px-1.5 py-0.5 rounded uppercase">
+                                        {med.category}
+                                      </span>
+                                    )}
+                                  </div>
+                                </button>
+                              ))}
+
+                              {getFilteredMedicines(item.medicine).length === 0 && (
+                                <div className="px-3 py-2 text-center text-xs text-slate-400">
+                                  No matching medicine in database.
+                                </div>
+                              )}
+
+                              {/* If user typed a custom new medicine name, offer instant 1-click database save */}
+                              {item.medicine.trim() && !medicines.some(m => m.name.toLowerCase().trim() === item.medicine.toLowerCase().trim()) && (
+                                <div className="pt-1 mt-1 border-t border-slate-100">
+                                  <button
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      handleSaveToCatalog(item);
+                                      setActiveDropdownRowId(null);
+                                    }}
+                                    className="w-full text-left px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-900 rounded-lg flex items-center gap-2 text-xs font-bold transition-colors cursor-pointer border border-blue-200"
+                                  >
+                                    <Database className="w-3.5 h-3.5 text-blue-700 shrink-0" />
+                                    <span>+ Save "{item.medicine}" to Database for future dropdowns</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="w-28">
+
+                      {/* Desktop Dosage & Route */}
+                      <div className="hidden sm:block w-28 shrink-0">
                         <input
                           type="text"
                           value={item.dosage}
@@ -436,7 +906,7 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
                           className="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold"
                         />
                       </div>
-                      <div className="w-28">
+                      <div className="hidden sm:block w-28 shrink-0">
                         <select
                           value={item.route}
                           onChange={(e) => handleItemChange(item.id, 'route', e.target.value)}
@@ -448,11 +918,12 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
                           <option value="Sublingual">Sublingual</option>
                         </select>
                       </div>
+
                       {items.length > 1 && (
                         <button
                           type="button"
                           onClick={() => handleRemoveItem(item.id)}
-                          className="p-1 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 cursor-pointer shrink-0 transition-colors"
                           title="Remove item"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -460,7 +931,80 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pl-7">
+                    {/* Mobile-Only Row 2: Dosage + Route */}
+                    <div className="grid grid-cols-2 gap-2 sm:hidden pl-7">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Dosage</label>
+                        <input
+                          type="text"
+                          value={item.dosage}
+                          onChange={(e) => handleItemChange(item.id, 'dosage', e.target.value)}
+                          placeholder="e.g. 500mg"
+                          className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Route</label>
+                        <select
+                          value={item.route}
+                          onChange={(e) => handleItemChange(item.id, 'route', e.target.value)}
+                          className="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white"
+                        >
+                          <option value="Oral">Oral</option>
+                          <option value="Topical rinse">Topical rinse</option>
+                          <option value="Topical application">Topical paste</option>
+                          <option value="Sublingual">Sublingual</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Mobile-Only Row 3: Frequency + Duration */}
+                    <div className="grid grid-cols-2 gap-2 sm:hidden pl-7">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Frequency</label>
+                        <select
+                          value={item.frequency}
+                          onChange={(e) => handleItemChange(item.id, 'frequency', e.target.value)}
+                          className="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white"
+                        >
+                          <option value="OD">OD (Once daily)</option>
+                          <option value="BD">BD (Twice daily)</option>
+                          <option value="TDS">TDS (Thrice daily)</option>
+                          <option value="QID">QID (Four times)</option>
+                          <option value="SOS">SOS (When needed)</option>
+                          <option value="Stat">Stat (Single dose)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Duration</label>
+                        <select
+                          value={item.duration}
+                          onChange={(e) => handleItemChange(item.id, 'duration', e.target.value)}
+                          className="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white"
+                        >
+                          <option value="3 days">3 days</option>
+                          <option value="5 days">5 days</option>
+                          <option value="7 days">7 days</option>
+                          <option value="10 days">10 days</option>
+                          <option value="14 days">14 days</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Mobile-Only Row 4: Instructions */}
+                    <div className="sm:hidden pl-7">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Instructions</label>
+                      <input
+                        type="text"
+                        value={item.instructions}
+                        onChange={(e) => handleItemChange(item.id, 'instructions', e.target.value)}
+                        placeholder="Instructions (e.g. After food)"
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-medium"
+                      />
+                    </div>
+
+                    {/* Desktop-Only Grid: Frequency + Duration + Instructions */}
+                    <div className="hidden sm:grid grid-cols-3 gap-2 pl-7">
                       <div>
                         <select
                           value={item.frequency}
@@ -517,41 +1061,62 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
 
             {/* Bottom Actions Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-200">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 rounded-xl text-slate-500 hover:bg-slate-100 font-bold cursor-pointer text-xs"
-              >
-                Cancel
-              </button>
+              <div className="flex items-center justify-between sm:justify-start gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-3 sm:px-4 py-2 rounded-xl text-slate-500 hover:bg-slate-100 font-bold cursor-pointer text-xs"
+                >
+                  Cancel
+                </button>
 
-              <div className="flex items-center gap-2 flex-wrap">
+                {editingRxId && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 font-bold cursor-pointer text-xs flex items-center gap-1.5 transition-colors"
+                    title="Delete this saved prescription"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Rx</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
                 <button
                   type="button"
                   onClick={handlePrintOnly}
-                  className="px-3.5 py-2 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm transition-transform active:scale-95"
+                  className="flex-1 sm:flex-none px-3.5 py-2.5 sm:py-2 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-transform active:scale-95"
                 >
                   <Printer className="w-4 h-4" />
-                  <span>Print Prescription 🖨️</span>
+                  <span>Print 🖨️</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleDownloadPdf}
-                  className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm transition-transform active:scale-95"
+                  className="flex-1 sm:flex-none px-3.5 py-2.5 sm:py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-sm transition-transform active:scale-95"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Download PDF 📥</span>
+                  <span>PDF 📥</span>
                 </button>
 
-                <ClayButton
-                  variant="mint"
-                  type="submit"
-                  disabled={isSubmitting}
-                  icon={<CheckCircle2 className="w-4 h-4" />}
-                >
-                  {isSubmitting ? 'Saving Prescription...' : 'Save & Issue Rx'}
-                </ClayButton>
+                <div className="w-full sm:w-auto">
+                  <ClayButton
+                    variant="mint"
+                    type="submit"
+                    disabled={isSubmitting}
+                    icon={<CheckCircle2 className="w-4 h-4" />}
+                    className="w-full sm:w-auto justify-center py-2.5 sm:py-2"
+                  >
+                    {isSubmitting 
+                      ? 'Saving...' 
+                      : editingRxId 
+                        ? 'Update Prescription ℞' 
+                        : 'Save & Issue Rx'}
+                  </ClayButton>
+                </div>
               </div>
             </div>
           </form>
@@ -595,14 +1160,27 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-200">
-              <button
-                type="button"
-                onClick={() => setViewMode('edit')}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer flex items-center gap-1.5"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span>← Back to Edit Form</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('edit')}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>← Back to Edit Form</span>
+                </button>
+
+                {editingRxId && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 font-bold cursor-pointer text-xs flex items-center gap-1.5 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Rx</span>
+                  </button>
+                )}
+              </div>
 
               <ClayButton
                 variant="mint"
@@ -611,7 +1189,11 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
                 onClick={(e) => handleSubmit(e, false)}
                 icon={<CheckCircle2 className="w-4 h-4" />}
               >
-                {isSubmitting ? 'Saving Prescription...' : 'Save & Issue Rx'}
+                {isSubmitting 
+                  ? 'Saving...' 
+                  : editingRxId 
+                    ? 'Update Prescription ℞' 
+                    : 'Save & Issue Rx'}
               </ClayButton>
             </div>
           </div>

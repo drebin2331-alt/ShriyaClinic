@@ -73,8 +73,18 @@ export const TokenControlView: React.FC = () => {
   // Receptionist Checkout Modal from Queue
   const [checkoutVisitTarget, setCheckoutVisitTarget] = useState<ClinicVisit | null>(null);
 
-  // Filter tokens: only checked-in patients! No un-arrived future appointments.
+  // Date filtering state: Default strictly to Today
+  const [showAllDatesHistory, setShowAllDatesHistory] = useState(false);
+  const todayDateStr = new Date().toISOString().split('T')[0];
+
+  // Filter tokens: only checked-in patients for TODAY'S clinic queue (unless user explicitly toggles history)
   const activeTokens = tokens.filter((t) => {
+    if (!showAllDatesHistory) {
+      const tokenDate = t.date || (t.createdAt && t.createdAt.includes('T') ? t.createdAt.split('T')[0] : todayDateStr);
+      if (tokenDate !== todayDateStr) {
+        return false;
+      }
+    }
     if (currentUser.role === 'doctor' && currentUser.doctorId) {
       return t.doctorId === currentUser.doctorId;
     }
@@ -162,7 +172,7 @@ export const TokenControlView: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-6 py-5 flex gap-6">
+    <div className="w-full max-w-full overflow-x-hidden mx-auto px-2.5 sm:px-4 lg:px-6 py-3 sm:py-5 flex flex-col lg:flex-row gap-4 lg:gap-6">
       <Sidebar />
 
       <main className="flex-1 min-w-0 flex flex-col gap-4">
@@ -517,14 +527,37 @@ export const TokenControlView: React.FC = () => {
               </p>
             </div>
 
-            <ClayButton
-              variant="secondary"
-              size="sm"
-              onClick={() => setActiveView('staff-checkin')}
-              icon={<ArrowRight className="w-3.5 h-3.5" />}
-            >
-              Go to Check-In Desk
-            </ClayButton>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center p-0.5 rounded-xl bg-slate-100 border border-slate-200 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setShowAllDatesHistory(false)}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    !showAllDatesHistory ? 'bg-white text-sky-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Today Only
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAllDatesHistory(true)}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    showAllDatesHistory ? 'bg-white text-sky-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  All Dates History
+                </button>
+              </div>
+
+              <ClayButton
+                variant="secondary"
+                size="sm"
+                onClick={() => setActiveView('staff-checkin')}
+                icon={<ArrowRight className="w-3.5 h-3.5" />}
+              >
+                Go to Check-In Desk
+              </ClayButton>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-3">

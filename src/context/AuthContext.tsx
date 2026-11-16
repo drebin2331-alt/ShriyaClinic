@@ -1,6 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AuthUser, UserRole } from '../types';
-import { supabase, isSupabaseConfigured, fetchProfilesFromDb, saveProfileToDb } from '../lib/supabase';
+import {
+  supabase,
+  isSupabaseAvailable,
+  probeSupabaseAvailability,
+  subscribeSupabaseStatus,
+  isSupabaseBillingError,
+  markSupabaseRestricted,
+  fetchProfilesFromDb,
+  saveProfileToDb
+} from '../lib/supabase';
 import { safeSetItem } from '../utils/safeStorage';
 
 // Core clinic accounts with instant authentication fallback
@@ -8,7 +17,7 @@ export const DEFAULT_ACCOUNTS: AuthUser[] = [
   {
     id: 'usr-admin-01',
     email: 'admin@clinic.com',
-    name: 'Dr. Rajesh Patel',
+    name: 'ADMIN',
     role: 'admin',
     title: 'Clinic Managing Director & Chief Administrator',
     avatar: '👨‍⚕️'
@@ -79,7 +88,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const isSupabaseOnline = isSupabaseConfigured();
+  const [isSupabaseOnline, setIsSupabaseOnline] = useState<boolean>(() => isSupabaseAvailable());
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login'>('login');
@@ -120,7 +129,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Synchronize accounts directly from Supabase profiles table
   const refreshAccounts = async (): Promise<AuthUser[]> => {
-    if (isSupabaseOnline) {
+    const canQueryCloud = await probeSupabaseAvailability();
+    setIsSupabaseOnline(isSupabaseAvailable());
+    if (canQueryCloud) {
       try {
         const profiles = await fetchProfilesFromDb();
         if (profiles && profiles.length > 0) {
@@ -147,8 +158,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    const unsub = subscribeSupabaseStatus(() => {
+      setIsSupabaseOnline(isSupabaseAvailable());
+    });
     refreshAccounts();
-  }, [isSupabaseOnline]);
+    return unsub;
+  }, []);
 
   // Persist current logged-in user to localStorage safely without exceeding quota
   useEffect(() => {
@@ -238,7 +253,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // PATH 2: If not matched in local cache, verify against Supabase database with a 2.5-second timeout
-    if (isSupabaseOnline && inputPass) {
+    if (isSupabaseAvailable() && inputPass) {
       try {
         const queryPromise = supabase
           .from('profiles')
@@ -252,7 +267,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const { data: profile, error } = (await Promise.race([queryPromise, timeoutPromise])) as any;
 
-        if (!error && profile) {
+        if (error && isSupabaseBillingError(error)) {
+          markSupabaseRestricted(error.message);
+        } else if (!error && profile) {
           const expectedPassword = (profile.password || 'Password@123').trim();
           if (inputPass === expectedPassword) {
             const user: AuthUser = {

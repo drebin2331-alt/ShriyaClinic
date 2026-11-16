@@ -40,18 +40,110 @@ export const supabase: SupabaseClient = createClient(
   }
 );
 
+// Circuit breaker for Supabase billing/quota restrictions (HTTP 402 Payment Required)
+let supabaseServiceRestricted = false;
+let restrictedWarned = false;
+let probePromise: Promise<boolean> | null = null;
+const supabaseStatusListeners = new Set<() => void>();
+
+export const isSupabaseBillingError = (error: any): boolean => {
+  if (!error) return false;
+  const status = error?.status ?? error?.statusCode ?? error?.code;
+  if (status === 402 || status === '402') return true;
+  const msg = String(error?.message || error?.error_description || error?.details || error || '').toLowerCase();
+  return (
+    msg.includes('402') ||
+    msg.includes('payment required') ||
+    msg.includes('restricted due to') ||
+    msg.includes('spend cap') ||
+    msg.includes('upgrade their plan')
+  );
+};
+
+export const markSupabaseRestricted = (reason?: string): void => {
+  if (!supabaseServiceRestricted) {
+    supabaseServiceRestricted = true;
+    try {
+      supabase.removeAllChannels();
+      (supabase as any).realtime?.disconnect?.();
+    } catch {
+      // Ignore realtime teardown issues
+    }
+    supabaseStatusListeners.forEach((cb) => {
+      try { cb(); } catch {}
+    });
+  }
+  if (!restrictedWarned) {
+    restrictedWarned = true;
+    console.warn(
+      `[Supabase] Cloud sync paused (${reason || 'HTTP 402: project plan/spend cap reached'}). Operating on local clinic storage & API.`
+    );
+  }
+};
+
+export const isSupabaseAvailable = (): boolean => {
+  return isSupabaseConfigured() && !supabaseServiceRestricted;
+};
+
+export const subscribeSupabaseStatus = (listener: () => void): (() => void) => {
+  supabaseStatusListeners.add(listener);
+  return () => {
+    supabaseStatusListeners.delete(listener);
+  };
+};
+
+export const probeSupabaseAvailability = async (): Promise<boolean> => {
+  if (!isSupabaseConfigured() || supabaseServiceRestricted) return false;
+  if (probePromise) return probePromise;
+
+  probePromise = (async () => {
+    try {
+      const res = await fetch(`${supabaseUrl}/rest/v1/profiles?select=id&limit=1`, {
+        method: 'GET',
+        headers: {
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${supabaseAnonKey}`
+        }
+      });
+      if (res.status === 402) {
+        let detail = 'HTTP 402 Payment Required';
+        try {
+          const body = await res.json();
+          if (body?.message) detail = body.message;
+        } catch {}
+        markSupabaseRestricted(detail);
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
+  return probePromise;
+};
+
+const handleSupabaseError = (context: string, error: any): void => {
+  if (!error) return;
+  if (isSupabaseBillingError(error)) {
+    markSupabaseRestricted(error?.message || String(error));
+    return;
+  }
+  console.error(context, error);
+};
+
 // ============================================================================
 // PATIENTS DATA LAYER
 // ============================================================================
 export const fetchPatientsFromDb = async (): Promise<PatientRecord[]> => {
-  if (!isSupabaseConfigured()) return [];
+  if (!isSupabaseAvailable()) return [];
   const { data, error } = await supabase
     .from('patients')
     .select('*')
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching patients from Supabase:', error);
+    handleSupabaseError('Error fetching patients from Supabase:', error);
     return [];
   }
 
@@ -82,16 +174,16 @@ export const fetchPatientsFromDb = async (): Promise<PatientRecord[]> => {
     caseSheetCompletedAt: row.dental_history?.completedAt || row.case_sheet_completed_at,
     medicalHistory: row.medical_history || { allergies: [], conditions: [] },
     dentalHistory: row.dental_history || {},
-    dentalChart: row.dental_chart || {},
+    dentalChart: Array.isArray(row.dental_chart) ? row.dental_chart : [],
     clinicalNotes: row.clinical_notes || [],
-    treatmentPlans: row.treatment_plans || [],
+    treatmentPlans: Array.isArray(row.treatment_plans) ? row.treatment_plans : [],
     allergies: row.allergies || [],
     visits: row.visits || []
   }));
 };
 
 export const savePatientToDb = async (patient: PatientRecord): Promise<void> => {
-  if (!isSupabaseConfigured()) return;
+  if (!isSupabaseAvailable()) return;
   const payload = {
     id: patient.id,
     op_number: patient.opNumber,
@@ -115,37 +207,39 @@ export const savePatientToDb = async (patient: PatientRecord): Promise<void> => 
     current_treatment: patient.currentTreatment || null,
     status: patient.status || 'New Patient',
     outstanding_balance: patient.outstandingBalance || 0,
+    case_sheet_completed: Boolean(patient.caseSheetCompleted || patient.dentalHistory?.caseSheetCompleted),
+    case_sheet_completed_at: patient.caseSheetCompletedAt || patient.dentalHistory?.completedAt || null,
     medical_history: patient.medicalHistory || {},
     dental_history: patient.dentalHistory || {},
-    dental_chart: patient.dentalChart || {},
+    dental_chart: Array.isArray(patient.dentalChart) ? patient.dentalChart : [],
     clinical_notes: patient.clinicalNotes || [],
-    treatment_plans: patient.treatmentPlans || [],
+    treatment_plans: Array.isArray(patient.treatmentPlans) ? patient.treatmentPlans : [],
     allergies: patient.allergies || [],
     visits: patient.visits || []
   };
 
   const { error } = await supabase.from('patients').upsert(payload);
-  if (error) console.error('Error saving patient to Supabase:', error);
+  if (error) handleSupabaseError('Error saving patient to Supabase:', error);
 };
 
 export const deletePatientFromDb = async (patientId: string): Promise<void> => {
-  if (!isSupabaseConfigured()) return;
+  if (!isSupabaseAvailable()) return;
   const { error } = await supabase.from('patients').delete().eq('id', patientId);
-  if (error) console.error('Error deleting patient from Supabase:', error);
+  if (error) handleSupabaseError('Error deleting patient from Supabase:', error);
 };
 
 // ============================================================================
 // APPOINTMENTS DATA LAYER
 // ============================================================================
 export const fetchAppointmentsFromDb = async (): Promise<Appointment[]> => {
-  if (!isSupabaseConfigured()) return [];
+  if (!isSupabaseAvailable()) return [];
   const { data, error } = await supabase
     .from('appointments')
     .select('*')
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching appointments from Supabase:', error);
+    handleSupabaseError('Error fetching appointments from Supabase:', error);
     return [];
   }
 
@@ -172,7 +266,7 @@ export const fetchAppointmentsFromDb = async (): Promise<Appointment[]> => {
 };
 
 export const saveAppointmentToDb = async (apt: Appointment): Promise<void> => {
-  if (!isSupabaseConfigured()) return;
+  if (!isSupabaseAvailable()) return;
   const payload = {
     id: apt.id,
     token_id: apt.tokenId || null,
@@ -194,27 +288,27 @@ export const saveAppointmentToDb = async (apt: Appointment): Promise<void> => {
   };
 
   const { error } = await supabase.from('appointments').upsert(payload);
-  if (error) console.error('Error saving appointment to Supabase:', error);
+  if (error) handleSupabaseError('Error saving appointment to Supabase:', error);
 };
 
 export const deleteAppointmentFromDb = async (aptId: string): Promise<void> => {
-  if (!isSupabaseConfigured()) return;
+  if (!isSupabaseAvailable()) return;
   const { error } = await supabase.from('appointments').delete().eq('id', aptId);
-  if (error) console.error('Error deleting appointment from Supabase:', error);
+  if (error) handleSupabaseError('Error deleting appointment from Supabase:', error);
 };
 
 // ============================================================================
 // QUEUE TOKENS DATA LAYER
 // ============================================================================
 export const fetchTokensFromDb = async (): Promise<QueueToken[]> => {
-  if (!isSupabaseConfigured()) return [];
+  if (!isSupabaseAvailable()) return [];
   const { data, error } = await supabase
     .from('tokens')
     .select('*')
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching tokens from Supabase:', error);
+    handleSupabaseError('Error fetching tokens from Supabase:', error);
     return [];
   }
 
@@ -236,12 +330,13 @@ export const fetchTokensFromDb = async (): Promise<QueueToken[]> => {
     calledAt: row.called_at,
     startedAt: row.started_at,
     completedAt: row.completed_at,
-    createdAt: row.created_at
+    createdAt: row.created_at,
+    date: row.date || (row.created_at && row.created_at.includes('T') ? row.created_at.split('T')[0] : new Date().toISOString().split('T')[0])
   }));
 };
 
 export const saveTokenToDb = async (token: QueueToken): Promise<void> => {
-  if (!isSupabaseConfigured()) return;
+  if (!isSupabaseAvailable()) return;
   const payload = {
     id: token.id,
     token_number: token.tokenNumber,
@@ -263,21 +358,21 @@ export const saveTokenToDb = async (token: QueueToken): Promise<void> => {
   };
 
   const { error } = await supabase.from('tokens').upsert(payload);
-  if (error) console.error('Error saving token to Supabase:', error);
+  if (error) handleSupabaseError('Error saving token to Supabase:', error);
 };
 
 // ============================================================================
 // INVOICES & PAYMENTS DATA LAYER
 // ============================================================================
 export const fetchInvoicesFromDb = async (): Promise<Invoice[]> => {
-  if (!isSupabaseConfigured()) return [];
+  if (!isSupabaseAvailable()) return [];
   const { data, error } = await supabase
     .from('invoices')
     .select('*')
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching invoices from Supabase:', error);
+    handleSupabaseError('Error fetching invoices from Supabase:', error);
     return [];
   }
 
@@ -317,7 +412,7 @@ export const fetchInvoicesFromDb = async (): Promise<Invoice[]> => {
 };
 
 export const saveInvoiceToDb = async (inv: Invoice): Promise<void> => {
-  if (!isSupabaseConfigured()) return;
+  if (!isSupabaseAvailable()) return;
 
   // Supabase constraint `invoices_status_check` accepts: 'PAID', 'PARTIALLY_PAID', 'UNPAID', 'CANCELLED'
   const dbStatus =
@@ -344,19 +439,19 @@ export const saveInvoiceToDb = async (inv: Invoice): Promise<void> => {
 
   const { error } = await supabase.from('invoices').upsert(payload);
   if (error) {
-    console.error('Error saving invoice to Supabase:', error);
+    handleSupabaseError('Error saving invoice to Supabase:', error);
   }
 };
 
 export const fetchPaymentsFromDb = async (): Promise<PaymentRecord[]> => {
-  if (!isSupabaseConfigured()) return [];
+  if (!isSupabaseAvailable()) return [];
   const { data, error } = await supabase
     .from('payments')
     .select('*')
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching payments from Supabase:', error);
+    handleSupabaseError('Error fetching payments from Supabase:', error);
     return [];
   }
 
@@ -377,7 +472,7 @@ export const fetchPaymentsFromDb = async (): Promise<PaymentRecord[]> => {
 };
 
 export const savePaymentToDb = async (pay: PaymentRecord): Promise<void> => {
-  if (!isSupabaseConfigured()) return;
+  if (!isSupabaseAvailable()) return;
   const payload = {
     id: pay.id,
     invoice_id: pay.invoiceId,
@@ -393,21 +488,21 @@ export const savePaymentToDb = async (pay: PaymentRecord): Promise<void> => {
   };
 
   const { error } = await supabase.from('payments').upsert(payload);
-  if (error) console.error('Error saving payment to Supabase:', error);
+  if (error) handleSupabaseError('Error saving payment to Supabase:', error);
 };
 
 // ============================================================================
 // DENTAL CHAIRS DATA LAYER
 // ============================================================================
 export const fetchChairsFromDb = async (): Promise<DentalChair[]> => {
-  if (!isSupabaseConfigured()) return [];
+  if (!isSupabaseAvailable()) return [];
   const { data, error } = await supabase
     .from('dental_chairs')
     .select('*')
     .order('id', { ascending: true });
 
   if (error) {
-    console.error('Error fetching chairs from Supabase:', error);
+    handleSupabaseError('Error fetching chairs from Supabase:', error);
     return [];
   }
 
@@ -424,7 +519,7 @@ export const fetchChairsFromDb = async (): Promise<DentalChair[]> => {
 };
 
 export const saveChairToDb = async (chair: DentalChair): Promise<void> => {
-  if (!isSupabaseConfigured()) return;
+  if (!isSupabaseAvailable()) return;
   const payload = {
     id: chair.id,
     name: chair.name,
@@ -437,7 +532,69 @@ export const saveChairToDb = async (chair: DentalChair): Promise<void> => {
   };
 
   const { error } = await supabase.from('dental_chairs').upsert(payload);
-  if (error) console.error('Error saving chair to Supabase:', error);
+  if (error) handleSupabaseError('Error saving chair to Supabase:', error);
+};
+
+// ============================================================================
+// PRESCRIPTIONS DATA LAYER
+// ============================================================================
+export const fetchPrescriptionsFromDb = async (): Promise<PrescriptionRecord[]> => {
+  if (!isSupabaseAvailable()) return [];
+  const { data, error } = await supabase
+    .from('prescriptions')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    handleSupabaseError('Error fetching prescriptions from Supabase:', error);
+    return [];
+  }
+
+  return (data || []).map((row: any) => ({
+    id: row.id,
+    visitId: row.visit_id || undefined,
+    patientId: row.patient_id,
+    patientName: row.patient_name,
+    patientOpNumber: row.patient_op_number || undefined,
+    patientAge: row.patient_age || undefined,
+    patientGender: row.patient_gender || undefined,
+    doctorId: row.doctor_id || 'staff-1792653030970',
+    doctorName: row.doctor_name || 'Dr. DOCTOR TEST',
+    clinicName: 'Shriya Multispeciality Dental Clinic',
+    clinicAddress: 'Pollachi Road, Kozhinjapara, Palakkad - 678555',
+    clinicPhone: '+91 94003 20890',
+    date: row.date || (row.created_at ? row.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
+    diagnosis: row.diagnosis || '',
+    items: row.items || [],
+    doctorNotes: row.doctor_notes || '',
+    followUpDate: row.follow_up_date || undefined,
+    createdAt: row.created_at
+  }));
+};
+
+export const savePrescriptionToDb = async (rx: PrescriptionRecord): Promise<void> => {
+  if (!isSupabaseAvailable()) return;
+  const payload = {
+    id: rx.id,
+    visit_id: rx.visitId || null,
+    patient_id: rx.patientId,
+    patient_name: rx.patientName,
+    doctor_name: rx.doctorName,
+    items: rx.items || [],
+    diagnosis: rx.diagnosis || null,
+    doctor_notes: rx.doctorNotes || null,
+    follow_up_date: rx.followUpDate || null,
+    date: rx.date || new Date().toISOString().split('T')[0]
+  };
+
+  const { error } = await supabase.from('prescriptions').upsert(payload);
+  if (error) handleSupabaseError('Error saving prescription to Supabase:', error);
+};
+
+export const deletePrescriptionFromDb = async (id: string): Promise<void> => {
+  if (!isSupabaseAvailable()) return;
+  const { error } = await supabase.from('prescriptions').delete().eq('id', id);
+  if (error) handleSupabaseError('Error deleting prescription from Supabase:', error);
 };
 
 // ============================================================================
@@ -462,7 +619,7 @@ export interface ProfileRecord {
 }
 
 export const fetchProfilesFromDb = async (): Promise<ProfileRecord[]> => {
-  if (!isSupabaseConfigured()) return [];
+  if (!isSupabaseAvailable()) return [];
   try {
     const { data, error } = await supabase
       .from('profiles')
@@ -470,7 +627,11 @@ export const fetchProfilesFromDb = async (): Promise<ProfileRecord[]> => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.warn('Error fetching profiles from Supabase:', error.message);
+      if (isSupabaseBillingError(error)) {
+        markSupabaseRestricted(error.message);
+      } else {
+        console.warn('Error fetching profiles from Supabase:', error.message);
+      }
       return [];
     }
 
@@ -498,7 +659,7 @@ export const fetchProfilesFromDb = async (): Promise<ProfileRecord[]> => {
 };
 
 export const saveProfileToDb = async (profile: Partial<ProfileRecord> & { email: string; name: string; role: string }): Promise<ProfileRecord | null> => {
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseAvailable()) return null;
   try {
     const payload: any = {
       email: profile.email.toLowerCase().trim(),
@@ -527,7 +688,7 @@ export const saveProfileToDb = async (profile: Partial<ProfileRecord> & { email:
       .maybeSingle();
 
     if (error) {
-      console.error('Error saving profile to Supabase:', error);
+      handleSupabaseError('Error saving profile to Supabase:', error);
       return null;
     }
 
@@ -557,7 +718,7 @@ export const saveProfileToDb = async (profile: Partial<ProfileRecord> & { email:
 };
 
 export const deleteProfileFromDb = async (idOrEmail: string): Promise<boolean> => {
-  if (!isSupabaseConfigured()) return true;
+  if (!isSupabaseAvailable()) return true;
   try {
     const query = idOrEmail.includes('@')
       ? supabase.from('profiles').delete().eq('email', idOrEmail.toLowerCase().trim())
@@ -565,7 +726,7 @@ export const deleteProfileFromDb = async (idOrEmail: string): Promise<boolean> =
 
     const { error } = await query;
     if (error) {
-      console.error('Error deleting profile from Supabase:', error);
+      handleSupabaseError('Error deleting profile from Supabase:', error);
       return false;
     }
     return true;

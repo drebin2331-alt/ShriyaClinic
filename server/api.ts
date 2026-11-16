@@ -22,7 +22,8 @@ import {
   FeeApprovalRecord,
   PaymentMethod,
   UserRole,
-  PatientEnquiry
+  PatientEnquiry,
+  MedicineRecord
 } from '../src/types';
 
 export const apiRouter = express.Router();
@@ -52,9 +53,63 @@ apiRouter.get('/state', (_req: Request, res: Response) => {
     prescriptions: db.prescriptions,
     feeApprovals: db.feeApprovals,
     enquiries: db.enquiries || [],
+    medicines: db.medicines || [],
     auditEvents: db.auditEvents.slice(0, 100),
     serverTime: new Date().toISOString()
   });
+});
+
+// -------------------------------------------------------------
+// MEDICINE CATALOG API (Database-backed for prescriptions)
+// -------------------------------------------------------------
+apiRouter.get('/medicines', (_req: Request, res: Response): void => {
+  const db = getDb();
+  res.json({ medicines: db.medicines || [] });
+});
+
+apiRouter.post('/medicines', (req: Request, res: Response): void => {
+  const { name, dosage, route, frequency, duration, instructions, category } = req.body;
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    res.status(400).json({ error: 'Medicine name is required.' });
+    return;
+  }
+  const db = getDb();
+  if (!db.medicines) db.medicines = [];
+
+  const trimmedName = name.trim();
+  const existingIdx = db.medicines.findIndex(
+    (m) => m.name.trim().toLowerCase() === trimmedName.toLowerCase()
+  );
+
+  let record: MedicineRecord;
+  if (existingIdx >= 0) {
+    db.medicines[existingIdx] = {
+      ...db.medicines[existingIdx],
+      dosage: dosage?.trim() || db.medicines[existingIdx].dosage || '',
+      route: route?.trim() || db.medicines[existingIdx].route || 'Oral',
+      frequency: frequency?.trim() || db.medicines[existingIdx].frequency || 'BD',
+      duration: duration?.trim() || db.medicines[existingIdx].duration || '5 days',
+      instructions: instructions?.trim() || db.medicines[existingIdx].instructions || 'After food',
+      category: category?.trim() || db.medicines[existingIdx].category
+    };
+    record = db.medicines[existingIdx];
+  } else {
+    record = {
+      id: `med-${Date.now()}`,
+      name: trimmedName,
+      dosage: dosage?.trim() || '',
+      route: route?.trim() || 'Oral',
+      frequency: frequency?.trim() || 'BD',
+      duration: duration?.trim() || '5 days',
+      instructions: instructions?.trim() || 'After food',
+      category: category?.trim() || 'General',
+      createdAt: new Date().toISOString()
+    };
+    db.medicines.push(record);
+  }
+
+  saveDb(db);
+  res.status(201).json({ medicine: record, medicines: db.medicines });
 });
 
 // -------------------------------------------------------------
@@ -86,10 +141,13 @@ apiRouter.post('/patients', (req: Request, res: Response): void => {
   const cleanPhone = phone.trim();
   const db = getDb();
 
-  // Duplicate Check
-  const existingPatient = db.patients.find(
-    (p) => p.phone.replace(/\D/g, '') === cleanPhone.replace(/\D/g, '')
-  );
+  // Duplicate Check by normalized 10-digit phone or exact identity
+  const normPhone = cleanPhone.replace(/\D/g, '').slice(-10);
+  const existingPatient = db.patients.find((p) => {
+    const pNorm = (p.phone || '').replace(/\D/g, '').slice(-10);
+    return (pNorm.length >= 8 && normPhone.length >= 8 && pNorm === normPhone) ||
+      (p.name.trim().toLowerCase() === name.trim().toLowerCase() && pNorm === normPhone);
+  });
 
   if (existingPatient && !allowDuplicate) {
     res.status(409).json({
@@ -647,9 +705,9 @@ apiRouter.post('/consultations/fee-approval', (req: Request, res: Response): voi
   // Fallback: If patient is still not found in local db (e.g. stored in Supabase or server restart),
   // auto-create or restore patient record so fee approval and invoicing never 404
   if (!patient) {
-    const resolvedId = reqPatientId || (visitId && visitId.startsWith('PAT-') ? visitId : 'PAT-2026-000101');
-    const resolvedOp = reqPatientOpNumber || (resolvedId.startsWith('PAT-') ? resolvedId.replace('PAT-', 'OP-') : 'OP-2026-00101');
-    const resolvedName = reqPatientName || (resolvedId === 'PAT-2026-000101' ? 'Customer 1' : 'Patient');
+    const resolvedId = reqPatientId || (visitId && visitId.startsWith('PAT-') ? visitId : `PAT-${new Date().getFullYear()}-000001`);
+    const resolvedOp = reqPatientOpNumber || (resolvedId.startsWith('PAT-') ? resolvedId.replace('PAT-', 'OP-') : `OP-${new Date().getFullYear()}-00001`);
+    const resolvedName = reqPatientName || 'Patient';
 
     patient = {
       id: resolvedId,
@@ -740,13 +798,25 @@ apiRouter.post('/consultations/fee-approval', (req: Request, res: Response): voi
   const tax = taxRate > 0 ? Math.round((taxableSubtotal * taxRate) / 100) : 0;
   const finalPayable = Math.max(0, taxableSubtotal + tax);
 
-  const feeApprovalId = generateFeeApprovalId();
+  const {
+    feeApprovalId: inputFeeApprovalId,
+    isNewFee = false
+  } = req.body;
+
   const todayStr = new Date().toISOString().split('T')[0];
 
   const assignedDoctorName = req.body.doctorName || visit.feeApproval?.authorizingDoctorName || visit.doctorName || patient.assignedDoctorName || 'Dr. DOCTOR TEST';
   const assignedDoctorId = req.body.doctorId || visit.feeApproval?.authorizingDoctorId || visit.doctorId || (actor.actorRole === 'doctor' ? actor.actorId : 'doc-1');
   const authorizingDoctorName = actor.actorRole === 'doctor' ? actor.actorName : (visit.feeApproval?.authorizingDoctorName || assignedDoctorName);
   const authorizingDoctorId = actor.actorRole === 'doctor' ? actor.actorId : (visit.feeApproval?.authorizingDoctorId || assignedDoctorId);
+
+  // Determine if editing an existing fee or creating a new fee approval
+  const isEditingExisting = Boolean(!isNewFee && inputFeeApprovalId);
+  const existingFeeApproval = isEditingExisting ? db.feeApprovals.find((f) => f.id === inputFeeApprovalId) : undefined;
+  const existingInv = isEditingExisting ? db.invoices.find((inv) => inv.feeApprovalId === inputFeeApprovalId) : undefined;
+
+  const feeApprovalId = existingFeeApproval ? existingFeeApproval.id : generateFeeApprovalId();
+  const invoiceId = existingInv ? existingInv.id : generateInvoiceNumber();
 
   const feeApprovalRecord: FeeApprovalRecord = {
     id: feeApprovalId,
@@ -773,16 +843,20 @@ apiRouter.post('/consultations/fee-approval', (req: Request, res: Response): voi
     authorizingDoctorName,
     tax,
     finalPayable,
-    approvedAt: new Date().toISOString(),
-    status: 'Approved'
+    approvedAt: existingFeeApproval?.approvedAt || new Date().toISOString(),
+    status: 'Approved',
+    invoiceId
   };
 
   visit.feeApproval = feeApprovalRecord;
-  db.feeApprovals.unshift(feeApprovalRecord);
+  visit.invoiceId = invoiceId;
 
-  // Generate or update corresponding approved Invoice
-  const existingInv = db.invoices.find((inv) => inv.feeApprovalId === feeApprovalId || inv.id === visit.invoiceId);
-  const invoiceId = existingInv ? existingInv.id : generateInvoiceNumber();
+  if (existingFeeApproval) {
+    const faIdx = db.feeApprovals.findIndex((f) => f.id === existingFeeApproval.id);
+    db.feeApprovals[faIdx] = feeApprovalRecord;
+  } else {
+    db.feeApprovals.unshift(feeApprovalRecord);
+  }
 
   const invoiceItems = [
     ...(Number(consultationFee) > 0 ? [{
@@ -830,6 +904,19 @@ apiRouter.post('/consultations/fee-approval', (req: Request, res: Response): voi
     db.invoices[invIdx] = approvedInvoice;
   } else {
     db.invoices.unshift(approvedInvoice);
+  }
+
+  // Update matching treatment plans to 'Billed'
+  if (patient.treatmentPlans && Array.isArray(patient.treatmentPlans)) {
+    patient.treatmentPlans = patient.treatmentPlans.map((tp) => {
+      const isBilledInFee = (items || []).some((it: any) =>
+        it.description?.toLowerCase().trim() === tp.procedure?.toLowerCase().trim()
+      );
+      if (isBilledInFee && tp.status !== 'Completed') {
+        return { ...tp, status: 'Billed', invoiceId };
+      }
+      return tp;
+    });
   }
 
   // Update patient ledger
@@ -965,6 +1052,29 @@ apiRouter.post('/prescriptions', (req: Request, res: Response): void => {
 
   db.prescriptions.unshift(prescriptionRecord);
 
+  // Automatically save any new prescribed medicines into database medicines directory
+  if (!db.medicines) db.medicines = [];
+  items.forEach((it: any) => {
+    if (it.medicine && typeof it.medicine === 'string' && it.medicine.trim()) {
+      const trimmed = it.medicine.trim();
+      const existing = db.medicines.find(
+        (m) => m.name.trim().toLowerCase() === trimmed.toLowerCase()
+      );
+      if (!existing) {
+        db.medicines.push({
+          id: `med-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          name: trimmed,
+          dosage: it.dosage?.trim() || '',
+          route: it.route?.trim() || 'Oral',
+          frequency: it.frequency?.trim() || 'BD',
+          duration: it.duration?.trim() || '5 days',
+          instructions: it.instructions?.trim() || 'After food',
+          createdAt: new Date().toISOString()
+        });
+      }
+    }
+  });
+
   // Link to visit and patient
   if (visit) {
     visit.prescriptionRecord = prescriptionRecord;
@@ -986,6 +1096,157 @@ apiRouter.post('/prescriptions', (req: Request, res: Response): void => {
   });
 
   res.status(201).json({ prescription: prescriptionRecord, visit });
+});
+
+apiRouter.put('/prescriptions/:id', (req: Request, res: Response): void => {
+  const { id } = req.params;
+  const {
+    items,
+    doctorNotes,
+    diagnosis,
+    followUpDate
+  } = req.body;
+
+  const actor = getActor(req);
+  const db = getDb();
+
+  if (actor.actorRole !== 'doctor' && actor.actorRole !== 'admin') {
+    res.status(403).json({ error: 'Only licensed doctors or clinic administrators can update prescriptions.' });
+    return;
+  }
+
+  const rxIndex = (db.prescriptions || []).findIndex((p) => p.id === id);
+  if (rxIndex === -1) {
+    res.status(404).json({ error: 'Prescription not found.' });
+    return;
+  }
+
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    res.status(400).json({ error: 'At least one medicine item is required.' });
+    return;
+  }
+
+  const existingRx = db.prescriptions[rxIndex];
+
+  const updatedRx: PrescriptionRecord = {
+    ...existingRx,
+    diagnosis: diagnosis !== undefined ? diagnosis : existingRx.diagnosis,
+    doctorNotes: doctorNotes !== undefined ? doctorNotes : existingRx.doctorNotes,
+    followUpDate: followUpDate !== undefined ? followUpDate : existingRx.followUpDate,
+    items: items.map((it: any, idx: number) => ({
+      id: it.id || `rx-item-${Date.now()}-${idx}`,
+      medicine: it.medicine,
+      dosage: it.dosage,
+      route: it.route || 'Oral',
+      frequency: it.frequency,
+      duration: it.duration,
+      instructions: it.instructions || 'After food'
+    }))
+  };
+
+  db.prescriptions[rxIndex] = updatedRx;
+
+  // Auto-save any newly typed medicines into database medicines catalog
+  if (!db.medicines) db.medicines = [];
+  items.forEach((it: any) => {
+    if (it.medicine && typeof it.medicine === 'string' && it.medicine.trim()) {
+      const trimmed = it.medicine.trim();
+      const existing = db.medicines.find(
+        (m) => m.name.trim().toLowerCase() === trimmed.toLowerCase()
+      );
+      if (!existing) {
+        db.medicines.push({
+          id: `med-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          name: trimmed,
+          dosage: it.dosage?.trim() || '',
+          route: it.route?.trim() || 'Oral',
+          frequency: it.frequency?.trim() || 'BD',
+          duration: it.duration?.trim() || '5 days',
+          instructions: it.instructions?.trim() || 'After food',
+          createdAt: new Date().toISOString()
+        });
+      }
+    }
+  });
+
+  // Update in patient record
+  const patient = db.patients.find((p) => p.id === updatedRx.patientId);
+  if (patient && patient.prescriptions) {
+    patient.prescriptions = patient.prescriptions.map((p) => (p.id === id ? updatedRx : p));
+  }
+
+  // Update in visit record
+  let visit = db.visits.find((v) => v.id === updatedRx.visitId);
+  if (!visit && patient && patient.visits) {
+    visit = patient.visits.find((v) => v.id === updatedRx.visitId || v.prescriptionRecord?.id === id);
+  }
+  if (visit) {
+    visit.prescriptionRecord = updatedRx;
+    visit.prescriptions = items.map((it: any) => `${it.medicine} ${it.dosage} (${it.frequency})`).join(', ');
+  }
+
+  saveDb(db);
+
+  logAuditEvent({
+    actorId: actor.actorId,
+    actorName: actor.actorName,
+    actorRole: actor.actorRole,
+    action: 'PRESCRIPTION_UPDATED',
+    entityType: 'Prescription',
+    entityId: id,
+    details: `Doctor ${actor.actorName} updated prescription ${id} for ${updatedRx.patientName}.`,
+    metadata: { rxId: id, medicinesCount: items.length }
+  });
+
+  res.json({ prescription: updatedRx, visit });
+});
+
+apiRouter.delete('/prescriptions/:id', (req: Request, res: Response): void => {
+  const { id } = req.params;
+  const actor = getActor(req);
+  const db = getDb();
+
+  if (actor.actorRole !== 'doctor' && actor.actorRole !== 'admin') {
+    res.status(403).json({ error: 'Only licensed doctors or clinic administrators can delete prescriptions.' });
+    return;
+  }
+
+  const rx = (db.prescriptions || []).find((p) => p.id === id);
+  if (!rx) {
+    res.status(404).json({ error: 'Prescription not found.' });
+    return;
+  }
+
+  // Remove from db.prescriptions
+  db.prescriptions = db.prescriptions.filter((p) => p.id !== id);
+
+  // Remove from patient record
+  const patient = db.patients.find((p) => p.id === rx.patientId);
+  if (patient && patient.prescriptions) {
+    patient.prescriptions = patient.prescriptions.filter((p) => p.id !== id);
+  }
+
+  // Clear in visit record
+  const visit = db.visits.find((v) => v.id === rx.visitId || v.prescriptionRecord?.id === id);
+  if (visit && visit.prescriptionRecord?.id === id) {
+    delete visit.prescriptionRecord;
+    delete visit.prescriptions;
+  }
+
+  saveDb(db);
+
+  logAuditEvent({
+    actorId: actor.actorId,
+    actorName: actor.actorName,
+    actorRole: actor.actorRole,
+    action: 'PRESCRIPTION_DELETED',
+    entityType: 'Prescription',
+    entityId: id,
+    details: `Doctor ${actor.actorName} deleted prescription ${id} for ${rx.patientName}.`,
+    metadata: { rxId: id }
+  });
+
+  res.json({ success: true, message: `Prescription ${id} deleted successfully.` });
 });
 
 // -------------------------------------------------------------
@@ -1271,4 +1532,20 @@ apiRouter.patch('/enquiries/:id', (req: Request, res: Response): void => {
   if (status) enq.status = status;
   saveDb(db);
   res.json(enq);
+});
+
+apiRouter.delete('/enquiries/:id', (req: Request, res: Response): void => {
+  const { id } = req.params;
+  const db = getDb();
+  if (!db.enquiries) db.enquiries = [];
+  db.enquiries = db.enquiries.filter((e) => e.id !== id);
+  saveDb(db);
+  res.json({ success: true, id });
+});
+
+apiRouter.delete('/enquiries', (_req: Request, res: Response): void => {
+  const db = getDb();
+  db.enquiries = [];
+  saveDb(db);
+  res.json({ success: true, message: 'All enquiries cleared' });
 });

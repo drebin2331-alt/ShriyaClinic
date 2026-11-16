@@ -147,7 +147,7 @@ export const PatientPortal: React.FC<PatientPortalProps> = ({ initialTab = 'dash
   const estimatedWaitMinutes = myActiveToken ? Math.max(5, (patientsAhead + 1) * 10) : 0;
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-6 py-5 flex gap-6">
+    <div className="w-full max-w-full overflow-x-hidden mx-auto px-2.5 sm:px-4 lg:px-6 py-3 sm:py-5 flex flex-col lg:flex-row gap-4 lg:gap-6">
       <Sidebar />
 
       <main className="flex-1 min-w-0 flex flex-col gap-4">
@@ -190,24 +190,24 @@ export const PatientPortal: React.FC<PatientPortalProps> = ({ initialTab = 'dash
           </div>
         )}
 
-        {/* Tab Selector Buttons */}
-        <div className="flex items-center gap-4 overflow-x-auto border-b border-slate-200">
+        {/* Modern Mobile-First Segmented Pill Tab Bar */}
+        <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80 scrollbar-none">
           {[
-            { id: 'dashboard', label: 'My Dashboard', icon: <Calendar className="w-3.5 h-3.5" /> },
-            { id: 'appointments', label: 'My Appointments', icon: <Clock className="w-3.5 h-3.5" /> },
-            { id: 'token', label: 'My Token', icon: <Tv className="w-3.5 h-3.5" /> },
+            { id: 'dashboard', label: 'Dashboard', icon: <Calendar className="w-3.5 h-3.5" /> },
+            { id: 'appointments', label: 'Appointments', icon: <Clock className="w-3.5 h-3.5" /> },
+            { id: 'token', label: 'Live Token', icon: <Tv className="w-3.5 h-3.5" /> },
             { id: 'treatment', label: 'Treatment Plan', icon: <Activity className="w-3.5 h-3.5" /> },
-            { id: 'billing', label: 'Bills & Payments', icon: <CreditCard className="w-3.5 h-3.5 text-emerald-700" /> },
-            { id: 'records', label: 'My Records & Scans', icon: <FileText className="w-3.5 h-3.5" /> },
-            { id: 'profile', label: 'My Profile', icon: <User className="w-3.5 h-3.5" /> }
+            { id: 'billing', label: 'Bills & UPI Pay', icon: <CreditCard className="w-3.5 h-3.5" /> },
+            { id: 'records', label: 'Records & Scans', icon: <FileText className="w-3.5 h-3.5" /> },
+            { id: 'profile', label: 'Profile', icon: <User className="w-3.5 h-3.5" /> }
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`pb-2.5 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap relative ${
+              className={`px-3 py-2 text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap rounded-xl ${
                 activeTab === tab.id
-                  ? 'text-emerald-800 border-b-2 border-emerald-800'
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'bg-white text-emerald-900 font-black shadow-xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 font-semibold'
               }`}
             >
               {tab.icon}

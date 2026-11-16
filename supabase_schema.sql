@@ -239,6 +239,24 @@ CREATE TABLE IF NOT EXISTS public.prescriptions (
 CREATE INDEX IF NOT EXISTS idx_prescriptions_patient ON public.prescriptions(patient_id);
 
 -- ============================================================================
+-- 9B. MEDICINES CATALOG TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.medicines (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  dosage TEXT,
+  route TEXT DEFAULT 'Oral',
+  frequency TEXT DEFAULT 'BD',
+  duration TEXT DEFAULT '5 days',
+  instructions TEXT DEFAULT 'After food',
+  category TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.medicines ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all on medicines" ON public.medicines FOR ALL USING (true);
+
+-- ============================================================================
 -- 10. DENTAL CHAIRS TABLE
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS public.dental_chairs (

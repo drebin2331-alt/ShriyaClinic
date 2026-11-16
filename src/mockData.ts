@@ -101,7 +101,7 @@ export const MOCK_CHAIRS: DentalChair[] = [
   {
     id: 'chair-2',
     name: 'Dental Operatory 2 (Cosmetic & Implants)',
-    doctorName: 'Dr. Rajesh Patel',
+    doctorName: 'Unassigned',
     status: 'Available',
     isOperational: true
   },

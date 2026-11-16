@@ -26,13 +26,14 @@ interface PatientEnquiryModalProps {
 }
 
 const COMMON_CONCERNS = [
+  { label: 'Smile Transformation / Aesthetic Makeover', icon: '✨' },
   { label: 'Toothache / Severe Pain', icon: '🦷' },
   { label: 'Teeth Cleaning (Scaling)', icon: '✨' },
   { label: 'Cavity / Tooth Filling', icon: '🩹' },
   { label: 'Root Canal Therapy (RCT)', icon: '⚡' },
   { label: 'Braces & Clear Aligners', icon: '🪥' },
   { label: 'Wisdom Tooth / Extraction', icon: '🦷' },
-  { label: 'Dental Implants', icon: '🔩' },
+  { label: 'Dental Implants & Crowns', icon: '🔩' },
   { label: 'Routine Checkup & Consult', icon: '🩺' }
 ];
 
@@ -64,6 +65,12 @@ export const PatientEnquiryModal: React.FC<PatientEnquiryModalProps> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedData, setSubmittedData] = useState<{ id: string; name: string; phone: string } | null>(null);
+
+  React.useEffect(() => {
+    if (defaultConcern) {
+      setChiefComplaint(defaultConcern);
+    }
+  }, [defaultConcern, isOpen]);
 
   if (!isOpen) return null;
 

@@ -37,7 +37,8 @@ import {
   Check,
   Calendar as CalendarIcon,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  Trash2
 } from 'lucide-react';
 
 export const StaffCheckInView: React.FC = () => {
@@ -49,6 +50,8 @@ export const StaffCheckInView: React.FC = () => {
     tokens,
     enquiries = [],
     updateEnquiryStatus,
+    deleteEnquiry,
+    clearAllEnquiries,
     sendAppointmentWhatsApp,
     checkInPatient, 
     createWalkInPatient, 
@@ -157,9 +160,14 @@ export const StaffCheckInView: React.FC = () => {
     );
   }, [patients, returningSearchTerm]);
 
-  // Today's Active Tokens in Clinic
+  // Today's Active Tokens in Clinic (Filtered strictly by Today's Date)
   const todayActiveTokens = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
     return tokens.filter((t) => {
+      // Exclude tokens from past dates
+      const tokenDate = t.date || (t.createdAt && t.createdAt.includes('T') ? t.createdAt.split('T')[0] : today);
+      if (tokenDate !== today) return false;
+
       const matchesSearch =
         !searchTerm.trim() ||
         t.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -170,7 +178,7 @@ export const StaffCheckInView: React.FC = () => {
     });
   }, [tokens, searchTerm, doctorFilter]);
 
-  const waitingTokensCount = tokens.filter(
+  const waitingTokensCount = todayActiveTokens.filter(
     (t) => t.status === 'Waiting' || t.status === 'Called' || t.status === 'In Consultation' || t.status === 'On Hold'
   ).length;
 
@@ -196,7 +204,7 @@ export const StaffCheckInView: React.FC = () => {
 
     checkInPatient({
       appointmentId: checkInModalAppointment.id,
-      patientId: pat?.id || checkInModalAppointment.patientId || `PAT-2026-000101`,
+      patientId: pat?.id || checkInModalAppointment.patientId || checkInModalAppointment.id,
       doctorId: selectedDoctorId || checkInModalAppointment.doctorId,
       priority,
       reasonForVisit: reasonOverride || checkInModalAppointment.reasonForVisit
@@ -299,7 +307,7 @@ export const StaffCheckInView: React.FC = () => {
     : null;
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-6 py-5 flex gap-6">
+    <div className="w-full max-w-full overflow-x-hidden mx-auto px-2.5 sm:px-4 lg:px-6 py-3 sm:py-5 flex flex-col lg:flex-row gap-4 lg:gap-6">
       <Sidebar />
 
       <main className="flex-1 min-w-0 flex flex-col gap-4">
@@ -345,35 +353,35 @@ export const StaffCheckInView: React.FC = () => {
           </div>
         </div>
 
-        {/* Sub-Tab Navigation Bar */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
+        {/* Sub-Tab Navigation Bar (Mobile-Optimized Horizontal Scrollable Strip) */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-200 no-scrollbar scroll-smooth">
           <button
             onClick={() => setActiveSubTab('queue')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeSubTab === 'queue'
                 ? 'bg-sky-600 text-white shadow-xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
-            <span>Today's Live Queue & Tokens ({todayActiveTokens.length})</span>
+            <span>Today's Live Queue ({todayActiveTokens.length})</span>
           </button>
 
           <button
             onClick={() => setActiveSubTab('scheduled')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeSubTab === 'scheduled'
                 ? 'bg-sky-600 text-white shadow-xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
             <Calendar className="w-3.5 h-3.5" />
-            <span>Today's Scheduled Appointments ({todayAppointments.length})</span>
+            <span>Scheduled Appts ({todayAppointments.length})</span>
           </button>
 
           <button
             onClick={() => setActiveSubTab('enquiries')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeSubTab === 'enquiries'
                 ? 'bg-emerald-700 text-white shadow-xs'
                 : newEnquiriesCount > 0
@@ -392,19 +400,19 @@ export const StaffCheckInView: React.FC = () => {
 
           <button
             onClick={() => setActiveSubTab('returning')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeSubTab === 'returning'
                 ? 'bg-sky-600 text-white shadow-xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
             <UserCheck className="w-3.5 h-3.5" />
-            <span>Returning Patient Quick Check-In</span>
+            <span>Returning Patient Check-In</span>
           </button>
 
           <button
             onClick={() => setActiveSubTab('checkout')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeSubTab === 'checkout'
                 ? 'bg-amber-600 text-white shadow-xs'
                 : checkoutVisits.length > 0
@@ -413,7 +421,7 @@ export const StaffCheckInView: React.FC = () => {
             }`}
           >
             <Receipt className="w-3.5 h-3.5" />
-            <span>Returned for Checkout ({checkoutVisits.length})</span>
+            <span>Checkout Desk ({checkoutVisits.length})</span>
           </button>
         </div>
 
@@ -867,6 +875,27 @@ export const StaffCheckInView: React.FC = () => {
                     </div>
                   );
                 })}
+
+                {todayAppointments.length === 0 && (
+                  <div className="clay-card p-8 text-center text-slate-500 font-bold space-y-3">
+                    <p>No appointments scheduled for today.</p>
+                    {enquiries.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col items-center gap-2">
+                        <p className="text-xs text-slate-600 font-semibold">
+                          You have {enquiries.length} online consultation request{enquiries.length !== 1 ? 's' : ''} submitted by website visitors{newEnquiriesCount > 0 ? ` (${newEnquiriesCount} new)` : ''}.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setActiveSubTab('enquiries')}
+                          className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                        >
+                          <Inbox className="w-4 h-4" />
+                          <span>Review Online Consultation Requests ({enquiries.length})</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -920,13 +949,30 @@ export const StaffCheckInView: React.FC = () => {
                 ))}
               </div>
 
-              <div className="w-full md:w-72">
-                <ClayInput
-                  placeholder="Search name, phone, complaint..."
-                  value={enquirySearchTerm}
-                  onChange={(e) => setEnquirySearchTerm(e.target.value)}
-                  icon={<Search className="w-4 h-4 text-slate-400" />}
-                />
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="w-full md:w-72">
+                  <ClayInput
+                    placeholder="Search name, phone, complaint..."
+                    value={enquirySearchTerm}
+                    onChange={(e) => setEnquirySearchTerm(e.target.value)}
+                    icon={<Search className="w-4 h-4 text-slate-400" />}
+                  />
+                </div>
+                {enquiries.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to clear all consultation inquiries?')) {
+                        clearAllEnquiries();
+                      }
+                    }}
+                    className="px-3 py-2 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                    title="Clear all consultation inquiries"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Clear All</span>
+                  </button>
+                )}
               </div>
             </ClayCard>
 
@@ -985,14 +1031,24 @@ export const StaffCheckInView: React.FC = () => {
                               <span>{enq.status === 'New' ? 'NEW REQUEST' : enq.status}</span>
                             </span>
                           </div>
-                          <span className="text-[11px] font-medium text-slate-400">
-                            {new Date(enq.createdAt).toLocaleDateString('en-IN', {
-                              day: 'numeric',
-                              month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-medium text-slate-400">
+                              {new Date(enq.createdAt).toLocaleDateString('en-IN', {
+                                day: 'numeric',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => deleteEnquiry(enq.id)}
+                              className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                              title="Delete consultation request"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
 
                         {/* Patient Name & Phone */}
@@ -1140,7 +1196,7 @@ export const StaffCheckInView: React.FC = () => {
                   <span>Search Returning Patient</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Search by OP Number (e.g. OP-2026-000101), Name, or Phone number. No need to re-register existing patients!
+                  Search by OP Number (e.g. OP-2026-00001), Name, or Phone number. No need to re-register existing patients!
                 </p>
               </div>
 
@@ -1386,7 +1442,7 @@ export const StaffCheckInView: React.FC = () => {
                     {checkInModalAppointment.patientName}
                   </span>
                   <span className="text-[11px] text-slate-500 block font-mono">
-                    {linkedPatient?.opNumber || linkedPatient?.id || checkInModalAppointment.patientId || 'PAT-2026-000101'}
+                    {linkedPatient?.opNumber || linkedPatient?.id || checkInModalAppointment.patientId || 'New Registered'}
                   </span>
                 </div>
 

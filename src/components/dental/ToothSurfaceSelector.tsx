@@ -178,22 +178,50 @@ export const ToothSurfaceSelector: React.FC<ToothSurfaceSelectorProps> = ({
           <div className="mt-3 p-3 bg-white rounded-xl border border-sky-200 shadow-sm animate-in fade-in">
             <div className="text-xs font-extrabold text-sky-800 mb-2 flex items-center justify-between">
               <span>Set Condition for {selectedSurface} Surface:</span>
-              <span className="text-[10px] text-slate-400">Current: {getCondLabel(selectedSurface)}</span>
+              <span className="text-[10px] text-slate-500 font-bold">
+                Current: <span className="font-extrabold" style={{ color: getCondLabel(selectedSurface) === 'Healthy' ? '#64748b' : getConditionColor(getCondLabel(selectedSurface)) }}>{getCondLabel(selectedSurface)}</span>
+              </span>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {(['Healthy', 'Caries', 'Filling', 'Fracture', 'Sensitivity'] as ToothCondition[]).map((cond) => (
-                <button
-                  key={cond}
-                  onClick={() => onSetSurfaceCondition(selectedSurface, cond)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    getCondLabel(selectedSurface) === cond
-                      ? 'bg-slate-900 text-white shadow-sm'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  {cond}
-                </button>
-              ))}
+              {([
+                'Healthy',
+                'Caries',
+                'Filling',
+                'Crown',
+                'Root Canal',
+                'Missing',
+                'Implant',
+                'Fracture',
+                'Extraction Required',
+                'Mobility',
+                'Sensitivity'
+              ] as ToothCondition[]).map((cond) => {
+                const isCondSelected = getCondLabel(selectedSurface) === cond;
+                const col = getConditionColor(cond);
+                return (
+                  <button
+                    key={cond}
+                    type="button"
+                    onClick={() => onSetSurfaceCondition(selectedSurface, cond)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      isCondSelected
+                        ? 'text-white shadow-sm ring-1 ring-slate-800 scale-102'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                    style={{
+                      backgroundColor: isCondSelected ? (cond === 'Healthy' ? '#334155' : col) : undefined
+                    }}
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{
+                        backgroundColor: isCondSelected ? '#ffffff' : (cond === 'Healthy' ? '#94a3b8' : col)
+                      }}
+                    />
+                    <span>{cond}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

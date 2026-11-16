@@ -88,7 +88,6 @@ export const BillingPaymentView: React.FC = () => {
       if (selectedPatientForDetail.assignedDoctorName) {
         setNewBillDoctorName(selectedPatientForDetail.assignedDoctorName);
       }
-      setSearchTerm(selectedPatientForDetail.name);
     }
   }, [selectedPatientForDetail]);
 
@@ -205,7 +204,7 @@ export const BillingPaymentView: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-6 py-5 flex gap-6">
+    <div className="w-full max-w-full overflow-x-hidden mx-auto px-2.5 sm:px-4 lg:px-6 py-3 sm:py-5 flex flex-col lg:flex-row gap-4 lg:gap-6">
       <Sidebar type="admin" />
 
       <main className="flex-1 min-w-0 flex flex-col gap-5">
@@ -301,50 +300,43 @@ export const BillingPaymentView: React.FC = () => {
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="border-b border-slate-200 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => setActiveTab('invoices')}
-              className={`pb-2.5 text-xs font-semibold cursor-pointer transition-colors relative flex items-center gap-2 ${
-                activeTab === 'invoices'
-                  ? 'text-emerald-800 border-b-2 border-emerald-800'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>Invoices & Bills ({invoices.length})</span>
-            </button>
+        {/* Tab Navigation (Mobile-Optimized Segmented Bar) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80 scrollbar-none">
+          <button
+            onClick={() => setActiveTab('invoices')}
+            className={`px-3 py-2 text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap rounded-xl ${
+              activeTab === 'invoices'
+                ? 'bg-white text-emerald-900 font-black shadow-xs border border-slate-200'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 font-semibold'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Invoices & Bills ({invoices.length})</span>
+          </button>
 
-            <button
-              onClick={() => setActiveTab('payments')}
-              className={`pb-2.5 text-xs font-semibold cursor-pointer transition-colors relative flex items-center gap-2 ${
-                activeTab === 'payments'
-                  ? 'text-emerald-800 border-b-2 border-emerald-800'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <Receipt className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Payment Pay Records / Ledger ({payments.length})</span>
-            </button>
+          <button
+            onClick={() => setActiveTab('payments')}
+            className={`px-3 py-2 text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap rounded-xl ${
+              activeTab === 'payments'
+                ? 'bg-white text-emerald-900 font-black shadow-xs border border-slate-200'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 font-semibold'
+            }`}
+          >
+            <Receipt className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Payment Ledger ({payments.length})</span>
+          </button>
 
-            <button
-              onClick={() => setActiveTab('create-bill')}
-              className={`pb-2.5 text-xs font-semibold cursor-pointer transition-colors relative flex items-center gap-2 ${
-                activeTab === 'create-bill'
-                  ? 'text-emerald-800 border-b-2 border-emerald-800'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Create New Bill</span>
-            </button>
-          </div>
-
-          <div className="hidden sm:flex items-center text-xs text-slate-500 gap-1.5 pb-2">
-            <span>Clinic Currency:</span>
-            <span className="font-bold text-slate-800">INR (₹)</span>
-          </div>
+          <button
+            onClick={() => setActiveTab('create-bill')}
+            className={`px-3 py-2 text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap rounded-xl ${
+              activeTab === 'create-bill'
+                ? 'bg-white text-emerald-900 font-black shadow-xs border border-slate-200'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 font-semibold'
+            }`}
+          >
+            <Plus className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Create New Bill</span>
+          </button>
         </div>
 
         {/* TAB 1: INVOICES & BILLS */}
@@ -383,8 +375,95 @@ export const BillingPaymentView: React.FC = () => {
               </div>
             </div>
 
-            {/* Invoices Table */}
-            <div className="overflow-x-auto border border-slate-200 rounded-lg">
+            {/* Mobile Native Card View (<768px) */}
+            <div className="md:hidden space-y-3">
+              {filteredInvoices.length > 0 ? (
+                filteredInvoices.map((inv) => (
+                  <div
+                    key={`mob-inv-${inv.id}`}
+                    className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/90 space-y-2.5 shadow-2xs"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-xs text-slate-800 bg-white px-2 py-0.5 rounded-md border border-slate-200 shadow-2xs">
+                          {inv.id}
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-medium">
+                          {inv.date}
+                        </span>
+                      </div>
+                      <span
+                        className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          inv.status === 'Paid'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            : inv.status === 'Partial'
+                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                            : 'bg-rose-100 text-rose-800 border border-rose-200'
+                        }`}
+                      >
+                        {inv.status}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-bold text-sm text-slate-900 leading-tight">
+                          {inv.patientName}
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          Dr. {inv.doctorName} • {inv.items.length} procedure(s)
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 p-2 bg-white rounded-xl border border-slate-100 text-center font-mono">
+                      <div>
+                        <span className="text-[9px] text-slate-400 uppercase font-sans font-bold block">Total</span>
+                        <span className="text-xs font-bold text-slate-900">₹{inv.total.toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-slate-400 uppercase font-sans font-bold block">Paid</span>
+                        <span className="text-xs font-bold text-emerald-700">₹{inv.paid.toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-slate-400 uppercase font-sans font-bold block">Balance</span>
+                        <span className={`text-xs font-black ${inv.balance > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                          ₹{inv.balance.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-200/60">
+                      {inv.balance > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenPaymentModal(inv)}
+                          className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-800 hover:to-teal-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 cursor-pointer"
+                        >
+                          <CreditCard className="w-3.5 h-3.5" />
+                          <span>Record Payment</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedInvoiceForView(inv)}
+                        className="p-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs cursor-pointer active:scale-95"
+                        title="View & Print Invoice"
+                      >
+                        <Printer className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center text-slate-400 text-xs font-medium">
+                  No invoices found matching your criteria.
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Invoices Table */}
+            <div className="hidden md:block overflow-x-auto border border-slate-200 rounded-lg">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold">
                   <tr>

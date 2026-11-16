@@ -8,7 +8,8 @@ import {
   PrescriptionRecord, 
   FeeApprovalRecord, 
   AuditEvent,
-  PatientEnquiry
+  PatientEnquiry,
+  MedicineRecord
 } from '../types';
 
 function getAuthHeaders(): Record<string, string> {
@@ -21,7 +22,7 @@ function getAuthHeaders(): Record<string, string> {
     if (saved) {
       const user = JSON.parse(saved);
       headers['x-actor-id'] = user.id || 'usr-admin-01';
-      headers['x-actor-name'] = user.name || 'Dr. Rajesh Patel';
+      headers['x-actor-name'] = user.name || 'ADMIN';
       headers['x-actor-role'] = user.role || 'admin';
     }
   } catch (e) {
@@ -42,6 +43,7 @@ export interface ClinicSyncState {
   feeApprovals: FeeApprovalRecord[];
   auditEvents: AuditEvent[];
   enquiries?: PatientEnquiry[];
+  medicines?: MedicineRecord[];
   serverTime: string;
 }
 
@@ -208,6 +210,8 @@ export const apiClient = {
     discountValue?: number;
     discountReason?: string;
     taxRate?: number;
+    feeApprovalId?: string;
+    isNewFee?: boolean;
   }): Promise<{ feeApproval: FeeApprovalRecord; invoice: Invoice; visit?: ClinicVisit }> {
     const res = await fetch('/api/consultations/fee-approval', {
       method: 'POST',
@@ -244,6 +248,70 @@ export const apiClient = {
     const json = await res.json();
     if (!res.ok) {
       throw new Error(json.error || 'Failed to create prescription');
+    }
+    return json;
+  },
+
+  async updatePrescription(
+    id: string,
+    data: {
+      items: Array<{
+        id?: string;
+        medicine: string;
+        dosage: string;
+        route?: string;
+        frequency: string;
+        duration: string;
+        instructions: string;
+      }>;
+      diagnosis?: string;
+      doctorNotes?: string;
+      followUpDate?: string;
+    }
+  ): Promise<{ prescription: PrescriptionRecord; visit?: ClinicVisit }> {
+    const res = await fetch(`/api/prescriptions/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to update prescription');
+    }
+    return json;
+  },
+
+  async deletePrescription(id: string): Promise<{ success: boolean; message: string }> {
+    const res = await fetch(`/api/prescriptions/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to delete prescription');
+    }
+    return json;
+  },
+
+  async getMedicines(): Promise<{ medicines: MedicineRecord[] }> {
+    const res = await fetch('/api/medicines', {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      throw new Error('Failed to fetch medicines catalog');
+    }
+    return res.json();
+  },
+
+  async saveMedicine(data: Partial<MedicineRecord>): Promise<{ medicine: MedicineRecord; medicines: MedicineRecord[] }> {
+    const res = await fetch('/api/medicines', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(json.error || 'Failed to save medicine');
     }
     return json;
   },

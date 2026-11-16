@@ -75,7 +75,7 @@ export const AdminSignInPage: React.FC<AdminSignInPageProps> = ({
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <Database className={`w-3.5 h-3.5 ${isSupabaseOnline ? 'text-emerald-400' : 'text-teal-400'}`} />
           <span className="text-[10px] sm:text-[11px] font-semibold text-slate-300">
-            {isSupabaseOnline ? 'DB Online' : 'Offline'}
+            {isSupabaseOnline ? 'DB Online' : 'Local DB'}
           </span>
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
         </div>

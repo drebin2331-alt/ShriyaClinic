@@ -148,7 +148,7 @@ export const StaffUserManagementView: React.FC = () => {
       `Username / Email: ${staff.email}\n` +
       `Password: ${staff.password || 'Password@123'}\n` +
       (staff.role === 'doctor' ? `Cabin Number: ${staff.roomNumber || 'Cabin 101'}\n` : '') +
-      (staff.role === 'customer' ? `Patient OP ID: ${staff.roomNumber || 'PAT-2026-000101'}\n` : '') +
+      (staff.role === 'customer' ? `Patient OP ID: ${staff.roomNumber || 'Assigned OP'}\n` : '') +
       `Portal Address: ${window.location.origin}\n` +
       `==================================================\n` +
       `Authorized & Provisioned by Clinic Administrator.`;

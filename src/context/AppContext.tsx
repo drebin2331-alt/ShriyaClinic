@@ -24,7 +24,8 @@ import {
   FeeApprovalRecord,
   AuditEvent,
   StaffUser,
-  PatientEnquiry
+  PatientEnquiry,
+  MedicineRecord
 } from '../types';
 import {
   MOCK_DOCTORS,
@@ -43,7 +44,9 @@ import { createFullDefaultDentalChart } from '../utils/dentalChartHelper';
 import { apiClient } from '../utils/apiClient';
 import {
   supabase,
-  isSupabaseConfigured,
+  isSupabaseAvailable,
+  probeSupabaseAvailability,
+  subscribeSupabaseStatus,
   fetchPatientsFromDb,
   savePatientToDb,
   deletePatientFromDb,
@@ -59,7 +62,10 @@ import {
   saveChairToDb,
   fetchProfilesFromDb,
   saveProfileToDb,
-  deleteProfileFromDb
+  deleteProfileFromDb,
+  fetchPrescriptionsFromDb,
+  savePrescriptionToDb,
+  deletePrescriptionFromDb
 } from '../lib/supabase';
 import { safeSetItem } from '../utils/safeStorage';
 
@@ -82,16 +88,60 @@ function isSamePatientRecord(prev: PatientRecord | null, next: PatientRecord | n
 export const INITIAL_STAFF_MEMBERS: StaffUser[] = [
   {
     id: 'usr-admin-01',
-    name: 'Dr. Rajesh Patel',
+    name: 'ADMIN',
     email: 'admin@clinic.com',
     password: 'Password@123',
     role: 'admin',
     phone: '+91 98765 33445',
-    specialization: 'Practice Governance & Implants',
-    qualification: 'BDS, FICOI (USA)',
+    specialization: 'Practice Governance & Operations',
+    qualification: 'MHA',
     roomNumber: 'Admin Suite',
     status: 'Active',
-    createdAt: '2026-01-01'
+    createdAt: '2026-10-20'
+  },
+  {
+    id: 'staff-1792653030970',
+    name: 'Dr. DOCTOR TEST',
+    email: 'doctor@gmail.com',
+    password: 'Password@123',
+    role: 'doctor',
+    phone: '+919633746591',
+    specialization: 'Orthodontics & Aligners',
+    qualification: 'BDS, MDS',
+    roomNumber: 'Cabin 101',
+    status: 'Active',
+    createdAt: '2026-10-22'
+  },
+  {
+    id: 'staff-1792774723829',
+    name: 'TEST DESK',
+    email: 'desk@gmail.com',
+    password: 'Password@123',
+    role: 'receptionist',
+    phone: '+919633746594',
+    specialization: 'Front Desk & Patient Desk',
+    qualification: 'Reception Coordinator',
+    roomNumber: 'Cabin 102',
+    status: 'Active',
+    createdAt: '2026-10-23'
+  }
+];
+
+export const INITIAL_DOCTORS: Doctor[] = [
+  {
+    id: 'staff-1792653030970',
+    name: 'Dr. DOCTOR TEST',
+    title: 'Dental Surgeon & Orthodontic Specialist',
+    qualification: 'BDS, MDS',
+    specialization: 'Orthodontics & Aligners',
+    experience: '5+ Years Experience',
+    rating: 5.0,
+    reviewsCount: 120,
+    avatar: '',
+    availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    slots: ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '04:00 PM'],
+    bio: 'Specialist in dental orthodontics, invisible aligners, teeth alignment, and comprehensive dental surgery.',
+    roomNumber: 'Cabin 101'
   }
 ];
 
@@ -122,6 +172,8 @@ interface AppContextType {
     notes?: string;
   }) => Promise<PatientEnquiry>;
   updateEnquiryStatus: (id: string, status: PatientEnquiry['status']) => void;
+  deleteEnquiry: (id: string) => Promise<void>;
+  clearAllEnquiries: () => Promise<void>;
   sendAppointmentWhatsApp: (appointment: Appointment, customNote?: string) => void;
   toasts: ToastMessage[];
   addToast: (title: string, description?: string, type?: ToastMessage['type']) => void;
@@ -192,6 +244,8 @@ interface AppContextType {
     discountValue?: number;
     discountReason?: string;
     taxRate?: number;
+    feeApprovalId?: string;
+    isNewFee?: boolean;
   }) => Promise<{ feeApproval: FeeApprovalRecord; invoice: Invoice; visit?: ClinicVisit }>;
   createPrescription: (data: {
     visitId: string;
@@ -208,6 +262,26 @@ interface AppContextType {
     doctorNotes?: string;
     followUpDate?: string;
   }) => Promise<{ prescription: PrescriptionRecord; visit?: ClinicVisit }>;
+  updatePrescription: (
+    id: string,
+    data: {
+      items: Array<{
+        id?: string;
+        medicine: string;
+        dosage: string;
+        route?: string;
+        frequency: string;
+        duration: string;
+        instructions: string;
+      }>;
+      diagnosis?: string;
+      doctorNotes?: string;
+      followUpDate?: string;
+    }
+  ) => Promise<{ prescription: PrescriptionRecord; visit?: ClinicVisit }>;
+  deletePrescription: (id: string) => Promise<void>;
+  medicines: MedicineRecord[];
+  saveMedicine: (med: Partial<MedicineRecord>) => Promise<MedicineRecord>;
 
   // Receptionist Checkout / Encounter Closure
   closeVisit: (visitId: string, adminNotes?: string) => Promise<void>;
@@ -281,6 +355,8 @@ interface AppContextType {
   isSidebarCollapsed: boolean;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  isProfileSheetOpen: boolean;
+  setIsProfileSheetOpen: (open: boolean) => void;
 
   // Staff and User Credentials Management
   staffMembers: StaffUser[];
@@ -318,26 +394,55 @@ const isDemoPatientOrToken = (nameOrToken?: string): boolean => {
   );
 };
 
+export const deduplicatePatients = (list: PatientRecord[]): PatientRecord[] => {
+  const map = new Map<string, PatientRecord>();
+  for (const p of list || []) {
+    if (!p) continue;
+    // Reject legacy test ID from earlier failed counter sequence
+    if (p.id === 'PAT-2026-000101' || p.opNumber === 'OP-2026-00101') continue;
+    if (isDemoPatientOrToken(p.name)) continue;
+
+    const normPhone = (p.phone || '').replace(/\D/g, '').slice(-10);
+    const key = normPhone.length >= 8 ? `phone:${normPhone}` : `id:${p.id}`;
+
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, p);
+    } else {
+      // Pick the record with the canonical sequential ID (e.g. PAT-2026-000001 over others)
+      const preferP = (p.id.localeCompare(existing.id) <= 0) ? p : existing;
+      const other = preferP === p ? existing : p;
+      map.set(key, {
+        ...other,
+        ...preferP,
+        visits: (preferP.visits?.length || 0) >= (other.visits?.length || 0) ? preferP.visits : other.visits,
+        prescriptions: (preferP.prescriptions?.length || 0) >= (other.prescriptions?.length || 0) ? preferP.prescriptions : other.prescriptions,
+        invoices: (preferP.invoices?.length || 0) >= (other.invoices?.length || 0) ? preferP.invoices : other.invoices,
+        treatmentPlans: (preferP.treatmentPlans?.length || 0) >= (other.treatmentPlans?.length || 0) ? preferP.treatmentPlans : other.treatmentPlans,
+        dentalChart: (preferP.dentalChart?.length || 0) >= (other.dentalChart?.length || 0) ? preferP.dentalChart : other.dentalChart,
+      });
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => a.id.localeCompare(b.id));
+};
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // One-time purge of legacy mock tokens and demo entries from browser localStorage
-  if (typeof window !== 'undefined' && !localStorage.getItem('smilecare_clean_db_v3')) {
+  if (typeof window !== 'undefined' && !localStorage.getItem('smilecare_clean_db_v7')) {
     localStorage.removeItem('smilecare_tokens_list');
     localStorage.removeItem('smilecare_visits_list');
     localStorage.removeItem('smilecare_appointments_list');
     localStorage.removeItem('smilecare_invoices_list');
     localStorage.removeItem('smilecare_payments_list');
-    localStorage.removeItem('smilecare_clean_db_v2'); // superseded
-    try {
-      const savedPatients = localStorage.getItem('smilecare_patients_list');
-      if (savedPatients) {
-        const parsed = JSON.parse(savedPatients);
-        if (Array.isArray(parsed)) {
-          const cleanPatients = parsed.filter((p: any) => !isDemoPatientOrToken(p.name));
-          localStorage.setItem('smilecare_patients_list', JSON.stringify(cleanPatients));
-        }
-      }
-    } catch { }
-    localStorage.setItem('smilecare_clean_db_v3', 'true');
+    localStorage.removeItem('smilecare_patients_list');
+    localStorage.removeItem('smilecare_enquiries_list');
+    localStorage.removeItem('smilecare_sent_tokens');
+    localStorage.removeItem('smilecare_clean_db_v6');
+    localStorage.removeItem('smilecare_clean_db_v5');
+    localStorage.removeItem('smilecare_clean_db_v4');
+    localStorage.removeItem('smilecare_clean_db_v3');
+    sessionStorage.removeItem('smilecare_selected_patient');
+    localStorage.setItem('smilecare_clean_db_v7', 'true');
   }
 
   const [activeView, setActiveView] = useState<ViewMode>(() => {
@@ -439,11 +544,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...d,
             avatar: (d.avatar && (d.avatar.includes('photo-1559839734') || d.avatar.length > 50000)) ? '' : (d.avatar || '')
           }));
-        safeSetItem('smilecare_doctors_list', JSON.stringify(cleaned));
-        return cleaned;
+        if (cleaned.length > 0) {
+          safeSetItem('smilecare_doctors_list', JSON.stringify(cleaned));
+          return cleaned;
+        }
       }
     } catch { }
-    return MOCK_DOCTORS;
+    return INITIAL_DOCTORS;
   });
   const [services] = useState<Service[]>(MOCK_SERVICES);
 
@@ -454,7 +561,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed: PatientRecord[] = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          const cleaned = parsed.filter((p) => !isDemoPatientOrToken(p.name));
+          const cleaned = deduplicatePatients(parsed);
           if (cleaned.length > 0) return cleaned;
         }
       }
@@ -486,7 +593,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch { }
     return [];
   });
-  const [prescriptions, setPrescriptions] = useState<PrescriptionRecord[]>([]);
+  const [prescriptions, setPrescriptions] = useState<PrescriptionRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem('smilecare_prescriptions_list');
+      if (saved) {
+        const parsed: PrescriptionRecord[] = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch { }
+    return [];
+  });
+  const [medicines, setMedicines] = useState<MedicineRecord[]>([]);
   const [feeApprovals, setFeeApprovals] = useState<FeeApprovalRecord[]>([]);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [userRole, setUserRole] = useState<UserRole>('admin');
@@ -558,6 +675,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch { }
   }, []);
 
+  const [isProfileSheetOpen, setIsProfileSheetOpen] = useState<boolean>(false);
+
   const addToast = useCallback((title: string, description?: string, type: ToastMessage['type'] = 'info') => {
     const id = 'toast-' + Math.random().toString(36).substring(2, 9);
     setToasts((prev) => [...prev, { id, title, description, type }]);
@@ -583,142 +702,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Synchronize state from Supabase Cloud (or local memory fallback)
+  // Synchronize state from authoritative Backend API and Cloud DB
   const refreshState = useCallback(async () => {
-    // 1. Live Supabase database synchronization
-    if (isSupabaseConfigured()) {
-      try {
-        // Fast concurrent background sync without blocking patient display
-        const p1 = fetchPatientsFromDb().then((dbPatients) => {
-          if (dbPatients) {
-            setPatients(dbPatients);
-            safeSetItem('smilecare_patients_list', JSON.stringify(dbPatients));
-            setSelectedPatientForDetail((curr) => {
-              if (!curr) return dbPatients[0] || null;
-              const matched = dbPatients.find((p) => p.id === curr.id || p.opNumber === curr.opNumber);
-              if (!matched) return dbPatients[0] || null;
-              // Only replace reference if data actually changed — prevents unnecessary re-renders
-              return isSamePatientRecord(curr, matched) ? curr : matched;
-            });
-          }
-        }).catch((e) => console.warn('Patients background sync note:', e));
-
-        const p2 = fetchAppointmentsFromDb().then((dbAppointments) => {
-          if (dbAppointments) {
-            setAppointments(dbAppointments);
-            safeSetItem('smilecare_appointments_list', JSON.stringify(dbAppointments));
-          }
-        }).catch((e) => console.warn('Appointments background sync note:', e));
-
-        const p3 = fetchTokensFromDb().then(async (dbTokens) => {
-          let mergedTokens = (dbTokens || []).filter((t) => !isDemoPatientOrToken(t.patientName));
-          const map = new Map();
-          mergedTokens.forEach((t) => map.set(t.tokenNumber, t));
-
-          try {
-            // Include locally cached tokens (filtered)
-            const savedLocal = localStorage.getItem('smilecare_tokens_list');
-            if (savedLocal) {
-              const parsedLocal: QueueToken[] = JSON.parse(savedLocal);
-              if (Array.isArray(parsedLocal)) {
-                parsedLocal
-                  .filter((t) => !isDemoPatientOrToken(t.patientName))
-                  .forEach((t) => {
-                    if (!map.has(t.tokenNumber)) map.set(t.tokenNumber, t);
-                  });
-              }
-            }
-          } catch { }
-
-          try {
-            // Merge tokens from backend API
-            const apiState = await apiClient.getState();
-            if (apiState.tokens && apiState.tokens.length > 0) {
-              apiState.tokens
-                .filter((t) => !isDemoPatientOrToken(t.patientName))
-                .forEach((t) => map.set(t.tokenNumber, t));
-            }
-          } catch { }
-
-          mergedTokens = Array.from(map.values()).filter((t) => !isDemoPatientOrToken(t.patientName));
-
-          setTokens(mergedTokens);
-          safeSetItem('smilecare_tokens_list', JSON.stringify(mergedTokens));
-        }).catch((e) => console.warn('Tokens background sync note:', e));
-
-        const p4 = fetchInvoicesFromDb().then((dbInvoices) => {
-          if (dbInvoices) {
-            setInvoices(dbInvoices);
-            safeSetItem('smilecare_invoices_list', JSON.stringify(dbInvoices));
-          }
-        }).catch((e) => console.warn('Invoices background sync note:', e));
-
-        const p5 = fetchPaymentsFromDb().then((dbPayments) => {
-          if (dbPayments) {
-            setPayments(dbPayments);
-            safeSetItem('smilecare_payments_list', JSON.stringify(dbPayments));
-          }
-        }).catch((e) => console.warn('Payments background sync note:', e));
-
-        const p6 = fetchChairsFromDb().then((dbChairs) => {
-          if (dbChairs && dbChairs.length > 0) setChairs(dbChairs);
-        }).catch((e) => console.warn('Chairs background sync note:', e));
-
-        const p7 = fetchProfilesFromDb().then((dbProfiles) => {
-          if (dbProfiles && dbProfiles.length > 0) {
-            const mappedStaff: StaffUser[] = dbProfiles.map((p) => ({
-              id: p.id,
-              name: p.name,
-              email: p.email,
-              password: p.password || 'Password@123',
-              role: p.role as UserRole,
-              phone: p.phone,
-              specialization: p.specialization,
-              qualification: p.qualification,
-              roomNumber: p.roomNumber,
-              status: (p.status as any) || 'Active',
-              createdAt: p.createdAt ? p.createdAt.split('T')[0] : '2026-01-01',
-              avatar: p.avatar && !p.avatar.includes('photo-1559839734') ? p.avatar : ''
-            }));
-            setStaffMembers(mappedStaff);
-            try {
-              safeSetItem('smilecare_staff_members', JSON.stringify(mappedStaff));
-            } catch { }
-
-            // Synchronize doctors from database profiles
-            const realDoctors: Doctor[] = mappedStaff
-              .filter((s) => s.role === 'doctor')
-              .map((s) => ({
-                id: s.id,
-                name: s.name.startsWith('Dr.') ? s.name : `Dr. ${s.name}`,
-                title: s.qualification || 'Dental Surgeon',
-                qualification: s.qualification || 'BDS',
-                specialization: s.specialization || 'General Dentistry',
-                experience: '5+ Years',
-                rating: 5.0,
-                reviewsCount: 0,
-                avatar: s.avatar && !s.avatar.includes('photo-1559839734') ? s.avatar : '',
-                availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-                slots: ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '04:00 PM'],
-                bio: `${s.name} is specialized in ${s.specialization || 'dental care'}.`,
-                roomNumber: s.roomNumber || 'Cabin 101'
-              }));
-            setDoctors(realDoctors);
-            try {
-              safeSetItem('smilecare_doctors_list', JSON.stringify(realDoctors));
-            } catch { }
-          }
-        }).catch((e) => console.warn('Profiles background sync note:', e));
-
-        await Promise.allSettled([p1, p2, p3, p4, p5, p6, p7]);
-      } catch (err) {
-        console.warn('Supabase state fetch error, falling back to local cache:', err);
-      }
-    }
-
-    // 2. Synchronize authoritative visits, fee approvals, invoices, payments, and patients from backend API
+    // 1. Fetch authoritative full clinic state from backend API (/api/state)
     try {
       const data = await apiClient.getState();
+
+      // Merge patients safely without dropping newly registered ones
+      if (data.patients && data.patients.length > 0) {
+        setPatients((prev) => {
+          const merged = deduplicatePatients([...data.patients!, ...(prev || [])]);
+          safeSetItem('smilecare_patients_list', JSON.stringify(merged));
+          return merged;
+        });
+      }
+
+      // Merge appointments safely (NEVER wipe out with empty array)
+      if (data.appointments && data.appointments.length > 0) {
+        setAppointments((prev) => {
+          const map = new Map<string, Appointment>();
+          (prev || []).forEach((a) => map.set(a.id, a));
+          (data.appointments || []).forEach((a) => map.set(a.id, a));
+          const merged = Array.from(map.values()).filter((a) => !isDemoPatientOrToken(a.patientName));
+          safeSetItem('smilecare_appointments_list', JSON.stringify(merged));
+          return merged;
+        });
+      }
+
+      // Merge tokens safely by unique ID (NEVER map by tokenNumber which collides across dates)
+      if (data.tokens && data.tokens.length > 0) {
+        setTokens((prev) => {
+          const map = new Map<string, QueueToken>();
+          (prev || []).forEach((t) => map.set(t.id, t));
+          (data.tokens || []).forEach((t) => map.set(t.id, t));
+          const merged = Array.from(map.values()).filter((t) => !isDemoPatientOrToken(t.patientName));
+          safeSetItem('smilecare_tokens_list', JSON.stringify(merged));
+          return merged;
+        });
+      }
+
+      // Merge visits
       if (data.visits && data.visits.length > 0) {
         setVisits((prev) => {
           const map = new Map<string, ClinicVisit>();
@@ -727,34 +750,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return Array.from(map.values());
         });
       }
-      if (data.feeApprovals) setFeeApprovals(data.feeApprovals);
+
+      // Merge invoices
       if (data.invoices && data.invoices.length > 0) {
         setInvoices((prev) => {
           const map = new Map<string, Invoice>();
           (prev || []).forEach((i) => map.set(i.id, i));
           (data.invoices || []).forEach((i) => map.set(i.id, i));
-          return Array.from(map.values());
+          const merged = Array.from(map.values());
+          safeSetItem('smilecare_invoices_list', JSON.stringify(merged));
+          return merged;
         });
       }
+
+      // Merge payments
       if (data.payments && data.payments.length > 0) {
         setPayments((prev) => {
           const map = new Map<string, PaymentRecord>();
           (prev || []).forEach((p) => map.set(p.id, p));
           (data.payments || []).forEach((p) => map.set(p.id, p));
+          const merged = Array.from(map.values());
+          safeSetItem('smilecare_payments_list', JSON.stringify(merged));
+          return merged;
+        });
+      }
+
+      if (data.feeApprovals) setFeeApprovals(data.feeApprovals);
+      if (data.prescriptions) {
+        setPrescriptions(data.prescriptions);
+        safeSetItem('smilecare_prescriptions_list', JSON.stringify(data.prescriptions));
+      }
+      if (data.medicines && data.medicines.length > 0) {
+        setMedicines((prev) => {
+          const map = new Map<string, MedicineRecord>();
+          (prev || []).forEach((m) => map.set(m.name.toLowerCase().trim(), m));
+          (data.medicines || []).forEach((m) => map.set(m.name.toLowerCase().trim(), m));
           return Array.from(map.values());
         });
       }
-      if (data.prescriptions) setPrescriptions(data.prescriptions);
       if (data.auditEvents) setAuditEvents(data.auditEvents);
 
+      // Sync enquiries from backend
       if (data.enquiries && Array.isArray(data.enquiries)) {
-        setEnquiries((prev) => {
-          const map = new Map<string, PatientEnquiry>();
-          data.enquiries!.forEach((e) => map.set(e.id, e));
-          (prev || []).forEach((e) => {
-            if (!map.has(e.id)) map.set(e.id, e);
-          });
-          const merged = Array.from(map.values()).sort(
+        setEnquiries(() => {
+          const merged = [...data.enquiries!].sort(
             (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
           safeSetItem('smilecare_enquiries_list', JSON.stringify(merged));
@@ -762,46 +801,195 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
       }
 
-      if (data.patients && data.patients.length > 0) {
-        setPatients((prev) => {
-          if (!prev || prev.length === 0) return data.patients;
-          return prev.map((p) => {
-            const apiP = data.patients.find((ap) => ap.id === p.id || ap.opNumber === p.opNumber);
-            if (apiP) {
-              const mergedInvoices = (apiP.invoices && apiP.invoices.length > 0) ? apiP.invoices : (p.invoices || []);
-              const totalInvBalance = mergedInvoices.reduce((sum, inv) => sum + (inv.balance || 0), 0);
-              return {
-                ...p,
-                invoices: mergedInvoices,
-                outstandingBalance: Math.max(apiP.outstandingBalance || 0, totalInvBalance, p.outstandingBalance || 0),
-                visits: (apiP.visits && apiP.visits.length > 0) ? apiP.visits : (p.visits || []),
-                medicalHistory: { ...p.medicalHistory, ...(apiP.medicalHistory || {}) }
-              };
-            }
-            return p;
-          });
-        });
-      }
-
-      // Keep selected patient in sync with latest version (only if data actually changed)
+      // PRESERVE SELECTED PATIENT: NEVER FORCE patients[0]! NEVER FLIP TO ANOTHER PATIENT!
       setSelectedPatientForDetail((curr) => {
-        if (!curr) return (data.patients && data.patients[0]) || null;
+        if (!curr) return null;
         const matched = (data.patients || []).find((p) => p.id === curr.id || p.opNumber === curr.opNumber);
         if (!matched) return curr;
-        return isSamePatientRecord(curr, matched) ? curr : matched;
+        return isSamePatientRecord(curr, matched) ? curr : { ...curr, ...matched };
       });
     } catch (err) {
-      // Local memory mode
+      // Local fallback
+    }
+
+    // 2. Secondary Supabase Cloud Synchronization (Additive only — NEVER destructive)
+    if (await probeSupabaseAvailability()) {
+      try {
+        const [dbPatients, dbAppointments, dbTokens, dbInvoices, dbPayments, dbChairs, dbProfiles] = await Promise.allSettled([
+          fetchPatientsFromDb(),
+          fetchAppointmentsFromDb(),
+          fetchTokensFromDb(),
+          fetchInvoicesFromDb(),
+          fetchPaymentsFromDb(),
+          fetchChairsFromDb(),
+          fetchProfilesFromDb()
+        ]);
+
+        // Only merge patients if Supabase has non-empty valid records
+        if (dbPatients.status === 'fulfilled' && dbPatients.value && dbPatients.value.length > 0) {
+          setPatients((prev) => {
+            const merged = deduplicatePatients([...dbPatients.value, ...(prev || [])]);
+            safeSetItem('smilecare_patients_list', JSON.stringify(merged));
+            return merged;
+          });
+        }
+
+        // Only merge appointments if Supabase actually returned appointments (NEVER wipe out with empty array)
+        if (dbAppointments.status === 'fulfilled' && dbAppointments.value && dbAppointments.value.length > 0) {
+          setAppointments((prev) => {
+            const map = new Map<string, Appointment>();
+            (prev || []).forEach((a) => map.set(a.id, a));
+            dbAppointments.value.forEach((a) => map.set(a.id, a));
+            const merged = Array.from(map.values()).filter((a) => !isDemoPatientOrToken(a.patientName));
+            safeSetItem('smilecare_appointments_list', JSON.stringify(merged));
+            return merged;
+          });
+        }
+
+        // Only merge tokens by unique ID, preventing stale DB status from demoting active token
+        if (dbTokens.status === 'fulfilled' && dbTokens.value && dbTokens.value.length > 0) {
+          setTokens((prev) => {
+            const map = new Map<string, QueueToken>();
+            (prev || []).forEach((t) => map.set(t.id, t));
+
+            const STATUS_PRECEDENCE: Record<string, number> = {
+              'Waiting': 1,
+              'On Hold': 2,
+              'Skipped': 2,
+              'Called': 3,
+              'In Consultation': 4,
+              'Reception Follow-up': 5,
+              'Completed': 6,
+              'Cancelled': 6
+            };
+
+            dbTokens.value.forEach((dbT) => {
+              const existing = map.get(dbT.id);
+              if (!existing) {
+                map.set(dbT.id, dbT);
+              } else {
+                const existingRank = STATUS_PRECEDENCE[existing.status] || 0;
+                const dbRank = STATUS_PRECEDENCE[dbT.status] || 0;
+                // If local/API state is further along (e.g. Called/In Consultation vs Waiting), NEVER demote back!
+                if (existingRank > dbRank) {
+                  const resolved = { ...dbT, status: existing.status, calledAt: existing.calledAt || dbT.calledAt };
+                  map.set(dbT.id, resolved);
+                  saveTokenToDb(resolved).catch(() => { });
+                } else {
+                  map.set(dbT.id, { ...existing, ...dbT });
+                }
+              }
+            });
+            const merged = Array.from(map.values()).filter((t) => !isDemoPatientOrToken(t.patientName));
+            safeSetItem('smilecare_tokens_list', JSON.stringify(merged));
+            return merged;
+          });
+        }
+
+        // Only merge invoices if non-empty
+        if (dbInvoices.status === 'fulfilled' && dbInvoices.value && dbInvoices.value.length > 0) {
+          setInvoices((prev) => {
+            const map = new Map<string, Invoice>();
+            (prev || []).forEach((i) => map.set(i.id, i));
+            dbInvoices.value.forEach((i) => map.set(i.id, i));
+            const merged = Array.from(map.values());
+            safeSetItem('smilecare_invoices_list', JSON.stringify(merged));
+            return merged;
+          });
+        }
+
+        // Only merge payments if non-empty
+        if (dbPayments.status === 'fulfilled' && dbPayments.value && dbPayments.value.length > 0) {
+          setPayments((prev) => {
+            const map = new Map<string, PaymentRecord>();
+            (prev || []).forEach((p) => map.set(p.id, p));
+            dbPayments.value.forEach((p) => map.set(p.id, p));
+            const merged = Array.from(map.values());
+            safeSetItem('smilecare_payments_list', JSON.stringify(merged));
+            return merged;
+          });
+        }
+
+        if (dbChairs.status === 'fulfilled' && dbChairs.value && dbChairs.value.length > 0) {
+          setChairs(dbChairs.value);
+        }
+
+        // Profiles / Doctors: Only update if changed
+        if (dbProfiles.status === 'fulfilled' && dbProfiles.value && dbProfiles.value.length > 0) {
+          const mappedStaff: StaffUser[] = dbProfiles.value.map((p) => ({
+            id: p.id,
+            name: p.name,
+            email: p.email,
+            password: p.password || 'Password@123',
+            role: p.role as UserRole,
+            phone: p.phone,
+            specialization: p.specialization,
+            qualification: p.qualification,
+            roomNumber: p.roomNumber,
+            status: (p.status as any) || 'Active',
+            createdAt: p.createdAt ? p.createdAt.split('T')[0] : '2026-01-01',
+            avatar: p.avatar && !p.avatar.includes('photo-1559839734') ? p.avatar : ''
+          }));
+
+          setStaffMembers((prev) => {
+            if (prev.length === mappedStaff.length && prev.every((s, i) => s.id === mappedStaff[i].id && s.name === mappedStaff[i].name)) {
+              return prev;
+            }
+            try { safeSetItem('smilecare_staff_members', JSON.stringify(mappedStaff)); } catch { }
+            return mappedStaff;
+          });
+
+          const realDoctors: Doctor[] = mappedStaff
+            .filter((s) => s.role === 'doctor')
+            .map((s) => ({
+              id: s.id,
+              name: s.name.startsWith('Dr.') ? s.name : `Dr. ${s.name}`,
+              title: s.qualification || 'Dental Surgeon',
+              qualification: s.qualification || 'BDS',
+              specialization: s.specialization || 'General Dentistry',
+              experience: '5+ Years',
+              rating: 5.0,
+              reviewsCount: 0,
+              avatar: s.avatar && !s.avatar.includes('photo-1559839734') ? s.avatar : '',
+              availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+              slots: ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '04:00 PM'],
+              bio: `${s.name} is specialized in ${s.specialization || 'dental care'}.`,
+              roomNumber: s.roomNumber || 'Cabin 101'
+            }));
+
+          setDoctors((prev) => {
+            if (prev.length === realDoctors.length && prev.every((d, i) => d.id === realDoctors[i].id && d.name === realDoctors[i].name)) {
+              return prev;
+            }
+            try { safeSetItem('smilecare_doctors_list', JSON.stringify(realDoctors)); } catch { }
+            return realDoctors;
+          });
+        }
+      } catch (err) {
+        console.warn('Supabase background sync note:', err);
+      }
     }
   }, []);
 
   // Sync on mount, listen on Supabase Realtime channel, BroadcastChannel, and fallback polling
   useEffect(() => {
+    let isDisposed = false;
+    let realtimeChannel: any = null;
+
+    const cleanupRealtime = () => {
+      if (realtimeChannel) {
+        try {
+          supabase.removeChannel(realtimeChannel);
+        } catch { }
+        realtimeChannel = null;
+      }
+    };
+
     refreshState();
 
-    // Supabase Realtime channel subscription
-    let realtimeChannel: any = null;
-    if (isSupabaseConfigured()) {
+    // Only connect Supabase Realtime after verifying the cloud project is not restricted (HTTP 402)
+    probeSupabaseAvailability().then((available) => {
+      if (isDisposed || !available || !isSupabaseAvailable()) return;
       try {
         realtimeChannel = supabase
           .channel('realtime:clinic_operations')
@@ -811,11 +999,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, () => refreshState())
           .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => refreshState())
           .on('postgres_changes', { event: '*', schema: 'public', table: 'dental_chairs' }, () => refreshState())
-          .subscribe();
+          .subscribe((status) => {
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              cleanupRealtime();
+            }
+          });
       } catch (e) {
         console.warn('Realtime subscription error:', e);
       }
-    }
+    });
+
+    const unsubStatus = subscribeSupabaseStatus(() => {
+      if (!isSupabaseAvailable()) {
+        cleanupRealtime();
+      }
+    });
 
     let channel: BroadcastChannel | null = null;
     if (typeof BroadcastChannel !== 'undefined') {
@@ -831,15 +1029,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
-    // Realtime background sync for enquiries, tokens, appointments, and visits (every 8 seconds)
+    // Realtime background sync for enquiries, tokens, appointments, and visits (every 30 seconds fallback)
     const interval = setInterval(() => {
       refreshState();
-    }, 8000);
+    }, 30000);
 
     return () => {
-      if (realtimeChannel) {
-        supabase.removeChannel(realtimeChannel);
-      }
+      isDisposed = true;
+      unsubStatus();
+      cleanupRealtime();
       if (channel) channel.close();
       clearInterval(interval);
     };
@@ -895,6 +1093,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     reasonForVisit?: string;
     allowDuplicate?: boolean;
   }): Promise<{ patient: PatientRecord; opNumber: string }> => {
+    // Client-side duplicate check by normalized phone
+    const normPhone = data.phone.replace(/\D/g, '').slice(-10);
+    const existing = normPhone.length >= 8 ? patients.find(p => p.phone.replace(/\D/g, '').slice(-10) === normPhone) : null;
+    if (existing && !data.allowDuplicate) {
+      setSelectedPatientForDetail(existing);
+      addToast('Patient Already Registered', `${existing.name} is already registered (${existing.opNumber || existing.id}).`, 'warning');
+      return { patient: existing, opNumber: existing.opNumber || existing.id };
+    }
+
     let resultPatient: PatientRecord;
     let opNumber: string;
 
@@ -904,7 +1111,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       opNumber = result.opNumber;
     } catch (e) {
       // Direct local/Supabase creation
-      const count = patients.length + 101;
+      const count = patients.length + 1;
       const genId = `PAT-2026-${String(count).padStart(6, '0')}`;
       opNumber = `OP-2026-${String(count).padStart(5, '0')}`;
       resultPatient = {
@@ -924,7 +1131,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         assignedDoctorName: data.assignedDoctorName,
         firstVisitDate: new Date().toISOString().split('T')[0],
         lastVisit: new Date().toISOString().split('T')[0],
-        totalVisits: 1,
+        totalVisits: 0,
         currentTreatment: data.reasonForVisit || 'General Consultation',
         status: 'New Patient',
         outstandingBalance: 0,
@@ -960,32 +1167,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addPatient = async (newPat: PatientRecord): Promise<PatientRecord> => {
     try {
       await savePatientToDb(newPat);
-      apiClient.registerPatient({
-        name: newPat.name,
-        phone: newPat.phone,
-        gender: newPat.gender,
-        dateOfBirth: newPat.dateOfBirth,
-        age: newPat.age,
-        secondaryPhone: newPat.secondaryPhone,
-        email: newPat.email,
-        address: newPat.address,
-        referralSource: newPat.referralSource,
-        emergencyContact: newPat.emergencyContact,
-        assignedDoctorId: newPat.assignedDoctorId,
-        assignedDoctorName: newPat.assignedDoctorName,
-        reasonForVisit: newPat.currentTreatment,
-        allowDuplicate: true
-      }).catch(() => { });
-
       setPatients((prev) => [newPat, ...prev.filter((p) => p.id !== newPat.id)]);
       setSelectedPatientForDetail(newPat);
       notifyCrossTabSync();
-      addToast('Patient Registered', `${newPat.name} saved to Supabase database.`, 'success');
+      addToast('Patient Saved', `${newPat.name} saved to database.`, 'success');
       return newPat;
     } catch (err: any) {
-      setPatients((prev) => [newPat, ...prev]);
+      setPatients((prev) => [newPat, ...prev.filter((p) => p.id !== newPat.id)]);
       setSelectedPatientForDetail(newPat);
-      addToast('Registered Locally', `${newPat.name} saved in current session.`, 'info');
+      addToast('Saved Locally', `${newPat.name} saved in current session.`, 'info');
       return newPat;
     }
   };
@@ -1112,30 +1302,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const markNoShow = (appointmentId: string) => {
+    let updated: Appointment | undefined;
     setAppointments((prev) =>
-      prev.map((a) =>
-        a.id === appointmentId ? { ...a, appointmentStatus: 'NO_SHOW', status: 'Cancelled' } : a
-      )
+      prev.map((a) => {
+        if (a.id === appointmentId) {
+          updated = { ...a, appointmentStatus: 'NO_SHOW', status: 'Cancelled' };
+          return updated;
+        }
+        return a;
+      })
     );
+    if (updated) {
+      saveAppointmentToDb(updated).catch(() => { });
+    }
     apiClient.cancelAppointment(appointmentId, 'Marked as No-Show by reception desk').catch(() => { });
     notifyCrossTabSync();
     addToast('Marked No-Show', `Appointment ${appointmentId} marked as No-Show. No token was issued.`, 'warning');
   };
 
   const rescheduleAppointment = async (appointmentId: string, newDate: string, newTimeSlot: string, reason?: string): Promise<void> => {
+    let updatedApt: Appointment | undefined;
     setAppointments((prev) =>
-      prev.map((a) =>
-        a.id === appointmentId
-          ? {
+      prev.map((a) => {
+        if (a.id === appointmentId) {
+          updatedApt = {
             ...a,
             date: newDate,
             timeSlot: newTimeSlot,
             appointmentStatus: 'RESCHEDULED',
             status: 'Confirmed'
-          }
-          : a
-      )
+          };
+          return updatedApt;
+        }
+        return a;
+      })
     );
+    if (updatedApt) {
+      saveAppointmentToDb(updatedApt).catch(() => { });
+    }
     try {
       await apiClient.rescheduleAppointment(appointmentId, newDate, newTimeSlot, reason);
       notifyCrossTabSync();
@@ -1146,13 +1350,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const cancelAppointment = async (appointmentId: string, reason?: string): Promise<void> => {
+    let cancelledApt: Appointment | undefined;
     setAppointments((prev) =>
-      prev.map((a) =>
-        a.id === appointmentId
-          ? { ...a, appointmentStatus: 'CANCELLED', status: 'Cancelled' }
-          : a
-      )
+      prev.map((a) => {
+        if (a.id === appointmentId) {
+          cancelledApt = { ...a, appointmentStatus: 'CANCELLED', status: 'Cancelled' };
+          return cancelledApt;
+        }
+        return a;
+      })
     );
+    if (cancelledApt) {
+      saveAppointmentToDb(cancelledApt).catch(() => { });
+    }
     try {
       await apiClient.cancelAppointment(appointmentId, reason);
       notifyCrossTabSync();
@@ -1233,6 +1443,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }).catch(() => { });
 
     notifyCrossTabSync();
+  };
+
+  const deleteEnquiry = async (id: string) => {
+    setEnquiries((prev) => {
+      const updated = prev.filter((e) => e.id !== id);
+      safeSetItem('smilecare_enquiries_list', JSON.stringify(updated));
+      return updated;
+    });
+
+    try {
+      await fetch(`/api/enquiries/${id}`, { method: 'DELETE' });
+    } catch { }
+
+    notifyCrossTabSync();
+    addToast('Enquiry Removed', 'The consultation request has been deleted.', 'info');
+  };
+
+  const clearAllEnquiries = async () => {
+    setEnquiries([]);
+    safeSetItem('smilecare_enquiries_list', JSON.stringify([]));
+
+    try {
+      await fetch('/api/enquiries', { method: 'DELETE' });
+    } catch { }
+
+    notifyCrossTabSync();
+    addToast('Enquiries Cleared', 'All consultation requests have been cleared.', 'info');
   };
 
   const sendAppointmentWhatsApp = (appointment: Appointment, customNote?: string) => {
@@ -1359,6 +1596,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setTokens((prev) =>
         prev.map((t) => (t.tokenNumber === tokenNumberOrId || t.id === tokenNumberOrId ? result.token : t))
       );
+      saveTokenToDb(result.token).catch(() => { });
       if (result.visit) {
         setVisits((prev) =>
           prev.map((v) => (v.id === result.visit!.id ? result.visit! : v))
@@ -1417,6 +1655,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setTokens((prev) =>
           prev.map((t) => (t.id === result.token!.id ? result.token! : t))
         );
+        saveTokenToDb(result.token).catch(() => { });
       }
 
       const pat = patients.find((p) => p.id === result.visit.patientId);
@@ -1462,6 +1701,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setTokens((prev) =>
           prev.map((t) => (t.id === result.token!.id ? result.token! : t))
         );
+        saveTokenToDb(result.token).catch(() => { });
       }
 
       // Free chair
@@ -1497,6 +1737,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     discountValue?: number;
     discountReason?: string;
     taxRate?: number;
+    feeApprovalId?: string;
+    isNewFee?: boolean;
   }): Promise<{ feeApproval: FeeApprovalRecord; invoice: Invoice; visit?: ClinicVisit }> => {
     try {
       const result = await apiClient.approveFee(data);
@@ -1551,7 +1793,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }): Promise<{ prescription: PrescriptionRecord; visit?: ClinicVisit }> => {
     try {
       const result = await apiClient.createPrescription(data);
-      setPrescriptions((prev) => [result.prescription, ...prev]);
+      setPrescriptions((prev) => {
+        const next = [result.prescription, ...prev.filter((p) => p.id !== result.prescription.id)];
+        safeSetItem('smilecare_prescriptions_list', JSON.stringify(next));
+        return next;
+      });
       if (result.visit) {
         setVisits((prev) => [result.visit!, ...prev.filter((v) => v.id !== result.visit!.id)]);
       }
@@ -1561,19 +1807,183 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         prev.map((p) =>
           p.id === data.patientId
             ? {
-                ...p,
-                prescriptions: [result.prescription, ...(p.prescriptions || [])],
-                visits: result.visit ? [result.visit, ...(p.visits || []).filter((v) => v.id !== result.visit!.id)] : p.visits
-              }
+              ...p,
+              prescriptions: [result.prescription, ...(p.prescriptions || [])],
+              visits: result.visit ? [result.visit, ...(p.visits || []).filter((v) => v.id !== result.visit!.id)] : p.visits
+            }
             : p
         )
       );
 
       notifyCrossTabSync();
+      if (result.prescription) {
+        savePrescriptionToDb(result.prescription).catch((e) => console.warn('Supabase Rx save warning:', e));
+      }
+
+      // Update local medicines catalog with newly prescribed items
+      if (data.items && data.items.length > 0) {
+        setMedicines((prev) => {
+          const map = new Map<string, MedicineRecord>();
+          prev.forEach((m) => map.set(m.name.toLowerCase().trim(), m));
+          data.items.forEach((it) => {
+            if (it.medicine && it.medicine.trim()) {
+              const key = it.medicine.toLowerCase().trim();
+              if (!map.has(key)) {
+                map.set(key, {
+                  id: `med-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                  name: it.medicine.trim(),
+                  dosage: it.dosage,
+                  route: it.route || 'Oral',
+                  frequency: it.frequency,
+                  duration: it.duration,
+                  instructions: it.instructions
+                });
+              }
+            }
+          });
+          return Array.from(map.values());
+        });
+      }
+
       addToast('Prescription Saved 💊', `Digital Rx ${result.prescription.id} generated. Ready to print.`, 'success');
       return result;
     } catch (err: any) {
       addToast('Prescription Error', err.message || 'Failed to create prescription.', 'danger');
+      throw err;
+    }
+  };
+
+  const updatePrescription = async (
+    id: string,
+    data: {
+      items: Array<{
+        id?: string;
+        medicine: string;
+        dosage: string;
+        route?: string;
+        frequency: string;
+        duration: string;
+        instructions: string;
+      }>;
+      diagnosis?: string;
+      doctorNotes?: string;
+      followUpDate?: string;
+    }
+  ): Promise<{ prescription: PrescriptionRecord; visit?: ClinicVisit }> => {
+    try {
+      const result = await apiClient.updatePrescription(id, data);
+      setPrescriptions((prev) => {
+        const next = prev.map((p) => (p.id === id ? result.prescription : p));
+        safeSetItem('smilecare_prescriptions_list', JSON.stringify(next));
+        return next;
+      });
+
+      // Update patient state
+      setPatients((prev) =>
+        prev.map((p) => {
+          if (p.id === result.prescription.patientId) {
+            return {
+              ...p,
+              prescriptions: (p.prescriptions || []).map((rx) => (rx.id === id ? result.prescription : rx))
+            };
+          }
+          return p;
+        })
+      );
+
+      // Update visit state
+      if (result.visit) {
+        setVisits((prev) => prev.map((v) => (v.id === result.visit!.id ? result.visit! : v)));
+      }
+
+      notifyCrossTabSync();
+      if (result.prescription) {
+        savePrescriptionToDb(result.prescription).catch((e) => console.warn('Supabase Rx save warning:', e));
+      }
+
+      // Update local medicines catalog with newly prescribed items
+      if (data.items && data.items.length > 0) {
+        setMedicines((prev) => {
+          const map = new Map<string, MedicineRecord>();
+          prev.forEach((m) => map.set(m.name.toLowerCase().trim(), m));
+          data.items.forEach((it) => {
+            if (it.medicine && it.medicine.trim()) {
+              const key = it.medicine.toLowerCase().trim();
+              if (!map.has(key)) {
+                map.set(key, {
+                  id: `med-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                  name: it.medicine.trim(),
+                  dosage: it.dosage,
+                  route: it.route || 'Oral',
+                  frequency: it.frequency,
+                  duration: it.duration,
+                  instructions: it.instructions
+                });
+              }
+            }
+          });
+          return Array.from(map.values());
+        });
+      }
+
+      addToast('Prescription Updated ℞', `Prescription ${id} updated successfully.`, 'success');
+      return result;
+    } catch (err: any) {
+      addToast('Update Error', err.message || 'Failed to update prescription.', 'danger');
+      throw err;
+    }
+  };
+
+  const deletePrescription = async (id: string): Promise<void> => {
+    try {
+      await apiClient.deletePrescription(id);
+      setPrescriptions((prev) => {
+        const next = prev.filter((p) => p.id !== id);
+        safeSetItem('smilecare_prescriptions_list', JSON.stringify(next));
+        return next;
+      });
+
+      setPatients((prev) =>
+        prev.map((p) => ({
+          ...p,
+          prescriptions: (p.prescriptions || []).filter((rx) => rx.id !== id)
+        }))
+      );
+
+      setVisits((prev) =>
+        prev.map((v) => {
+          if (v.prescriptionRecord?.id === id) {
+            return {
+              ...v,
+              prescriptionRecord: undefined,
+              prescriptions: undefined
+            };
+          }
+          return v;
+        })
+      );
+
+      notifyCrossTabSync();
+      deletePrescriptionFromDb(id).catch((e) => console.warn('Supabase Rx delete warning:', e));
+      addToast('Prescription Deleted 🗑️', `Prescription ${id} deleted.`, 'info');
+    } catch (err: any) {
+      addToast('Delete Error', err.message || 'Failed to delete prescription.', 'danger');
+      throw err;
+    }
+  };
+
+  const saveMedicine = async (medData: Partial<MedicineRecord>): Promise<MedicineRecord> => {
+    try {
+      const res = await apiClient.saveMedicine(medData);
+      setMedicines((prev) => {
+        const filtered = prev.filter(
+          (m) => m.name.toLowerCase().trim() !== res.medicine.name.toLowerCase().trim()
+        );
+        return [...filtered, res.medicine];
+      });
+      return res.medicine;
+    } catch (err: any) {
+      console.error('Failed to save medicine to database:', err);
       throw err;
     }
   };
@@ -1589,6 +1999,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setTokens((prev) =>
           prev.map((t) => (t.id === result.token!.id ? result.token! : t))
         );
+        saveTokenToDb(result.token).catch(() => { });
       }
       notifyCrossTabSync();
       addToast('Checkout Complete! 👋', `Encounter closed for ${result.visit.patientName}.`, 'success');
@@ -1604,6 +2015,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setTokens((prev) =>
         prev.map((t) => (t.id === result.token.id || t.tokenNumber === tokenNumberOrId ? result.token : t))
       );
+      saveTokenToDb(result.token).catch(() => { });
       notifyCrossTabSync();
       addToast('Token Placed on Hold', `Token ${tokenNumberOrId} placed on hold.`, 'warning');
     } catch (err: any) {
@@ -1617,6 +2029,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setTokens((prev) =>
         prev.map((t) => (t.id === result.token.id || t.tokenNumber === tokenNumberOrId ? result.token : t))
       );
+      saveTokenToDb(result.token).catch(() => { });
       notifyCrossTabSync();
       addToast('Token Skipped', `Token ${tokenNumberOrId} was skipped.`, 'warning');
     } catch (err: any) {
@@ -2137,6 +2550,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         enquiries,
         addEnquiry,
         updateEnquiryStatus,
+        deleteEnquiry,
+        clearAllEnquiries,
         sendAppointmentWhatsApp,
         toasts,
         addToast,
@@ -2153,6 +2568,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         completeConsultation,
         approveFee,
         createPrescription,
+        updatePrescription,
+        deletePrescription,
+        medicines,
+        saveMedicine,
         closeVisit,
         holdToken,
         skipToken,
@@ -2177,6 +2596,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isSidebarCollapsed,
         toggleSidebar,
         setSidebarCollapsed,
+        isProfileSheetOpen,
+        setIsProfileSheetOpen,
         addFollowUp,
         updateFollowUpStatus,
         rescheduleFollowUp,

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 const COMMON_CONCERNS = [
+  'Smile Transformation / Aesthetic Crowns & Bridges',
   'Toothache / Severe Pain',
   'Teeth Cleaning & Polishing (Scaling)',
   'Cavity & Composite Tooth Filling',
@@ -264,7 +265,7 @@ export const BookingWizard: React.FC = () => {
                   <label className="text-xs font-bold text-slate-700 block mb-1">
                     Preferred Visit Date
                   </label>
-                  <div className="relative">
+                  <div className="relative mb-2">
                     <CalendarIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type="date"
@@ -274,23 +275,67 @@ export const BookingWizard: React.FC = () => {
                       className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:border-teal-500 font-semibold"
                     />
                   </div>
+                  {/* Mobile Quick Date Chips */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                    {[
+                      { label: 'Today', offset: 0 },
+                      { label: 'Tomorrow', offset: 1 },
+                      { label: '+2 Days', offset: 2 },
+                      { label: '+3 Days', offset: 3 }
+                    ].map((item) => {
+                      const d = new Date();
+                      d.setDate(d.getDate() + item.offset);
+                      const iso = d.toISOString().split('T')[0];
+                      const isSel = preferredDate === iso;
+                      return (
+                        <button
+                          key={item.label}
+                          type="button"
+                          onClick={() => setPreferredDate(iso)}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors cursor-pointer shrink-0 ${
+                            isSel 
+                              ? 'bg-teal-700 text-white shadow-2xs' 
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
-                    Convenient Time Window
+                <div className="sm:col-span-1">
+                  <label className="text-xs font-bold text-slate-700 block mb-1.5">
+                    Convenient Time Window *
                   </label>
-                  <select
-                    value={preferredTimeWindow}
-                    onChange={(e) => setPreferredTimeWindow(e.target.value)}
-                    className="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:border-teal-500 font-semibold bg-white"
-                  >
-                    {TIME_WINDOWS.map((win) => (
-                      <option key={win.id} value={win.label}>
-                        {win.icon} {win.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="grid grid-cols-1 gap-2">
+                    {TIME_WINDOWS.map((win) => {
+                      const isSelected = preferredTimeWindow === win.label;
+                      return (
+                        <button
+                          key={win.id}
+                          type="button"
+                          onClick={() => setPreferredTimeWindow(win.label)}
+                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
+                            isSelected
+                              ? 'bg-teal-50 border-teal-600 text-teal-900 shadow-2xs ring-1 ring-teal-600'
+                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span className="text-base shrink-0">{win.icon}</span>
+                          <div className="min-w-0">
+                            <span className="font-extrabold text-xs block text-slate-900 truncate">
+                              {win.label.split('(')[0].trim()}
+                            </span>
+                            <span className="text-[10px] text-slate-500 block truncate">
+                              ({win.label.split('(')[1]}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 

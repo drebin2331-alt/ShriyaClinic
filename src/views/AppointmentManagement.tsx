@@ -38,7 +38,8 @@ import {
   Inbox,
   Check,
   Archive,
-  RefreshCw
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
 
 export const AppointmentManagement: React.FC = () => {
@@ -48,6 +49,8 @@ export const AppointmentManagement: React.FC = () => {
     patients = [],
     enquiries = [],
     updateEnquiryStatus,
+    deleteEnquiry,
+    clearAllEnquiries,
     sendAppointmentWhatsApp,
     updateAppointmentStatus, 
     setActiveView, 
@@ -91,7 +94,7 @@ export const AppointmentManagement: React.FC = () => {
       } else {
         const res = await checkInPatient({
           appointmentId: apt.id,
-          patientId: apt.patientId || `PAT-2026-000101`,
+          patientId: apt.patientId || (patients.find(p => p.phone === apt.patientPhone)?.id || apt.id),
           doctorId: apt.doctorId,
           priority: 'Normal',
           reasonForVisit: apt.reasonForVisit
@@ -250,7 +253,7 @@ export const AppointmentManagement: React.FC = () => {
   });
 
   return (
-    <div className="w-full max-w-[1650px] mx-auto px-4 lg:px-6 py-6 flex gap-6">
+    <div className="w-full max-w-full overflow-x-hidden mx-auto px-2.5 sm:px-4 lg:px-6 py-3 sm:py-5 flex flex-col lg:flex-row gap-4 lg:gap-6">
       <Sidebar type="admin" />
 
       <main className="flex-1 min-w-0 flex flex-col gap-6 animate-in fade-in">
@@ -341,6 +344,41 @@ export const AppointmentManagement: React.FC = () => {
 
           <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
         </div>
+
+        {/* High-Priority Consultation Requests Alert Banner */}
+        {newEnquiriesCount > 0 && viewMode !== 'enquiries' && (
+          <div className="bg-gradient-to-r from-emerald-700 via-teal-700 to-emerald-800 text-white rounded-2xl p-4 sm:p-5 shadow-lg border-2 border-emerald-400/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 shadow-xs">
+                <Inbox className="w-6 h-6 text-white animate-bounce" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-black text-sm uppercase tracking-wide">
+                    {newEnquiriesCount} New Patient Consultation Request{newEnquiriesCount > 1 ? 's' : ''} Received!
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black animate-pulse">
+                    Action Required
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-100 font-medium mt-0.5">
+                  Patients submitted consultation enquiries on the clinic website. Contact on WhatsApp & confirm appointment slots.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setViewMode('enquiries')}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white text-emerald-900 hover:bg-emerald-50 text-xs font-black shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap"
+              >
+                <Inbox className="w-4 h-4 text-emerald-700" />
+                <span>Review {newEnquiriesCount} New Enquir{newEnquiriesCount > 1 ? 'ies' : 'y'} →</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Filters & Search Toolbar */}
         <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
@@ -544,8 +582,23 @@ export const AppointmentManagement: React.FC = () => {
                 );
               })
             ) : (
-              <div className="col-span-2 clay-card p-8 text-center text-slate-400 font-bold">
-                No appointments found for current selection.
+              <div className="col-span-2 clay-card p-8 text-center text-slate-500 font-bold space-y-3">
+                <p>No appointments found for current selection.</p>
+                {enquiries.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col items-center gap-2">
+                    <p className="text-xs text-slate-600 font-semibold">
+                      You have {enquiries.length} online consultation request{enquiries.length !== 1 ? 's' : ''} submitted by website visitors{newEnquiriesCount > 0 ? ` (${newEnquiriesCount} new)` : ''}.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('enquiries')}
+                      className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                    >
+                      <Inbox className="w-4 h-4" />
+                      <span>Review Online Consultation Requests ({enquiries.length})</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -663,9 +716,26 @@ export const AppointmentManagement: React.FC = () => {
                 ))}
               </div>
 
-              <span className="text-xs text-slate-500 font-medium">
-                Showing {filteredEnquiries.length} enquiry record{filteredEnquiries.length !== 1 ? 's' : ''}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-500 font-medium">
+                  Showing {filteredEnquiries.length} enquiry record{filteredEnquiries.length !== 1 ? 's' : ''}
+                </span>
+                {enquiries.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to clear all consultation inquiries?')) {
+                        clearAllEnquiries();
+                      }
+                    }}
+                    className="px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="Clear all consultation inquiries"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Clear All</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Enquiries Grid */}
@@ -705,14 +775,24 @@ export const AppointmentManagement: React.FC = () => {
                               {enq.status}
                             </span>
                           </div>
-                          <span className="text-[11px] font-semibold text-slate-400">
-                            {new Date(enq.createdAt).toLocaleDateString('en-IN', {
-                              day: 'numeric',
-                              month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-semibold text-slate-400">
+                              {new Date(enq.createdAt).toLocaleDateString('en-IN', {
+                                day: 'numeric',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => deleteEnquiry(enq.id)}
+                              className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                              title="Delete consultation request"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
 
                         {/* Patient Name & Contact */}
@@ -1081,7 +1161,6 @@ export const AppointmentManagement: React.FC = () => {
             setRegisterInitialData(null);
           }}
           onRegisterPatient={(newPat) => {
-            addPatient(newPat);
             setSelectedPatientForDetail(newPat);
             setShowRegisterModal(false);
             setRegisterInitialData(null);

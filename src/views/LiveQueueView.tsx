@@ -18,32 +18,86 @@ import {
 } from 'lucide-react';
 
 export const LiveQueueView: React.FC = () => {
-  const { appointments, userToken, setUserToken, setActiveView, addToast } = useApp();
+  const { appointments, tokens = [], userToken, setUserToken, setActiveView, addToast } = useApp();
 
   const [searchTokenInput, setSearchTokenInput] = useState<string>(userToken);
 
-  // Active consultation token
-  const currentConsultation = appointments.find((a) => a.status === 'In Consultation') || appointments.find((a) => a.status === 'Waiting');
+  // Active consultation token (check live queue tokens first, then appointments)
+  const activeToken =
+    tokens.find((t) => t.status === 'In Consultation' || t.status === 'Called') ||
+    tokens.find((t) => t.status === 'Waiting');
+
+  const activeAppt =
+    appointments.find((a) => a.status === 'In Consultation') ||
+    appointments.find((a) => a.status === 'Waiting');
+
+  const currentConsultation = activeToken
+    ? {
+        id: activeToken.id,
+        tokenId: activeToken.tokenNumber,
+        patientName: activeToken.patientName,
+        doctorName: activeToken.doctorName,
+        doctorSpecialty: 'Dental Specialist',
+        timeSlot: activeToken.createdAt || 'Current Slot',
+        status: (activeToken.status === 'Called' ? 'In Consultation' : activeToken.status) as any
+      }
+    : activeAppt;
 
   // Next tokens in line
-  const nextWaitingList = appointments.filter((a) => a.status === 'Waiting');
+  const waitingTokensList = tokens
+    .filter((t) => t.status === 'Waiting')
+    .map((t) => ({
+      id: t.id,
+      tokenId: t.tokenNumber,
+      patientName: t.patientName,
+      doctorName: t.doctorName,
+      doctorSpecialty: 'Dental Specialist',
+      timeSlot: t.createdAt || 'Today',
+      status: 'Waiting' as const
+    }));
+
+  const waitingApptsList = appointments.filter((a) => a.status === 'Waiting');
+
+  // Combined next waiting list, avoiding duplicates
+  const nextWaitingList = [
+    ...waitingTokensList,
+    ...waitingApptsList.filter((a) => !waitingTokensList.some((t) => t.tokenId === a.tokenId))
+  ];
 
   // Queue statistics
-  const waitingCount = appointments.filter((a) => a.status === 'Waiting').length;
-  const inConsultCount = appointments.filter((a) => a.status === 'In Consultation').length;
-  const completedCount = appointments.filter((a) => a.status === 'Completed').length;
-  const cancelledCount = appointments.filter((a) => a.status === 'Cancelled').length;
+  const waitingCount = waitingTokensList.length || waitingApptsList.length;
+  const inConsultCount =
+    (tokens.filter((t) => t.status === 'In Consultation' || t.status === 'Called').length) ||
+    appointments.filter((a) => a.status === 'In Consultation').length;
+  const completedCount =
+    tokens.filter((t) => t.status === 'Completed').length +
+    appointments.filter((a) => a.status === 'Completed').length;
+  const cancelledCount =
+    tokens.filter((t) => t.status === 'Cancelled').length +
+    appointments.filter((a) => a.status === 'Cancelled').length;
 
   // Patient's own token lookup calculation
   const lookupToken = searchTokenInput.toUpperCase().trim() || userToken;
-  const userApt = appointments.find((a) => a.tokenId === lookupToken);
+  const matchedToken = tokens.find((t) => t.tokenNumber.toUpperCase() === lookupToken);
+  const matchedAppt = appointments.find((a) => a.tokenId?.toUpperCase() === lookupToken);
+  const userApt = matchedToken
+    ? {
+        id: matchedToken.id,
+        tokenId: matchedToken.tokenNumber,
+        patientName: matchedToken.patientName,
+        doctorName: matchedToken.doctorName,
+        doctorSpecialty: 'Dental Specialist',
+        timeSlot: matchedToken.createdAt || 'Today',
+        status: matchedToken.status as any
+      }
+    : matchedAppt;
 
   let patientsAhead = 0;
   let estWaitMinutes = 0;
 
   if (userApt && currentConsultation) {
-    const userNum = parseInt(userApt.tokenId.replace('A-', ''), 10) || 0;
-    const currentNum = parseInt(currentConsultation.tokenId.replace('A-', ''), 10) || 0;
+    const userNum = parseInt(userApt.tokenId.replace(/[^\d]/g, ''), 10) || 0;
+    const currentNum = parseInt(currentConsultation.tokenId.replace(/[^\d]/g, ''), 10) || 0;
     patientsAhead = Math.max(0, userNum - currentNum - 1);
     estWaitMinutes = patientsAhead * 8 + 5;
   }
@@ -59,7 +113,7 @@ export const LiveQueueView: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col gap-8">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-28 flex flex-col gap-6 sm:gap-8">
       {/* Top Title & Quick Action */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
@@ -158,7 +212,7 @@ export const LiveQueueView: React.FC = () => {
             {currentConsultation ? (
               <div className="py-6 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
                 <div>
-                  <div className="text-7xl md:text-8xl font-black text-sky-950 tracking-tight my-1 drop-shadow-sm font-mono">
+                  <div className="text-5xl sm:text-7xl md:text-8xl font-black text-sky-950 tracking-tight my-1 drop-shadow-sm font-mono truncate">
                     {currentConsultation.tokenId}
                   </div>
                   <div className="text-lg font-black text-slate-800 mt-2">

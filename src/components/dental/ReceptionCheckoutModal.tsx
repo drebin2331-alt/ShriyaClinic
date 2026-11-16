@@ -31,13 +31,17 @@ interface ReceptionCheckoutModalProps {
   onClose: () => void;
   visit?: ClinicVisit;
   patient?: PatientRecord;
+  targetInvoiceId?: string;
+  targetFeeApprovalId?: string;
 }
 
 export const ReceptionCheckoutModal: React.FC<ReceptionCheckoutModalProps> = ({
   isOpen,
   onClose,
   visit,
-  patient
+  patient,
+  targetInvoiceId,
+  targetFeeApprovalId
 }) => {
   const { 
     invoices, 
@@ -59,28 +63,70 @@ export const ReceptionCheckoutModal: React.FC<ReceptionCheckoutModalProps> = ({
   const currentVisit = visits.find((v) => v.id === visit?.id || (v.tokenId && v.tokenId === visit?.tokenId)) || visit;
   const currentPatient = patients.find((p) => p.id === currentVisit?.patientId || p.id === patient?.id) || patient;
 
-  // Search all available invoices (context invoices + patient invoices)
-  const allInvoices = [
-    ...invoices,
-    ...(currentPatient?.invoices || [])
-  ];
+  // Deduplicate all available invoices by ID
+  const allInvoices = React.useMemo(() => {
+    const map = new Map<string, Invoice>();
+    (currentPatient?.invoices || []).forEach((inv) => map.set(inv.id, inv));
+    (invoices || []).forEach((inv) => map.set(inv.id, inv));
+    return Array.from(map.values());
+  }, [invoices, currentPatient?.invoices]);
 
-  const linkedInvoice = allInvoices.find(
-    (inv) => (currentVisit?.invoiceId && inv.id === currentVisit.invoiceId) || 
-             (currentVisit?.feeApproval?.invoiceId && inv.id === currentVisit.feeApproval.invoiceId) ||
-             (currentVisit?.feeApproval?.id && inv.feeApprovalId === currentVisit.feeApproval.id) || 
-             (currentPatient?.id && inv.patientId === currentPatient.id && inv.status !== 'Paid')
-  );
+  // Priority-based invoice resolution
+  const linkedInvoice = React.useMemo(() => {
+    const candidateInvoices = allInvoices.filter(
+      (inv) =>
+        inv.patientId === currentPatient?.id ||
+        (currentPatient?.opNumber && inv.patientOpNumber === currentPatient.opNumber) ||
+        (inv.patientName && inv.patientName.toLowerCase() === currentPatient?.name?.toLowerCase())
+    );
+
+    // 1. Explicit target invoice ID
+    if (targetInvoiceId) {
+      const match = candidateInvoices.find((i) => i.id === targetInvoiceId);
+      if (match) return match;
+    }
+
+    // 2. Explicit target fee approval ID
+    if (targetFeeApprovalId) {
+      const match = candidateInvoices.find((i) => i.feeApprovalId === targetFeeApprovalId);
+      if (match) return match;
+    }
+
+    // 3. Current visit's fee approval invoiceId
+    if (currentVisit?.feeApproval?.invoiceId) {
+      const match = candidateInvoices.find((i) => i.id === currentVisit.feeApproval.invoiceId);
+      if (match && (match.balance > 0 || !candidateInvoices.some((ci) => ci.balance > 0))) return match;
+    }
+
+    // 4. Current visit's fee approval ID
+    if (currentVisit?.feeApproval?.id) {
+      const match = candidateInvoices.find((i) => i.feeApprovalId === currentVisit.feeApproval.id);
+      if (match && (match.balance > 0 || !candidateInvoices.some((ci) => ci.balance > 0))) return match;
+    }
+
+    // 5. Any UNPAID invoice for this patient with balance > 0
+    const unpaidInv = candidateInvoices.find((i) => i.status !== 'Paid' && i.balance > 0);
+    if (unpaidInv) return unpaidInv;
+
+    // 6. Current visit's direct invoiceId
+    if (currentVisit?.invoiceId) {
+      const match = candidateInvoices.find((i) => i.id === currentVisit.invoiceId);
+      if (match) return match;
+    }
+
+    // 7. Fallback to newest invoice
+    return candidateInvoices[0] || null;
+  }, [allInvoices, targetInvoiceId, targetFeeApprovalId, currentVisit, currentPatient]);
 
   // Treatment plan total
   const treatmentPlanTotal = (currentPatient?.treatmentPlans || []).reduce(
     (sum, tp) => sum + (Number(tp.estimatedCost) || 0),
     0
   );
-  const defaultConsultationFee = 500;
+  const defaultConsultationFee = 0;
   const estimatedVisitCost = currentVisit?.feeApproval?.finalPayable 
     ? currentVisit.feeApproval.finalPayable 
-    : (treatmentPlanTotal > 0 ? (defaultConsultationFee + treatmentPlanTotal) : defaultConsultationFee);
+    : (treatmentPlanTotal > 0 ? treatmentPlanTotal : 0);
 
   const doctorApprovedAmount = currentVisit?.feeApproval?.finalPayable || estimatedVisitCost;
   const grossTotal = linkedInvoice ? linkedInvoice.total : Math.max(doctorApprovedAmount, currentPatient?.outstandingBalance || 0);
@@ -102,6 +148,11 @@ export const ReceptionCheckoutModal: React.FC<ReceptionCheckoutModalProps> = ({
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState<boolean>(false);
   const [generatedReceipt, setGeneratedReceipt] = useState<PaymentRecord | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState<boolean>(false);
+
+  // Synchronize payAmount with remainingBalance
+  useEffect(() => {
+    setPayAmount(remainingBalance);
+  }, [remainingBalance, linkedInvoice?.id]);
 
   // Follow-Up Appointment State
   const [bookFollowUp, setBookFollowUp] = useState<boolean>(!!currentVisit?.followUpDate);
@@ -337,6 +388,40 @@ export const ReceptionCheckoutModal: React.FC<ReceptionCheckoutModalProps> = ({
               </span>
             )}
           </div>
+
+          {/* Line items for this fee / invoice */}
+          {((currentVisit.feeApproval?.items && currentVisit.feeApproval.items.length > 0) || (linkedInvoice?.items && linkedInvoice.items.length > 0)) && (
+            <div className="overflow-x-auto bg-slate-50/90 rounded-xl p-3 border border-slate-200 text-xs">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-slate-500 font-bold border-b border-slate-200">
+                    <th className="pb-1.5">Procedure / Service</th>
+                    <th className="pb-1.5 text-center">Qty</th>
+                    <th className="pb-1.5 text-right">Rate</th>
+                    <th className="pb-1.5 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {(currentVisit.feeApproval?.consultationFee || 0) > 0 && (
+                    <tr>
+                      <td className="py-1.5 font-semibold">Specialist Doctor Consultation</td>
+                      <td className="py-1.5 text-center">1</td>
+                      <td className="py-1.5 text-right tabular-nums">₹{currentVisit.feeApproval!.consultationFee.toLocaleString()}</td>
+                      <td className="py-1.5 text-right tabular-nums font-bold">₹{currentVisit.feeApproval!.consultationFee.toLocaleString()}</td>
+                    </tr>
+                  )}
+                  {(currentVisit.feeApproval?.items || linkedInvoice?.items || []).map((it: any, idx: number) => (
+                    <tr key={it.id || idx}>
+                      <td className="py-1.5 font-semibold text-slate-800">{it.description}</td>
+                      <td className="py-1.5 text-center">{it.quantity || 1}</td>
+                      <td className="py-1.5 text-right tabular-nums">₹{Number(it.unitPrice || (it.total / (it.quantity || 1)) || 0).toLocaleString()}</td>
+                      <td className="py-1.5 text-right tabular-nums font-bold">₹{Number(it.total || ((it.quantity || 1) * (it.unitPrice || 0)) || 0).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Pricing Calculation Summary */}
           <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2 text-xs">

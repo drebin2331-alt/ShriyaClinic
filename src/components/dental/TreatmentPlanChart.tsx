@@ -41,7 +41,7 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
   onDeleteTreatmentPlan,
   onEditTreatmentPlan,
   onNavigateToBilling,
-  doctorName = 'Dr. Priya Sharma',
+  doctorName = 'Dr. DOCTOR TEST',
   patientId
 }) => {
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
@@ -108,7 +108,12 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
   };
 
   const handleSaveSingleTooth = (updated: ToothData) => {
-    onUpdateTeeth(teeth.map((t) => (t.toothNumber === updated.toothNumber ? updated : t)));
+    const currentTeeth = Array.isArray(teeth) ? teeth : [];
+    const exists = currentTeeth.some((t) => t.toothNumber === updated.toothNumber);
+    const updatedTeeth = exists
+      ? currentTeeth.map((t) => (t.toothNumber === updated.toothNumber ? updated : t))
+      : [...currentTeeth, updated];
+    onUpdateTeeth(updatedTeeth);
   };
 
   const handleApplyBulkTreatment = () => {

@@ -41,6 +41,9 @@ export const TREATMENT_LEGEND: LegendItem[] = [
   { code: 'CR', label: 'Crown', description: 'Ceramic / Zirconia / PFM prosthetic crown', textColor: 'text-amber-800', bgColor: 'bg-amber-100', borderColor: 'border-amber-300' },
   { code: 'I', label: 'Implant', description: 'Titanium root fixture & abutment', textColor: 'text-teal-800', bgColor: 'bg-teal-100', borderColor: 'border-teal-300' },
   { code: 'E', label: 'Extraction', description: 'Surgical or regular extraction advised', textColor: 'text-red-800', bgColor: 'bg-red-200', borderColor: 'border-red-400' },
+  { code: 'FR', label: 'Fracture', description: 'Fractured or cracked tooth crown/root', textColor: 'text-orange-800', bgColor: 'bg-orange-100', borderColor: 'border-orange-300' },
+  { code: 'M', label: 'Mobility', description: 'Grade I/II/III tooth mobility', textColor: 'text-amber-900', bgColor: 'bg-yellow-100', borderColor: 'border-yellow-300' },
+  { code: 'S', label: 'Sensitivity', description: 'Dentin hypersensitivity / thermal reaction', textColor: 'text-cyan-800', bgColor: 'bg-cyan-100', borderColor: 'border-cyan-300' },
   { code: 'B', label: 'Bridge', description: 'Fixed partial denture unit / pontic', textColor: 'text-indigo-800', bgColor: 'bg-indigo-100', borderColor: 'border-indigo-300' },
   { code: 'P', label: 'Prosthetic', description: 'Removable partial or full denture', textColor: 'text-emerald-800', bgColor: 'bg-emerald-100', borderColor: 'border-emerald-300' },
   { code: 'W', label: 'Whitening', description: 'Aesthetic bleaching / enamel treatment', textColor: 'text-sky-800', bgColor: 'bg-sky-100', borderColor: 'border-sky-300' }

@@ -25,10 +25,116 @@ import {
   Camera,
   Check,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  X,
+  ZoomIn,
+  MessageSquare
 } from 'lucide-react';
 import { PatientEnquiryModal } from '../components/common/PatientEnquiryModal';
-import { MobilePublicBar } from '../components/common/MobilePublicBar';
+
+interface ClinicPhoto {
+  src: string;
+  title: string;
+  subtitle: string;
+  badge: string;
+}
+
+export interface SmileTransformationCase {
+  id: string;
+  src: string;
+  title: string;
+  category: 'Aesthetic Crowns' | 'Bridges & Dentures' | 'Full Arch Rehab' | 'Cosmetic Makeover';
+  badge: string;
+  procedure: string;
+  diagnosis: string;
+  outcome: string;
+  highlights: string[];
+}
+
+export const SMILE_TRANSFORMATIONS: SmileTransformationCase[] = [
+  {
+    id: 'case-anterior-aesthetic-crown',
+    src: '/images/case-anterior-aesthetic-crown.jpg',
+    title: 'Anterior Aesthetic Crown & Space Harmonization',
+    category: 'Aesthetic Crowns',
+    badge: 'Zirconia Aesthetic Crown',
+    procedure: 'Precision Aesthetic Anterior Crown & Tooth Contour Alignment',
+    diagnosis: 'Fractured, discolored upper central incisor with irregular spacing',
+    outcome: 'Seamless biomimetic shade matching, natural translucency, and aligned smile line',
+    highlights: ['Natural Translucency', 'Gingival Symmetry', 'Metal-Free Ceramic']
+  },
+  {
+    id: 'case-full-arch-rehab',
+    src: '/images/case-full-arch-rehab.jpg',
+    title: 'Full Arch Aesthetic Smile Rehabilitation',
+    category: 'Full Arch Rehab',
+    badge: 'Multi-Unit Ceramic Rehabilitation',
+    procedure: 'Full Arch Ceramic Crowns & Occlusal Reconstruction',
+    diagnosis: 'Severe cervical abrasion, multi-tooth enamel wear, and deep dental caries',
+    outcome: 'Rebuilt proper vertical dimension, restored biting comfort, and a radiant smile',
+    highlights: ['Complete Arch Restructure', 'Zero-Metal Zirconia', 'Long-Lasting Function']
+  },
+  {
+    id: 'case-anterior-fixed-bridge',
+    src: '/images/case-anterior-fixed-bridge.jpg',
+    title: 'Fixed Prosthodontic Bridge for Lower Incisors',
+    category: 'Bridges & Dentures',
+    badge: 'Fixed Dental Bridge',
+    procedure: 'Precision Fixed Dental Bridge & Diastema Space Closure',
+    diagnosis: 'Missing lower central incisors causing mastication and speech impediment',
+    outcome: 'Complete functional restoration with natural contouring and stable occlusion',
+    highlights: ['Fixed Non-Removable', 'Natural Emergence Profile', 'Enhanced Speech & Chewing']
+  },
+  {
+    id: 'case-cosmetic-smile-design',
+    src: '/images/case-cosmetic-smile-design.jpg',
+    title: 'Cosmetic Smile Makeover & Fractured Incisor Repair',
+    category: 'Cosmetic Makeover',
+    badge: 'Digital Smile Makeover',
+    procedure: 'Aesthetic Composite / Ceramic Smile Reconstruction',
+    diagnosis: 'Traumatic chipped central incisor with midline gap and irregular enamel margins',
+    outcome: 'Perfect symmetrical smile line with youthful translucency and tooth integrity',
+    highlights: ['Minimally Invasive Design', 'Harmonious Lip Line', 'Instant Smile Confidence']
+  },
+  {
+    id: 'case-partial-denture',
+    src: '/images/case-partial-denture.jpg',
+    title: 'Precision Flexible Partial Denture',
+    category: 'Bridges & Dentures',
+    badge: 'Flexible Prosthesis',
+    procedure: 'Custom Gingiva-Shaded Removable Partial Denture',
+    diagnosis: 'Missing lower incisor with localized periodontal tissue recession',
+    outcome: 'Comfortable, non-invasive tooth replacement blending effortlessly with natural gums',
+    highlights: ['Comfortable Flexible Fit', 'Gingiva-Matched Base', 'Quick Non-Surgical Solution']
+  }
+];
+
+const CLINIC_GALLERY_PHOTOS: ClinicPhoto[] = [
+  {
+    src: '/images/clinic-operatory.jpg',
+    title: 'Multi-Chair Clinical Operatory Suite',
+    subtitle: 'Modern dental chairs, ergonomic lighting, and hygienic treatment bays.',
+    badge: 'Operatory Suite'
+  },
+  {
+    src: '/images/clinic-lounge.jpg',
+    title: 'Patient Lounge & Consultation Suite',
+    subtitle: 'Comfortable reception seating designed for calm, stress-free dental visits.',
+    badge: 'Patient Lounge'
+  },
+  {
+    src: '/images/clinic-entrance.jpg',
+    title: 'Clinic Entrance & Waiting Hall',
+    subtitle: 'Clean, welcoming waiting area with sanitization and hydration facilities.',
+    badge: 'Waiting Area'
+  },
+  {
+    src: '/images/clinic-exterior.jpg',
+    title: 'Shriya Multispeciality Dental Clinic Exterior',
+    subtitle: 'Easily accessible roadside clinic entrance with clear signage.',
+    badge: 'Clinic Location'
+  }
+];
 
 export const LandingPage: React.FC = () => {
   const { doctors, services, setActiveView, addEnquiry } = useApp();
@@ -39,6 +145,9 @@ export const LandingPage: React.FC = () => {
   const [inquiryNotes, setInquiryNotes] = useState('');
   const [showEnquiryModal, setShowEnquiryModal] = useState(false);
   const [selectedConcern, setSelectedConcern] = useState<string | undefined>(undefined);
+  const [lightboxPhoto, setLightboxPhoto] = useState<ClinicPhoto | null>(null);
+  const [selectedTransformationCategory, setSelectedTransformationCategory] = useState<string>('All');
+  const [lightboxCase, setLightboxCase] = useState<SmileTransformationCase | null>(null);
 
   const serviceIcons: Record<string, React.ReactNode> = {
     Stethoscope: <Stethoscope className="w-5 h-5 text-teal-700" />,
@@ -53,48 +162,15 @@ export const LandingPage: React.FC = () => {
   // Displayed whenever dynamic Supabase doctor list is initially being configured
   const fallbackSpecialists = [
     {
-      id: 'doc-lead-1',
-      name: 'Dr. Rajesh Patel',
-      specialization: 'Prosthodontist & Implantologist',
-      qualification: 'BDS, MDS (Prosthodontics), FICOI (USA)',
-      experience: '14+ Years Experience',
-      rating: 4.9,
-      reviewsCount: 380,
-      avatar: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=400&q=80',
-      bio: 'Pioneer in computer-guided full-arch dental implants, porcelain veneers, and complex full-mouth rehabilitation.'
-    },
-    {
-      id: 'doc-lead-2',
-      name: 'Dr. Priya Sharma',
-      specialization: 'Orthodontics & Dentofacial Orthopedics',
-      qualification: 'BDS, MDS (Orthodontics), Invisalign Gold',
-      experience: '11+ Years Experience',
-      rating: 4.9,
-      reviewsCount: 420,
-      avatar: 'https://images.unsplash.com/photo-1594824813583-b78e2f896b05?auto=format&fit=crop&w=400&q=80',
-      bio: 'Expert in invisible aligner smile design, self-ligating ceramic braces, and pediatric habit-breaking appliances.'
-    },
-    {
-      id: 'doc-lead-3',
-      name: 'Dr. Vikram Malhotra',
-      specialization: 'Microscopic Endodontist',
-      qualification: 'BDS, MDS (Conservative Dentistry)',
-      experience: '12+ Years Experience',
+      id: 'staff-1792653030970',
+      name: 'Dr. DOCTOR TEST',
+      specialization: 'Orthodontics & Aligners',
+      qualification: 'BDS, MDS',
+      experience: '5+ Years Experience',
       rating: 5.0,
-      reviewsCount: 310,
-      avatar: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=400&q=80',
-      bio: 'Specialist in single-visit painless root canal treatments, laser tooth bleaching, and aesthetic composite bonding.'
-    },
-    {
-      id: 'doc-lead-4',
-      name: 'Dr. Ananya Reddy',
-      specialization: 'Pediatric Dental Specialist',
-      qualification: 'BDS, MDS (Pedodontics)',
-      experience: '9+ Years Experience',
-      rating: 4.9,
-      reviewsCount: 260,
-      avatar: 'https://images.unsplash.com/photo-1594824813583-b78e2f896b05?auto=format&fit=crop&w=400&q=80',
-      bio: 'Passionate about gentle, anxiety-free dentistry for children, milk tooth pulpectomies, and preventive fluorides.'
+      reviewsCount: 120,
+      avatar: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=400&q=80',
+      bio: 'Specialist in dental orthodontics, invisible aligners, teeth alignment, and comprehensive dental surgery.'
     }
   ];
 
@@ -202,17 +278,17 @@ export const LandingPage: React.FC = () => {
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
-                <span>Transparent Fees</span>
+                <span>Gentle Patient Care</span>
               </div>
             </div>
           </div>
 
-          {/* Right Visual Area: Operatory Suite Photo + Floating Clinical Badges */}
+          {/* Right Visual Area: Real Clinic Photo + Floating Clinical Badges */}
           <div className="lg:col-span-5 relative flex justify-center w-full">
-            <div className="relative w-full max-w-sm sm:max-w-md aspect-[4/5] bg-white rounded-3xl p-3 shadow-xl border-4 border-white overflow-hidden group mx-auto">
+            <div className="relative w-full max-w-md lg:max-w-lg aspect-[4/3] sm:aspect-[5/4] bg-white rounded-3xl p-2.5 sm:p-3 shadow-xl border-4 border-white overflow-hidden group mx-auto">
               <img
-                src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=900&q=80"
-                alt="Shriya Multispeciality Dental Clinic Operatory Suite"
+                src="/images/clinic-lounge.jpg"
+                alt="Shriya Multispeciality Dental Clinic Patient Lounge"
                 className="w-full h-full object-cover rounded-2xl transition-transform duration-700 group-hover:scale-105"
               />
 
@@ -357,14 +433,16 @@ export const LandingPage: React.FC = () => {
                 </div>
 
                 <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Duration</span>
-                    <span className="text-xs font-extrabold text-slate-700">{srv.duration}</span>
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block leading-none">Duration</span>
+                      <span className="text-xs font-extrabold text-slate-700">{srv.duration}</span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Starting From</span>
-                    <span className="text-sm font-black text-teal-800">₹{srv.price.toLocaleString()}</span>
-                  </div>
+                  <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/70">
+                    Specialist Care
+                  </span>
                 </div>
 
                 <button
@@ -488,6 +566,258 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* ===================================================================== */}
+      {/* 5B. CLINIC PHOTO TOUR & FACILITIES GALLERY                            */}
+      {/* ===================================================================== */}
+      <section id="clinic-gallery" className="px-4 scroll-mt-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
+            <span className="text-xs font-extrabold text-teal-800 uppercase tracking-widest px-3 py-1 rounded-full bg-teal-50 border border-teal-200">
+              Inside Our Clinic
+            </span>
+            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mt-3 tracking-tight">
+              Tour Shriya Multispeciality Dental Clinic
+            </h2>
+            <p className="text-xs sm:text-sm font-medium text-slate-600 mt-2">
+              Take a look inside our spotless operatory suites, comfortable waiting lounge, and easily accessible clinic entrance.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            {CLINIC_GALLERY_PHOTOS.map((photo) => (
+              <div
+                key={photo.src}
+                onClick={() => setLightboxPhoto(photo)}
+                className="group relative bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-xs hover:shadow-lg hover:border-teal-300 transition-all cursor-pointer"
+              >
+                <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
+                  <img
+                    src={photo.src}
+                    alt={photo.title}
+                    loading="lazy"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/75 via-slate-900/15 to-transparent" />
+
+                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-sm text-teal-800 text-[10px] font-black uppercase tracking-wider shadow-xs">
+                    {photo.badge}
+                  </span>
+
+                  <span className="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-900/50 backdrop-blur-sm text-white flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity">
+                    <ZoomIn className="w-4 h-4" />
+                  </span>
+
+                  <div className="absolute bottom-3 left-3.5 right-3.5 text-white">
+                    <h3 className="text-sm sm:text-base font-extrabold leading-snug">
+                      {photo.title}
+                    </h3>
+                    <p className="text-[11px] sm:text-xs text-slate-200 mt-0.5 line-clamp-2">
+                      {photo.subtitle}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===================================================================== */}
+      {/* 5C. REAL PATIENT SMILE TRANSFORMATIONS (BEFORE & AFTER)              */}
+      {/* ===================================================================== */}
+      <section id="transformations" className="px-4 scroll-mt-20">
+        <div className="max-w-7xl mx-auto space-y-8 sm:space-y-10">
+          <div className="text-center max-w-3xl mx-auto">
+            <span className="text-xs font-extrabold text-teal-800 uppercase tracking-widest px-3 py-1 rounded-full bg-teal-50 border border-teal-200 inline-flex items-center gap-1.5 shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Real Patient Results • Shriya Dental Clinic</span>
+            </span>
+            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mt-3 tracking-tight">
+              Smile Transformations (Before & After)
+            </h2>
+            <p className="text-xs sm:text-sm font-medium text-slate-600 mt-2 leading-relaxed">
+              Explore actual clinical cases completed by our specialist dental surgeons — restoring natural aesthetics, healthy bite function, and radiant patient confidence.
+            </p>
+
+            {/* Category Filter Pills (Mobile Scrollable) */}
+            <div className="mt-6 flex items-center justify-start sm:justify-center gap-2 overflow-x-auto pb-2 scrollbar-none no-scrollbar">
+              {['All', 'Aesthetic Crowns', 'Full Arch Rehab', 'Bridges & Dentures', 'Cosmetic Makeover'].map((cat) => {
+                const count = cat === 'All' 
+                  ? SMILE_TRANSFORMATIONS.length 
+                  : SMILE_TRANSFORMATIONS.filter((c) => c.category === cat).length;
+                const isSelected = selectedTransformationCategory === cat;
+
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedTransformationCategory(cat)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer shrink-0 border ${
+                      isSelected
+                        ? 'bg-gradient-to-r from-teal-700 to-emerald-700 text-white border-teal-800 shadow-md shadow-teal-900/20 scale-102'
+                        : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200'
+                    }`}
+                  >
+                    <span>{cat}</span>
+                    <span className={`ml-1.5 text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                      isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Transformations Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {SMILE_TRANSFORMATIONS
+              .filter((c) => selectedTransformationCategory === 'All' || c.category === selectedTransformationCategory)
+              .map((c) => (
+                <div
+                  key={c.id}
+                  className="bg-white rounded-3xl overflow-hidden border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-teal-300 transition-all duration-300 flex flex-col group"
+                >
+                  {/* Before & After Case Image */}
+                  <div
+                    onClick={() => setLightboxCase(c)}
+                    className="relative aspect-[4/5] w-full bg-slate-950 overflow-hidden cursor-pointer"
+                    title="Click to view full high-resolution case photos"
+                  >
+                    <img
+                      src={c.src}
+                      alt={c.title}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/30" />
+
+                    {/* Top Badges */}
+                    <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-none">
+                      <span className="px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-md text-teal-800 text-[10px] font-black uppercase tracking-wider shadow-sm border border-white/50">
+                        {c.badge}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-700/90 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1 border border-emerald-500/40">
+                        <Sparkles className="w-3 h-3 text-emerald-300" />
+                        <span>Before & After</span>
+                      </span>
+                    </div>
+
+                    {/* Quick Zoom Trigger Pill */}
+                    <div className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[11px] font-bold shadow-md opacity-90 group-hover:opacity-100 transition-opacity">
+                      <ZoomIn className="w-3.5 h-3.5 text-teal-300" />
+                      <span>Inspect Result</span>
+                    </div>
+                  </div>
+
+                  {/* Case Clinical Card Body */}
+                  <div className="p-5 sm:p-6 flex-1 flex flex-col justify-between space-y-4">
+                    <div className="space-y-2">
+                      <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-snug group-hover:text-teal-800 transition-colors">
+                        {c.title}
+                      </h3>
+                      <p className="text-xs font-bold text-teal-700 flex items-center gap-1.5">
+                        <Stethoscope className="w-3.5 h-3.5 shrink-0" />
+                        <span className="line-clamp-1">{c.procedure}</span>
+                      </p>
+                    </div>
+
+                    {/* Clinical Diagnosis vs Outcome Details */}
+                    <div className="space-y-2 text-xs bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                      <div className="flex items-start gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0 mt-1.5" />
+                        <div className="text-slate-600">
+                          <strong className="text-slate-800">Initial Issue:</strong> {c.diagnosis}
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 mt-1.5" />
+                        <div className="text-slate-700">
+                          <strong className="text-emerald-800">Result Achieved:</strong> {c.outcome}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Highlights Chips */}
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {c.highlights.map((h, i) => (
+                        <span
+                          key={i}
+                          className="px-2.5 py-0.5 rounded-md bg-teal-50/80 text-teal-800 font-bold text-[10px] border border-teal-200/50"
+                        >
+                          ✓ {h}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setLightboxCase(c)}
+                        className="text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer flex items-center gap-1 transition-colors"
+                      >
+                        <ZoomIn className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Enlarge Photos</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedConcern(`Smile Transformation: ${c.title}`);
+                          setShowEnquiryModal(true);
+                        }}
+                        className="px-3.5 py-1.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-extrabold text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 active:scale-95"
+                      >
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>Book Similar</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
+
+          {/* Social Proof Trust Banner */}
+          <div className="rounded-3xl bg-gradient-to-r from-teal-900 via-slate-900 to-teal-950 p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-1.5 text-center md:text-left">
+              <span className="text-[10px] font-black uppercase tracking-wider text-teal-300 bg-teal-500/20 px-3 py-1 rounded-full border border-teal-400/30">
+                Personalized Smile Consultation
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black tracking-tight">
+                Want a Similar Smile Transformation?
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
+                Our specialist dental team crafts customized digital smile plans with digital mockups, natural shade selection, and gentle clinical execution.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedConcern('Full Smile Makeover / Aesthetic Consultation');
+                  setShowEnquiryModal(true);
+                }}
+                className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg hover:shadow-emerald-500/25 hover:scale-102 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Calendar className="w-4 h-4" />
+                <span>Schedule Smile Analysis</span>
+              </button>
+              <a
+                href="https://wa.me/919400320890?text=Hello%20Shriya%20Dental!%20I%20would%20like%20to%20enquire%20about%20a%20Smile%20Transformation%20consultation."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm border border-white/20 transition-all flex items-center justify-center gap-2"
+              >
+                <MessageSquare className="w-4 h-4 text-emerald-400" />
+                <span>WhatsApp Doctor</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===================================================================== */}
       {/* 6. EXPERT SPECIALISTS & DOCTORS                                      */}
       {/* ===================================================================== */}
       <section id="doctors" className="px-4 scroll-mt-20">
@@ -591,7 +921,7 @@ export const LandingPage: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed italic">
-                  "I was terrified of dental implants due to past experiences. Dr. Rajesh Patel at Shriya Multispeciality Dental Clinic made the entire surgical procedure completely painless with 3D guided surgery. Highly recommended for senior care!"
+                  "I was terrified of dental implants due to past experiences. The specialist dental surgeons at Shriya Multispeciality Dental Clinic made the entire surgical procedure completely painless with 3D guided surgery. Highly recommended for senior care!"
                 </p>
               </div>
               <div className="flex items-center gap-3 mt-5 pt-3 border-t border-slate-100">
@@ -887,6 +1217,7 @@ export const LandingPage: React.FC = () => {
                 Treatments
               </span>
               <ul className="space-y-1.5 text-slate-500 font-medium">
+                <li><button onClick={() => scrollToSection('transformations')} className="hover:text-teal-700 cursor-pointer font-bold text-teal-800">✨ Smile Transformations (Before & After)</button></li>
                 <li><button onClick={() => scrollToSection('services')} className="hover:text-teal-700 cursor-pointer">Dental Implants</button></li>
                 <li><button onClick={() => scrollToSection('services')} className="hover:text-teal-700 cursor-pointer">Invisalign Clear Aligners</button></li>
                 <li><button onClick={() => scrollToSection('services')} className="hover:text-teal-700 cursor-pointer">Single Sitting RCT</button></li>
@@ -951,8 +1282,150 @@ export const LandingPage: React.FC = () => {
         defaultConcern={selectedConcern}
       />
 
-      {/* MOBILE PUBLIC APP BAR (Pinned at bottom of mobile screens) */}
-      <MobilePublicBar onOpenEnquiry={() => setShowEnquiryModal(true)} />
+      {/* CLINIC PHOTO LIGHTBOX MODAL */}
+      {lightboxPhoto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4"
+          onClick={() => setLightboxPhoto(null)}
+        >
+          <div
+            className="relative max-w-4xl w-full bg-white rounded-2xl overflow-hidden shadow-2xl border border-slate-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setLightboxPhoto(null)}
+              aria-label="Close photo preview"
+              className="absolute top-3 right-3 z-10 w-10 h-10 rounded-full bg-slate-900/75 text-white hover:bg-slate-900 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="bg-slate-900 flex items-center justify-center max-h-[75vh] overflow-hidden">
+              <img
+                src={lightboxPhoto.src}
+                alt={lightboxPhoto.title}
+                className="w-full h-full max-h-[75vh] object-contain"
+              />
+            </div>
+            <div className="p-4 sm:p-5 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <span className="inline-block text-[11px] font-bold uppercase tracking-wider text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-full mb-1">
+                  {lightboxPhoto.badge}
+                </span>
+                <h3 className="text-lg font-bold text-slate-900">{lightboxPhoto.title}</h3>
+                <p className="text-sm text-slate-600">{lightboxPhoto.subtitle}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SMILE TRANSFORMATION CASE LIGHTBOX MODAL */}
+      {lightboxCase && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-3 sm:p-4 overflow-y-auto"
+          onClick={() => setLightboxCase(null)}
+        >
+          <div
+            className="relative max-w-3xl w-full bg-white rounded-3xl overflow-hidden shadow-2xl border border-slate-200 my-auto animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setLightboxCase(null)}
+              aria-label="Close case detail"
+              className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-slate-900/80 text-white hover:bg-slate-900 flex items-center justify-center transition-colors cursor-pointer shadow-lg"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* High-Resolution Clinical Photography */}
+            <div className="relative bg-slate-950 flex items-center justify-center max-h-[55vh] sm:max-h-[60vh] overflow-hidden">
+              <img
+                src={lightboxCase.src}
+                alt={lightboxCase.title}
+                className="w-full h-full max-h-[55vh] sm:max-h-[60vh] object-contain"
+              />
+              <span className="absolute top-3 left-3 px-3 py-1 rounded-full bg-emerald-700/90 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1 border border-emerald-500/40">
+                <Sparkles className="w-3 h-3 text-emerald-300" />
+                <span>Clinical Before & After</span>
+              </span>
+            </div>
+
+            {/* Case Details & Action Strip */}
+            <div className="p-5 sm:p-6 space-y-4 bg-white">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="space-y-1">
+                  <span className="inline-block text-[10px] font-black uppercase tracking-wider text-teal-800 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200">
+                    {lightboxCase.badge}
+                  </span>
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                    {lightboxCase.title}
+                  </h3>
+                  <p className="text-xs font-bold text-teal-700 flex items-center gap-1.5">
+                    <Stethoscope className="w-3.5 h-3.5 shrink-0" />
+                    <span>{lightboxCase.procedure}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Clinical Breakdown */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                <div className="space-y-1">
+                  <div className="font-extrabold text-amber-800 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span>Initial Clinical Presentation:</span>
+                  </div>
+                  <p className="text-slate-600 pl-3.5">{lightboxCase.diagnosis}</p>
+                </div>
+                <div className="space-y-1">
+                  <div className="font-extrabold text-emerald-800 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span>Clinical Outcome & Result:</span>
+                  </div>
+                  <p className="text-slate-700 font-medium pl-3.5">{lightboxCase.outcome}</p>
+                </div>
+              </div>
+
+              {/* Key Clinical Attributes */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {lightboxCase.highlights.map((h, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 rounded-lg bg-teal-50 text-teal-800 font-bold text-[11px] border border-teal-200/60"
+                  >
+                    ✓ {h}
+                  </span>
+                ))}
+              </div>
+
+              {/* Consultation Actions */}
+              <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <span className="text-xs text-slate-500 font-medium text-center sm:text-left">
+                  Schedule a 1-on-1 consultation for customized smile evaluation.
+                </span>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const concernTitle = lightboxCase.title;
+                      setLightboxCase(null);
+                      setSelectedConcern(`Smile Transformation: ${concernTitle}`);
+                      setShowEnquiryModal(true);
+                    }}
+                    className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-700 to-emerald-600 text-white font-extrabold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Book Similar Consultation</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/common/Header';
 import { ToastContainer } from './components/common/ToastContainer';
 import { MobileNavigation } from './components/common/MobileNavigation';
+import { MobileProfileSheet } from './components/common/MobileProfileSheet';
 import { DemoLoginModal } from './components/common/DemoLoginModal';
 
 import { LandingPage } from './views/LandingPage';
@@ -11,6 +12,7 @@ import { BookingWizard } from './views/BookingWizard';
 import { LiveQueueView } from './views/LiveQueueView';
 import { PatientPortal } from './views/PatientPortal';
 import { AdminDashboard } from './views/AdminDashboard';
+import { MobileAppDashboard } from './views/MobileAppDashboard';
 import { AppointmentManagement } from './views/AppointmentManagement';
 import { TokenControlView } from './views/TokenControlView';
 import { ReceptionTVView } from './views/ReceptionTVView';
@@ -95,7 +97,7 @@ const MainContent: React.FC = () => {
   ].includes(activeView);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f8fafc] text-slate-900 pb-20 lg:pb-8">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col bg-[#f8fafc] text-slate-900 pb-28 lg:pb-8">
       <Header 
         isAdminRoute={isAdminRoute} 
         onNavigateToAdmin={() => {
@@ -110,7 +112,7 @@ const MainContent: React.FC = () => {
         }}
       />
 
-      <div className="flex-1 w-full">
+      <div className="flex-1 w-full max-w-full overflow-x-hidden">
         {/* If on /admin route and user is authenticated as staff: show EMR views */}
         {isAdminRoute && isStaff ? (
           <>
@@ -148,14 +150,12 @@ const MainContent: React.FC = () => {
             {/* Doctors, Receptionists & Staff Management (Admin) */}
             {(activeView === 'admin-staff' || activeView === 'admin-doctors') && <StaffUserManagementView />}
 
-            {/* Dashboards */}
+            {/* Dashboards (Mobile App Model matching reference screenshots) */}
             {(activeView === 'admin-dashboard' || 
               activeView === 'staff-dashboard' || 
               activeView === 'doctor-dashboard' || 
               activeView === 'admin-settings' ||
-              activeView === 'landing') && (
-                currentUser.role === 'admin' ? <PatientManagementView /> : <AdminDashboard />
-              )}
+              activeView === 'landing') && <MobileAppDashboard />}
 
             {/* WhatsApp & Reports */}
             {(activeView === 'whatsapp' || activeView === 'staff-whatsapp' || activeView === 'admin-whatsapp') && <WhatsAppReminderView />}
@@ -177,7 +177,8 @@ const MainContent: React.FC = () => {
 
       <DemoLoginModal />
       <ToastContainer />
-      {isAdminRoute && isStaff && <MobileNavigation />}
+      <MobileNavigation />
+      <MobileProfileSheet />
     </div>
   );
 };

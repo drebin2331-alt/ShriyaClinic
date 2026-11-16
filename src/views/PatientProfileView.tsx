@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -89,7 +89,10 @@ export const PatientProfileView: React.FC = () => {
     rescheduleFollowUp,
     sendFollowUpWhatsAppReminder,
     shouldOpenCaseSheetOnProfile,
-    setShouldOpenCaseSheetOnProfile
+    setShouldOpenCaseSheetOnProfile,
+    prescriptions,
+    updatePrescription,
+    deletePrescription
   } = useApp();
   const { currentUser } = useAuth();
 
@@ -116,7 +119,7 @@ export const PatientProfileView: React.FC = () => {
     );
   }
 
-  const rawPatient = selectedPatientForDetail || patients[0];
+  const rawPatient = (selectedPatientForDetail?.id ? patients.find((p) => p.id === selectedPatientForDetail.id) : null) || selectedPatientForDetail || patients[0];
 
   const patient: PatientRecord = useMemo(() => {
     if (!rawPatient) return {} as PatientRecord;
@@ -142,7 +145,79 @@ export const PatientProfileView: React.FC = () => {
       allergies: rawPatient.allergies || rawPatient.medicalHistory?.allergies || [],
       recentTreatments: rawPatient.recentTreatments || [],
       visits: rawPatient.visits || [],
-      dentalChart: rawPatient.dentalChart || [],
+      dentalChart: (() => {
+        const baseChart: ToothData[] = [...(rawPatient.dentalChart || [])];
+        // Auto-synchronize any treatments from treatmentPlans into dentalChart so 3D Odontogram and Summary counters reflect all treatments
+        (rawPatient.treatmentPlans || []).forEach((tp) => {
+          if (tp.toothNumbers && Array.isArray(tp.toothNumbers)) {
+            tp.toothNumbers.forEach((tNum) => {
+              const procLower = (tp.procedure || '').toLowerCase();
+              const diagLower = (tp.diagnosis || '').toLowerCase();
+              let derivedCond: ToothCondition = 'Root Canal';
+              let derivedCode = 'R';
+
+              if (procLower.includes('root canal') || procLower.includes('rct') || procLower.includes('endodontic') || diagLower.includes('pulpitis')) {
+                derivedCond = 'Root Canal';
+                derivedCode = 'R';
+              } else if (procLower.includes('crown') || procLower.includes('cap') || tp.prostheticDesign?.restorationType === 'Crown') {
+                derivedCond = 'Crown';
+                derivedCode = 'CR';
+              } else if (procLower.includes('filling') || procLower.includes('restoration') || procLower.includes('composite')) {
+                derivedCond = 'Filling';
+                derivedCode = 'F';
+              } else if (procLower.includes('extract') || procLower.includes('removal')) {
+                derivedCond = 'Missing';
+                derivedCode = 'X';
+              } else if (procLower.includes('implant')) {
+                derivedCond = 'Implant';
+                derivedCode = 'I';
+              } else if (procLower.includes('caries') || diagLower.includes('caries')) {
+                derivedCond = 'Caries';
+                derivedCode = 'C';
+              }
+
+              const existingIdx = baseChart.findIndex((t) => t.toothNumber === tNum);
+              if (existingIdx >= 0) {
+                if (baseChart[existingIdx].condition === 'Healthy' || !baseChart[existingIdx].treatmentCode) {
+                  baseChart[existingIdx] = {
+                    ...baseChart[existingIdx],
+                    condition: derivedCond,
+                    treatmentCode: baseChart[existingIdx].treatmentCode || derivedCode,
+                    treatmentStatus: baseChart[existingIdx].treatmentStatus || tp.status
+                  };
+                }
+              } else {
+                baseChart.push({
+                  toothNumber: tNum,
+                  type: tNum >= 50 ? 'child' : 'adult',
+                  condition: derivedCond,
+                  treatmentCode: derivedCode,
+                  surfaces: { mesial: 'Healthy', distal: 'Healthy', occlusal: 'Healthy', buccal: 'Healthy', lingual: 'Healthy' },
+                  treatmentStatus: tp.status
+                });
+              }
+            });
+          }
+        });
+
+        // Also auto-derive condition from surfaces if condition is Healthy
+        baseChart.forEach((t, idx) => {
+          if (t.condition === 'Healthy' && t.surfaces) {
+            const sVals = Object.values(t.surfaces);
+            if (sVals.some((v) => v === 'Root Canal')) {
+              baseChart[idx] = { ...t, condition: 'Root Canal', treatmentCode: t.treatmentCode || 'R' };
+            } else if (sVals.some((v) => v === 'Crown')) {
+              baseChart[idx] = { ...t, condition: 'Crown', treatmentCode: t.treatmentCode || 'CR' };
+            } else if (sVals.some((v) => v === 'Filling')) {
+              baseChart[idx] = { ...t, condition: 'Filling', treatmentCode: t.treatmentCode || 'F' };
+            } else if (sVals.some((v) => v === 'Caries')) {
+              baseChart[idx] = { ...t, condition: 'Caries', treatmentCode: t.treatmentCode || 'C' };
+            }
+          }
+        });
+
+        return baseChart;
+      })(),
       treatmentPlans: rawPatient.treatmentPlans || [],
       clinicalNotes: rawPatient.clinicalNotes || [],
       diagnoses: rawPatient.diagnoses || [],
@@ -150,14 +225,18 @@ export const PatientProfileView: React.FC = () => {
       labOrders: rawPatient.labOrders || [],
       documents: rawPatient.documents || [],
       invoices: rawPatient.invoices || [],
-      followUps: rawPatient.followUps || []
+      followUps: rawPatient.followUps || [],
+      prescriptions: rawPatient.prescriptions || []
     };
   }, [rawPatient]);
 
+  const defaultDoctorName = patient?.assignedDoctorName || currentUser?.name || doctors[0]?.name || 'Dr. DOCTOR TEST';
+  const defaultDoctorId = patient?.assignedDoctorId || currentUser?.id || doctors[0]?.id || 'staff-1792653030970';
+
   type TabType =
     | 'overview'
-    | 'intake'
     | 'chart'
+    | 'prescriptions'
     | 'treatment-plan'
     | 'visits-notes'
     | 'lab-orders'
@@ -166,13 +245,12 @@ export const PatientProfileView: React.FC = () => {
 
   const getTabFromView = (view: string): TabType => {
     switch (view) {
-      case 'clinical-intake':
-      case 'patient-intake':
-      case 'intake':
-      case 'case-sheet':
-        return 'intake';
       case 'doctor-dental-chart':
         return 'chart';
+      case 'prescriptions':
+      case 'rx':
+      case 'doctor-prescriptions':
+        return 'prescriptions';
       case 'doctor-treatment-plans':
         return 'treatment-plan';
       case 'doctor-clinical-notes':
@@ -193,38 +271,32 @@ export const PatientProfileView: React.FC = () => {
     }
   };
 
-  const getViewFromTab = (tab: TabType): string => {
-    switch (tab) {
-      case 'intake':
-        return 'patient-intake';
-      case 'chart':
-        return 'doctor-dental-chart';
-      case 'treatment-plan':
-        return 'doctor-treatment-plans';
-      case 'visits-notes':
-        return 'doctor-clinical-notes';
-      case 'lab-orders':
-        return 'doctor-lab-orders';
-      case 'overview':
-      default:
-        return 'patient-profile';
-    }
-  };
-
   const [activeTab, setActiveTab] = useState<TabType>(() => getTabFromView(activeView));
 
-  // Keep activeTab in sync with activeView whenever sidebar nav or external buttons click
+  // Keep activeTab in sync with activeView ONLY when an external action specifically targets a sub-tab
+  const prevViewRef = React.useRef(activeView);
   useEffect(() => {
-    const matchedTab = getTabFromView(activeView);
-    setActiveTab(matchedTab);
+    if (prevViewRef.current !== activeView) {
+      prevViewRef.current = activeView;
+      if (['clinical-intake', 'patient-intake', 'intake', 'case-sheet'].includes(activeView)) {
+        setShowCaseSheetModal(true);
+      }
+      const specificTabs = [
+        'doctor-dental-chart',
+        'chart',
+        'doctor-treatment-plans',
+        'treatment-plan',
+        'doctor-clinical-notes',
+        'doctor-lab-orders'
+      ];
+      if (specificTabs.includes(activeView)) {
+        setActiveTab(getTabFromView(activeView));
+      }
+    }
   }, [activeView]);
 
   const handleTabChange = (newTab: TabType) => {
     setActiveTab(newTab);
-    const targetView = getViewFromTab(newTab);
-    if (activeView !== targetView) {
-      setActiveView(targetView);
-    }
   };
 
   // Consultation wrap-up modal state
@@ -319,71 +391,40 @@ export const PatientProfileView: React.FC = () => {
   }, [patient.id, patient.name, visits, patientInvoices]);
 
   // Check for any completed / reception-stage visits that do not yet have an invoice
+  // Default does NOT show 500. Only when doctor adds or approves a fee (v.feeApproval) is any amount shown.
   const pendingUnbilledVisits = useMemo(() => {
-    const patientVisits = visits.filter(
-      (v) => v.patientId === patient.id || (v.patientName && v.patientName.toLowerCase() === patient.name.toLowerCase())
-    );
+    return [];
+  }, []);
 
-    const candidateVisits: ClinicVisit[] = [...patientVisits];
-    if (checkoutVisit && !candidateVisits.some((cv) => cv.id === checkoutVisit.id)) {
-      candidateVisits.push(checkoutVisit);
-    }
-    // NOTE: Do NOT pull from patient.visits[] (Supabase embedded JSONB summaries).
-    // Those lightweight records lack feeApproval/invoiceId context and cause duplicate billing cards.
-    // The source of truth for billing is: unbilledFeeApprovals (from global visits[]) + patientInvoices.
-
-    const defaultConsultationFee = 500;
-    const treatmentPlanTotal = (patient.treatmentPlans || []).reduce(
-      (sum, tp) => sum + (Number(tp.estimatedCost) || 0),
-      0
-    );
-
-    return candidateVisits.filter((v) => {
-      // Must not already be linked to an invoice
-      const hasLinkedInvoice = patientInvoices.some(
-        (inv) => inv.id === v.invoiceId || inv.visitId === v.id || (v.feeApproval?.id && inv.feeApprovalId === v.feeApproval.id)
+  // Filter out treatment plans that are ALREADY billed in an invoice or approved in a fee authorization
+  const unbilledTreatmentPlans = useMemo(() => {
+    return (patient.treatmentPlans || []).filter((tp) => {
+      if (tp.status === 'Billed' || tp.status === 'Completed') return false;
+      const inInvoice = patientInvoices.some((inv) =>
+        (inv.items || []).some((it) => it.description?.toLowerCase().trim() === tp.procedure?.toLowerCase().trim())
       );
-      if (hasLinkedInvoice) return false;
-
-      // If already captured in unbilledFeeApprovals, don't duplicate
-      if (unbilledFeeApprovals.some((ufa) => ufa.visit.id === v.id)) return false;
-
-      // Must be awaiting payment / checkout or have recorded treatment
-      return (
-        v.status === 'Reception Follow-up' ||
-        v.status === 'In Consultation' ||
-        v.status === 'Called' ||
-        (checkoutVisit && v.id === checkoutVisit.id)
+      if (inInvoice) return false;
+      const inFeeApproval = (effectiveVisit?.feeApproval?.items || []).some((it) =>
+        it.description?.toLowerCase().trim() === tp.procedure?.toLowerCase().trim()
       );
-    }).map((v) => {
-      const amount = v.feeApproval?.finalPayable || (treatmentPlanTotal > 0 ? (defaultConsultationFee + treatmentPlanTotal) : defaultConsultationFee);
-      const items: Array<{ id: string; description: string; quantity: number; unitPrice: number; total: number }> =
-        v.feeApproval?.items && v.feeApproval.items.length > 0
-          ? v.feeApproval.items
-          : [
-            {
-              id: `cf-${v.id}`,
-              description: v.reasonForVisit || patient.currentTreatment || 'Doctor Dental Consultation & Examination',
-              quantity: 1,
-              unitPrice: defaultConsultationFee,
-              total: defaultConsultationFee
-            },
-            ...(patient.treatmentPlans || []).map((tp, idx) => ({
-              id: tp.id || `tp-it-${idx}`,
-              description: tp.procedure,
-              quantity: 1,
-              unitPrice: Number(tp.estimatedCost) || 0,
-              total: Number(tp.estimatedCost) || 0
-            }))
-          ];
-
-      return {
-        visit: v,
-        amount,
-        items
-      };
+      if (inFeeApproval) return false;
+      return true;
     });
-  }, [patient.id, patient.name, patient.treatmentPlans, patient.currentTreatment, visits, checkoutVisit, patientInvoices, unbilledFeeApprovals]);
+  }, [patient.treatmentPlans, patientInvoices, effectiveVisit?.feeApproval]);
+
+  const isFeeAlreadyApproved = Boolean(
+    effectiveVisit?.feeApproval?.status === 'Approved' ||
+    effectiveVisit?.invoiceId ||
+    patientInvoices.some((inv) => inv.feeApprovalId === effectiveVisit?.feeApproval?.id || (effectiveVisit?.id && inv.id === effectiveVisit?.invoiceId))
+  );
+
+  const hasAnyBilledFees = isFeeAlreadyApproved || patientInvoices.length > 0;
+  const isAllInvoicesPaid = patientInvoices.length > 0 && patientInvoices.every((inv) => inv.status === 'Paid');
+  const paidInvoicesAmount = patientInvoices.filter((inv) => inv.status === 'Paid').reduce((sum, inv) => sum + inv.total, 0);
+
+  const approvedFeeAmount =
+    effectiveVisit?.feeApproval?.finalPayable ||
+    patientInvoices.find((inv) => inv.id === effectiveVisit?.invoiceId || inv.feeApprovalId === effectiveVisit?.feeApproval?.id)?.total;
 
   // Total invoice balance
   const invoiceBalance = patientInvoices.reduce((sum, inv) => sum + (inv.balance ?? (inv.total - (inv.paid || 0))), 0);
@@ -447,14 +488,46 @@ export const PatientProfileView: React.FC = () => {
   const [showFeeModal, setShowFeeModal] = useState(false);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [checkoutTargetVisit, setCheckoutTargetVisit] = useState<ClinicVisit | null>(null);
+  const [checkoutTargetInvoiceId, setCheckoutTargetInvoiceId] = useState<string | undefined>(undefined);
+  const [checkoutTargetFeeApprovalId, setCheckoutTargetFeeApprovalId] = useState<string | undefined>(undefined);
   const [printablePrescriptionTarget, setPrintablePrescriptionTarget] = useState<PrescriptionRecord | null>(null);
   const [printableReceiptTarget, setPrintableReceiptTarget] = useState<PaymentRecord | null>(null);
+  const [prescriptionToEdit, setPrescriptionToEdit] = useState<PrescriptionRecord | null>(null);
 
-  // Determine if patient has completed clinical intake
+  // Unified patient digital prescriptions sorted newest first
+  const patientPrescriptions = useMemo(() => {
+    const list = (prescriptions || []).filter(
+      (p) =>
+        p.patientId === patient.id ||
+        (patient.opNumber && p.patientOpNumber === patient.opNumber) ||
+        (p.patientName && p.patientName.toLowerCase() === patient.name.toLowerCase())
+    );
+    if (patient.prescriptions) {
+      patient.prescriptions.forEach((rx) => {
+        if (!list.some((existing) => existing.id === rx.id)) {
+          list.push(rx);
+        }
+      });
+    }
+    return list.sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
+  }, [prescriptions, patient.id, patient.opNumber, patient.name, patient.prescriptions]);
+
+  // Determine if patient has completed clinical intake or is an established returning patient
+  const isReturningPatient = Boolean(
+    patient && (
+      (patient.totalVisits && patient.totalVisits > 1) ||
+      (patient.visits && patient.visits.length > 1) ||
+      patient.status === 'Active Treatment' ||
+      patient.status === 'Completed'
+    )
+  );
+
   const hasCompletedIntake = Boolean(
     patient?.caseSheetCompleted ||
     patient?.dentalHistory?.caseSheetCompleted ||
     patient?.dentalHistory?.completedAt ||
+    isReturningPatient ||
     (patient?.id && (
       sessionStorage.getItem(`smilecare_intake_completed_${patient.id}`) === 'true' ||
       localStorage.getItem(`smilecare_intake_completed_${patient.id}`) === 'true'
@@ -465,17 +538,27 @@ export const PatientProfileView: React.FC = () => {
   const isFirstVisit = Boolean(
     patient &&
     !hasCompletedIntake &&
-    (patient.totalVisits === 0 ||
-      patient.status === 'New Patient' ||
-      (!patient.dentalHistory?.currentComplaint && !patient.dentalHistory?.historyOfPresentIllness))
+    !isReturningPatient &&
+    (patient.totalVisits === 0 || patient.status === 'New Patient') &&
+    (!patient.visits || patient.visits.length <= 1)
   );
+
+  const prevPatientIdRef = useRef<string | null>(null);
 
   // Auto-open Clinical Intake Page Model for First-Visit Patients (ONLY if intake has not been completed yet)
   useEffect(() => {
-    if (patient) {
+    if (patient?.id) {
+      const isNewPatientSelected = prevPatientIdRef.current !== patient.id;
+      prevPatientIdRef.current = patient.id;
+
+      // Do not auto-switch tabs on routine background state refresh if already viewing this patient
+      if (!isNewPatientSelected && !shouldOpenCaseSheetOnProfile) {
+        return;
+      }
+
       const intakeKey = `smilecare_intake_viewed_${patient.id}`;
       if (!hasCompletedIntake && (shouldOpenCaseSheetOnProfile || (isFirstVisit && !sessionStorage.getItem(intakeKey)))) {
-        setActiveTab('intake');
+        setShowCaseSheetModal(true);
         sessionStorage.setItem(intakeKey, 'true');
         if (shouldOpenCaseSheetOnProfile) {
           setShouldOpenCaseSheetOnProfile(false);
@@ -553,7 +636,7 @@ export const PatientProfileView: React.FC = () => {
     const list: TimelineItem[] = (patient.clinicalNotes || []).map((cn) => ({
       id: cn.id,
       date: cn.date,
-      doctorName: cn.doctorName || patient.assignedDoctorName || 'Dr. Priya Sharma',
+      doctorName: cn.doctorName || defaultDoctorName,
       type: 'Clinical Encounter',
       chiefComplaint: cn.chiefComplaint,
       diagnosis: cn.diagnosis,
@@ -570,7 +653,7 @@ export const PatientProfileView: React.FC = () => {
         list.push({
           id: vis.id,
           date: vis.date,
-          doctorName: vis.doctorName || patient.assignedDoctorName || 'Dr. Priya Sharma',
+          doctorName: vis.doctorName || defaultDoctorName,
           type: vis.timelineType || 'Consultation Visit',
           chiefComplaint: vis.chiefComplaint,
           diagnosis: vis.diagnosis,
@@ -598,21 +681,72 @@ export const PatientProfileView: React.FC = () => {
     const newItem: TreatmentPlanItem = {
       id: `tp-${Date.now()}`,
       patientId: patient.id,
-      toothNumbers: item.toothNumbers || [36],
+      toothNumbers: item.toothNumbers || [],
       diagnosis: item.diagnosis || 'Clinical Diagnosis',
       procedure: item.procedure || 'Dental Treatment',
       priority: item.priority || 'Medium',
-      estimatedCost: item.estimatedCost || 1500,
+      estimatedCost: item.estimatedCost ?? 0,
       status: item.status || 'Proposed',
-      doctorId: patient.assignedDoctorId || 'doc-1',
-      doctorName: patient.assignedDoctorName || 'Dr. Priya Sharma',
+      doctorId: defaultDoctorId,
+      doctorName: defaultDoctorName,
       notes: item.notes,
       prostheticDesign: item.prostheticDesign,
       createdAt: new Date().toISOString()
     };
 
+    // Auto-update dentalChart tooth conditions to reflect the new treatment plan
+    const updatedChart = [...(patient.dentalChart || [])];
+    if (newItem.toothNumbers && newItem.toothNumbers.length > 0) {
+      const procLower = (newItem.procedure || '').toLowerCase();
+      const diagLower = (newItem.diagnosis || '').toLowerCase();
+      let mappedCond: ToothCondition = 'Root Canal';
+      let mappedCode = 'R';
+
+      if (procLower.includes('root canal') || procLower.includes('rct') || diagLower.includes('pulpitis')) {
+        mappedCond = 'Root Canal';
+        mappedCode = 'R';
+      } else if (procLower.includes('crown') || newItem.prostheticDesign?.restorationType === 'Crown') {
+        mappedCond = 'Crown';
+        mappedCode = 'CR';
+      } else if (procLower.includes('filling') || procLower.includes('restoration') || procLower.includes('composite')) {
+        mappedCond = 'Filling';
+        mappedCode = 'F';
+      } else if (procLower.includes('extract')) {
+        mappedCond = 'Missing';
+        mappedCode = 'X';
+      } else if (procLower.includes('implant')) {
+        mappedCond = 'Implant';
+        mappedCode = 'I';
+      } else if (procLower.includes('caries') || diagLower.includes('caries')) {
+        mappedCond = 'Caries';
+        mappedCode = 'C';
+      }
+
+      newItem.toothNumbers.forEach((tNum) => {
+        const existingIdx = updatedChart.findIndex((t) => t.toothNumber === tNum);
+        if (existingIdx >= 0) {
+          updatedChart[existingIdx] = {
+            ...updatedChart[existingIdx],
+            condition: mappedCond,
+            treatmentCode: mappedCode,
+            treatmentStatus: newItem.status
+          };
+        } else {
+          updatedChart.push({
+            toothNumber: tNum,
+            type: tNum >= 50 ? 'child' : 'adult',
+            condition: mappedCond,
+            treatmentCode: mappedCode,
+            surfaces: { mesial: 'Healthy', distal: 'Healthy', occlusal: 'Healthy', buccal: 'Healthy', lingual: 'Healthy' },
+            treatmentStatus: newItem.status
+          });
+        }
+      });
+    }
+
     updatePatient({
       ...patient,
+      dentalChart: updatedChart,
       treatmentPlans: [newItem, ...patient.treatmentPlans]
     });
     addToast('Procedure Added', `${newItem.procedure} added to patient treatment plan.`, 'success');
@@ -644,7 +778,7 @@ export const PatientProfileView: React.FC = () => {
       id: `cn-${Date.now()}`,
       patientId: patient.id,
       date: new Date().toISOString().split('T')[0],
-      doctorName: patient.assignedDoctorName || 'Dr. Priya Sharma',
+      doctorName: defaultDoctorName,
       chiefComplaint: newChiefComplaint || 'Routine visit review',
       clinicalFindings: newFindings || 'Clinical review completed.',
       diagnosis: newDiagnosis || 'Monitored dental condition',
@@ -658,7 +792,7 @@ export const PatientProfileView: React.FC = () => {
       id: `vis-${Date.now()}`,
       patientId: patient.id,
       date: new Date().toISOString().split('T')[0],
-      doctorName: patient.assignedDoctorName || 'Dr. Priya Sharma',
+      doctorName: defaultDoctorName,
       chiefComplaint: newChiefComplaint || 'Follow-up consultation',
       clinicalFindings: newFindings,
       diagnosis: newDiagnosis,
@@ -762,8 +896,8 @@ export const PatientProfileView: React.FC = () => {
       id: `lab-${Date.now()}`,
       patientId: patient.id,
       patientName: patient.name,
-      doctorId: patient.assignedDoctorId || 'doc-1',
-      doctorName: patient.assignedDoctorName || 'Dr. Priya Sharma',
+      doctorId: defaultDoctorId,
+      doctorName: defaultDoctorName,
       toothNumbers: toothNums.length > 0 ? toothNums : [36],
       treatment: `${labType} Fabrication`,
       labName,
@@ -858,7 +992,7 @@ export const PatientProfileView: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-6 py-5 flex gap-6">
+    <div className="w-full max-w-full overflow-x-hidden mx-auto px-2.5 sm:px-4 lg:px-6 py-3 sm:py-5 flex flex-col lg:flex-row gap-4 lg:gap-6">
       <Sidebar type="admin" />
 
       <main className="flex-1 min-w-0 space-y-3">
@@ -892,7 +1026,7 @@ export const PatientProfileView: React.FC = () => {
                         addToast('Patient Switched', `Viewing ${found.name}'s record.`, 'info');
                       }
                     }}
-                    className="px-2.5 py-1 rounded-md border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-900 cursor-pointer focus:outline-none focus:ring-1 focus:ring-teal-600"
+                    className="max-w-[180px] sm:max-w-none px-2.5 py-1 rounded-md border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-900 cursor-pointer focus:outline-none focus:ring-1 focus:ring-teal-600 truncate"
                   >
                     {patients.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -966,20 +1100,20 @@ export const PatientProfileView: React.FC = () => {
             </div>
           </div>
 
-          {/* Row 2: Dedicated Clinical Action Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2.5 border-t border-slate-100">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-500 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200 flex items-center gap-1.5">
+          {/* Row 2: Dedicated Clinical Action Toolbar (Swipeable on Mobile) */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2.5 border-t border-slate-100">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs font-semibold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200 flex items-center gap-1.5 shrink-0">
                 <Stethoscope className="w-3.5 h-3.5 text-teal-600" />
                 <span>Clinical Actions</span>
               </span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none flex-nowrap w-full sm:w-auto">
               {/* Clinical Case Sheet */}
               <button
                 onClick={() => setShowCaseSheetModal(true)}
-                className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
+                className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors shrink-0 whitespace-nowrap"
                 title="Open Doctor Clinical Intake, HOPI, Medical & Dental History Case Sheet"
               >
                 <ClipboardList className="w-3.5 h-3.5 text-teal-400" />
@@ -989,28 +1123,60 @@ export const PatientProfileView: React.FC = () => {
               {(currentUser.role === 'doctor' || currentUser.role === 'admin') && (
                 <>
                   <button
-                    onClick={() => setShowPrescriptionModal(true)}
-                    className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
-                    title="Write digital prescription"
+                    onClick={() => {
+                      const existingRx = effectiveVisit?.prescriptionRecord ||
+                        patientPrescriptions.find((p) => p.visitId === effectiveVisit?.id) ||
+                        patientPrescriptions[0];
+                      setPrescriptionToEdit(existingRx || null);
+                      setShowPrescriptionModal(true);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors shrink-0 whitespace-nowrap"
+                    title={patientPrescriptions.length > 0 ? "View / Edit or issue digital prescription" : "Write digital prescription"}
                   >
                     <FileText className="w-3.5 h-3.5 text-slate-500" />
-                    <span>+ Write Rx</span>
+                    <span>+ Write Rx{patientPrescriptions.length > 0 ? ` (${patientPrescriptions.length})` : ''}</span>
                   </button>
 
-                  <button
-                    onClick={() => setShowFeeModal(true)}
-                    className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
-                    title="Approve fees and apply discounts"
-                  >
-                    <DollarSign className="w-3.5 h-3.5 text-slate-500" />
-                    <span>+ Approve Fees</span>
-                  </button>
+                  {isAllInvoicesPaid ? (
+                    <button
+                      onClick={() => setShowFeeModal(true)}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs shrink-0 whitespace-nowrap"
+                      title="Previous fee is fully paid and settled. Click to add next visit fee."
+                    >
+                      <Plus className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>+ Add Fee</span>
+                      <span className="text-[10px] bg-emerald-200/90 text-emerald-950 px-1.5 py-0.2 rounded font-black">
+                        ✓ Paid ₹{paidInvoicesAmount.toLocaleString()}
+                      </span>
+                    </button>
+                  ) : hasAnyBilledFees ? (
+                    <button
+                      onClick={() => setShowFeeModal(true)}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs shrink-0 whitespace-nowrap"
+                      title="Previous fee already sent to Billing & Invoices. Click to add next visit fee or review."
+                    >
+                      <Plus className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>+ Add Fee</span>
+                      <span className="text-[10px] bg-emerald-200/80 text-emerald-900 px-1.5 py-0.2 rounded font-black">
+                        ✓ Billed {approvedFeeAmount ? `₹${approvedFeeAmount.toLocaleString()}` : ''}
+                      </span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowFeeModal(true)}
+                      className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors shrink-0 whitespace-nowrap"
+                      title="Approve fees and apply discounts"
+                    >
+                      <DollarSign className="w-3.5 h-3.5 text-slate-500" />
+                      <span>+ Approve Fees</span>
+                    </button>
+                  )}
                 </>
               )}
 
               <button
                 onClick={() => setShowAddNoteModal(true)}
-                className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
+                className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors shrink-0 whitespace-nowrap"
                 title="Record clinical note and findings"
               >
                 <Stethoscope className="w-3.5 h-3.5 text-slate-500" />
@@ -1020,7 +1186,7 @@ export const PatientProfileView: React.FC = () => {
               {activeVisit && (
                 <button
                   onClick={() => setShowCompleteModal(true)}
-                  className="px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
+                  className="px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors shrink-0 whitespace-nowrap"
                   title="Finalize consultation and hand off to reception"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 text-teal-300" />
@@ -1030,8 +1196,13 @@ export const PatientProfileView: React.FC = () => {
 
               {checkoutVisit && (
                 <button
-                  onClick={() => setShowCheckoutModal(true)}
-                  className="px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+                  onClick={() => {
+                    setCheckoutTargetVisit(checkoutVisit);
+                    setCheckoutTargetInvoiceId(checkoutVisit.invoiceId);
+                    setCheckoutTargetFeeApprovalId(checkoutVisit.feeApproval?.id);
+                    setShowCheckoutModal(true);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shrink-0 whitespace-nowrap"
                   title="Settle payment and checkout patient"
                 >
                   <Receipt className="w-3.5 h-3.5" />
@@ -1064,7 +1235,7 @@ export const PatientProfileView: React.FC = () => {
         )}
 
         {/* FIRST VISIT CLINICAL INTAKE NOTICE BANNER */}
-        {isFirstVisit && activeTab !== 'intake' && (
+        {isFirstVisit && !showCaseSheetModal && (
           <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-lg bg-amber-100 border border-amber-200 text-amber-800 flex items-center justify-center shrink-0">
@@ -1086,7 +1257,7 @@ export const PatientProfileView: React.FC = () => {
             </div>
 
             <button
-              onClick={() => handleTabChange('intake')}
+              onClick={() => setShowCaseSheetModal(true)}
               className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium flex items-center gap-2 shrink-0 cursor-pointer transition-colors"
             >
               <ClipboardList className="w-4 h-4 text-amber-300" />
@@ -1095,18 +1266,16 @@ export const PatientProfileView: React.FC = () => {
           </div>
         )}
 
-        {/* Streamlined Clean Navigation Tabs */}
-        <div className="border-b border-slate-200 flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+        {/* Modern Mobile-First Segmented Navigation Pill Strip */}
+        <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80 scrollbar-none">
           {[
             { id: 'overview' as TabType, label: 'Overview & History', icon: <User className="w-3.5 h-3.5" /> },
-            ...(!hasCompletedIntake ? [
-              { id: 'intake' as TabType, label: 'First Visit Clinical Intake', icon: <ClipboardList className="w-3.5 h-3.5 text-amber-600" /> }
-            ] : []),
             { id: 'chart' as TabType, label: '3D Dental Chart', icon: <Stethoscope className="w-3.5 h-3.5" /> },
+            { id: 'prescriptions' as TabType, label: `Prescriptions (${patientPrescriptions.length})`, icon: <FileText className="w-3.5 h-3.5" /> },
             { id: 'treatment-plan' as TabType, label: `Treatment Plans (${patient.treatmentPlans.length})`, icon: <Layers className="w-3.5 h-3.5" /> },
-            { id: 'visits-notes' as TabType, label: `Visits & Clinical Notes (${patient.clinicalNotes.length || patient.visits.length})`, icon: <FileText className="w-3.5 h-3.5" /> },
+            { id: 'visits-notes' as TabType, label: `Visits & Notes (${patient.clinicalNotes.length || patient.visits.length})`, icon: <FileText className="w-3.5 h-3.5" /> },
             { id: 'lab-orders' as TabType, label: `Lab Orders (${patient.labOrders.length})`, icon: <FlaskConical className="w-3.5 h-3.5" /> },
-            { id: 'billing' as TabType, label: `Billing & Invoices (${patientInvoices.length + unbilledFeeApprovals.length + pendingUnbilledVisits.length})`, icon: <CreditCard className="w-3.5 h-3.5" /> },
+            { id: 'billing' as TabType, label: `Billing & Invoices (${patientInvoices.length + unbilledFeeApprovals.length})`, icon: <CreditCard className="w-3.5 h-3.5" /> },
             { id: 'documents' as TabType, label: `Documents (${patient.documents.length})`, icon: <Download className="w-3.5 h-3.5" /> },
           ].map((tab) => {
             const isActive = activeTab === tab.id;
@@ -1114,10 +1283,11 @@ export const PatientProfileView: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`px-3 py-2 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border-b-2 whitespace-nowrap ${isActive
-                    ? 'border-sky-600 text-sky-700 font-bold bg-sky-50/60 rounded-t-md'
-                    : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
-                  }`}
+                className={`px-3 py-2 text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap rounded-xl ${
+                  isActive
+                    ? 'bg-white text-teal-900 font-black shadow-xs border border-slate-200'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 font-semibold'
+                }`}
               >
                 {tab.icon}
                 <span>{tab.label}</span>
@@ -1125,36 +1295,6 @@ export const PatientProfileView: React.FC = () => {
             );
           })}
         </div>
-
-        {/* ==================================================== */}
-        {/* TAB: DEDICATED CLINICAL INTAKE PAGE MODEL            */}
-        {/* ==================================================== */}
-        {activeTab === 'intake' && !hasCompletedIntake && (
-          <DoctorCaseSheetModal
-            isOpen={true}
-            isPageModel={true}
-            onClose={() => {
-              setActiveTab('overview');
-              setActiveView('patient-detail');
-            }}
-            patient={patient}
-            onSave={(updated) => {
-              try {
-                sessionStorage.setItem(`smilecare_intake_completed_${updated.id}`, 'true');
-                localStorage.setItem(`smilecare_intake_completed_${updated.id}`, 'true');
-                sessionStorage.setItem(`smilecare_intake_viewed_${updated.id}`, 'true');
-              } catch (e) { }
-              setShouldOpenCaseSheetOnProfile(false);
-              updatePatient(updated);
-              if (selectedPatientForDetail && selectedPatientForDetail.id === updated.id) {
-                setSelectedPatientForDetail(updated);
-              }
-              setActiveTab('overview');
-              setActiveView('patient-detail');
-              addToast('Case Sheet Saved', `Clinical intake & medical history saved for ${updated.name}.`, 'success');
-            }}
-          />
-        )}
 
         {/* ==================================================== */}
         {/* TAB 1: PATIENT OVERVIEW                              */}
@@ -1391,7 +1531,7 @@ export const PatientProfileView: React.FC = () => {
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleTabChange('intake')}
+                    onClick={() => setShowCaseSheetModal(true)}
                     className="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 font-semibold text-xs flex items-center gap-1 cursor-pointer transition-colors"
                     title="Edit Chief Complaint & Dental History"
                   >
@@ -1478,69 +1618,505 @@ export const PatientProfileView: React.FC = () => {
             </div>
 
             {/* Dental Odontogram Condition Summary Card on Overview */}
-            <div className="bg-white border border-slate-200 rounded-xl p-4">
+            {(() => {
+              const isChildPatient = Boolean(patient.age && patient.age < 12);
+              const dentitionTotal = isChildPatient ? 20 : 32;
+              const chartTeeth = patient.dentalChart || [];
+              const relevantOdontogramTeeth = chartTeeth.filter((t) => (isChildPatient ? t.toothNumber >= 50 : t.toothNumber < 50));
+
+              // Find teeth with any active clinical condition or planned treatment
+              const treatedTeethList = relevantOdontogramTeeth.filter((t) => {
+                const hasSurfaceAnomaly = t.surfaces && Object.values(t.surfaces).some((v) => v && v !== 'Healthy');
+                return (t.condition && t.condition !== 'Healthy') || t.treatmentCode || hasSurfaceAnomaly;
+              });
+
+              const cariesCount = relevantOdontogramTeeth.filter(
+                (t) => t.condition === 'Caries' || t.treatmentCode === 'C' || (t.surfaces && Object.values(t.surfaces).some((v) => v === 'Caries'))
+              ).length;
+              const rctCount = relevantOdontogramTeeth.filter(
+                (t) => t.condition === 'Root Canal' || t.treatmentCode === 'R' || (t.surfaces && Object.values(t.surfaces).some((v) => v === 'Root Canal'))
+              ).length;
+              const fillingCount = relevantOdontogramTeeth.filter(
+                (t) => t.condition === 'Filling' || t.treatmentCode === 'F' || (t.surfaces && Object.values(t.surfaces).some((v) => v === 'Filling'))
+              ).length;
+              const crownCount = relevantOdontogramTeeth.filter(
+                (t) => t.condition === 'Crown' || t.treatmentCode === 'CR' || (t.surfaces && Object.values(t.surfaces).some((v) => v === 'Crown'))
+              ).length;
+              const missingCount = relevantOdontogramTeeth.filter(
+                (t) => t.condition === 'Missing' || t.treatmentCode === 'X' || (t.surfaces && Object.values(t.surfaces).some((v) => v === 'Missing'))
+              ).length;
+              const fractureCount = relevantOdontogramTeeth.filter(
+                (t) => t.condition === 'Fracture' || t.treatmentCode === 'FR' || (t.surfaces && Object.values(t.surfaces).some((v) => v === 'Fracture'))
+              ).length;
+
+              const anomalyCount = relevantOdontogramTeeth.filter((t) => {
+                const hasSurfaceAnomaly = t.surfaces && Object.values(t.surfaces).some((v) => v && v !== 'Healthy');
+                return (t.condition && t.condition !== 'Healthy') || (t.treatmentCode && t.treatmentCode !== '') || hasSurfaceAnomaly;
+              }).length;
+              const healthyCount = Math.max(0, dentitionTotal - anomalyCount);
+
+              return (
+                <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <span className="p-1.5 rounded-lg bg-teal-50 text-teal-700">
+                        <Stethoscope className="w-4 h-4" />
+                      </span>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-800">
+                          Dental Odontogram Status & Condition Summary
+                        </h4>
+                        <p className="text-[11px] text-slate-500">
+                          Quick tooth condition overview. Click below to launch the dedicated 3D Odontogram.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleTabChange('chart')}
+                      className="px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+                    >
+                      <Stethoscope className="w-3.5 h-3.5" />
+                      <span>Open 3D Dental Chart</span>
+                      <span>→</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2">
+                    <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-center">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase block">Healthy</span>
+                      <span className="text-base font-bold tabular-nums text-slate-700">
+                        {healthyCount}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-center">
+                      <span className="text-[10px] font-bold text-rose-600 uppercase block">Caries</span>
+                      <span className="text-base font-bold tabular-nums text-rose-700">
+                        {cariesCount}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-teal-50 border border-teal-200 text-center">
+                      <span className="text-[10px] font-bold text-teal-700 uppercase block">Root Canal</span>
+                      <span className="text-base font-bold tabular-nums text-teal-800">
+                        {rctCount}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-cyan-50 border border-cyan-200 text-center">
+                      <span className="text-[10px] font-bold text-cyan-700 uppercase block">Fillings</span>
+                      <span className="text-base font-bold tabular-nums text-cyan-800">
+                        {fillingCount}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-center">
+                      <span className="text-[10px] font-bold text-amber-600 uppercase block">Crowns</span>
+                      <span className="text-base font-bold tabular-nums text-amber-700">
+                        {crownCount}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-orange-50 border border-orange-200 text-center">
+                      <span className="text-[10px] font-bold text-orange-600 uppercase block">Fracture</span>
+                      <span className="text-base font-bold tabular-nums text-orange-700">
+                        {fractureCount}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-slate-100 border border-slate-300 text-center">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase block">Missing</span>
+                      <span className="text-base font-bold tabular-nums text-slate-600">
+                        {missingCount}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Individual Treated & Planned Teeth Badges */}
+                  {treatedTeethList.length > 0 && (
+                    <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] font-semibold text-slate-600">
+                        Identified Tooth Treatments ({treatedTeethList.length}):
+                      </span>
+                      {treatedTeethList.map((t) => {
+                        const plan = patient.treatmentPlans.find((tp) => tp.toothNumbers?.includes(t.toothNumber));
+                        return (
+                          <button
+                            key={t.toothNumber}
+                            type="button"
+                            onClick={() => {
+                              setSelectedToothForModal(t.toothNumber);
+                              handleTabChange('chart');
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-teal-50 hover:bg-teal-100 text-teal-900 border border-teal-300 transition-colors cursor-pointer"
+                            title="Click to inspect tooth in 3D Dental Chart"
+                          >
+                            <span className="font-mono">Tooth #{t.toothNumber}</span>
+                            <span className="px-1.5 py-0.2 rounded bg-teal-700 text-white text-[10px] font-black uppercase">
+                              {t.condition}
+                            </span>
+                            {plan && (
+                              <span className="text-[11px] text-teal-700 font-medium">
+                                • {plan.procedure} ({plan.status})
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* DEDICATED DIGITAL CLINICAL PRESCRIPTIONS (℞) CARD */}
+            <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-2xs space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <span className="p-1.5 rounded-lg bg-teal-50 text-teal-700">
-                    <Stethoscope className="w-4 h-4" />
+                <div className="flex items-center gap-2.5">
+                  <span className="p-2 rounded-xl bg-teal-50 text-teal-800 border border-teal-200 shrink-0">
+                    <FileText className="w-4 h-4 text-teal-700" />
                   </span>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-800">
-                      Dental Odontogram Status & Condition Summary
-                    </h4>
-                    <p className="text-[11px] text-slate-500">
-                      Quick tooth condition overview. Click below to launch the dedicated 3D Odontogram.
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-bold text-slate-900">
+                        Digital Clinical Prescriptions (℞)
+                      </h4>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
+                        {patientPrescriptions.length} Recorded
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Doctor-authorized medication orders on official Shriya Clinic letterhead with PDF export &amp; print.
                     </p>
                   </div>
                 </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPrescriptionToEdit(null);
+                      setShowPrescriptionModal(true);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Issue New Prescription</span>
+                  </button>
+                </div>
+              </div>
+
+              {patientPrescriptions.length === 0 ? (
+                <div className="p-6 text-center rounded-xl bg-slate-50 border border-dashed border-slate-300 space-y-2">
+                  <p className="text-xs font-semibold text-slate-600">
+                    No clinical prescriptions recorded yet for {patient.name}.
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    Click "+ Issue New Prescription" to prescribe antibiotics, analgesics, or dental rinses.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {patientPrescriptions.map((rx) => (
+                    <div
+                      key={rx.id}
+                      className="p-4 rounded-xl border border-slate-200 bg-white hover:border-teal-300 transition-all shadow-2xs space-y-3"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono font-bold text-xs text-teal-900 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                            {rx.id}
+                          </span>
+                          <span className="text-xs font-semibold text-slate-600">
+                            📅 {rx.date}
+                          </span>
+                          <span className="text-slate-300">•</span>
+                          <span className="text-xs font-bold text-slate-700">
+                            Dr: {rx.doctorName}
+                          </span>
+                          {rx.diagnosis && (
+                            <span className="text-xs text-amber-900 bg-amber-50 px-2 py-0.5 rounded font-medium border border-amber-200">
+                              Indication: {rx.diagnosis}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Action buttons: View, Download PDF, Edit, Delete */}
+                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => setPrintablePrescriptionTarget(rx)}
+                            className="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                            title="Preview official prescription pad"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-teal-700" />
+                            <span>View / Pad</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setPrintablePrescriptionTarget(rx)}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                            title="Download prescription PDF"
+                          >
+                            <Download className="w-3.5 h-3.5 text-emerald-700" />
+                            <span>PDF 📥</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPrescriptionToEdit(rx);
+                              setShowPrescriptionModal(true);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                            title="Edit this prescription"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-slate-600" />
+                            <span>Edit ✏️</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (window.confirm(`Are you sure you want to delete prescription ${rx.id}?`)) {
+                                await deletePrescription(rx.id);
+                              }
+                            }}
+                            className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 cursor-pointer transition-colors"
+                            title="Delete prescription"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Prescribed Medications list */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        {(rx.items || []).map((med, mIdx) => (
+                          <div
+                            key={med.id || mIdx}
+                            className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-slate-900 truncate">
+                                {mIdx + 1}. {med.medicine}
+                              </span>
+                              {med.dosage && (
+                                <span className="text-[10px] font-mono font-bold text-teal-800 bg-teal-50 px-1.5 py-0.2 rounded border border-teal-200">
+                                  {med.dosage}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+                              <span className="bg-slate-200 text-slate-700 px-1 py-0.2 rounded font-bold text-[10px]">
+                                {med.frequency}
+                              </span>
+                              <span>•</span>
+                              <span>{med.duration}</span>
+                              <span>•</span>
+                              <span className="text-slate-700 italic">{med.instructions}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Doctor Notes / Advice */}
+                      {rx.doctorNotes && (
+                        <div className="p-2.5 rounded-lg bg-amber-50/60 border border-amber-200 text-xs text-amber-950">
+                          <span className="font-bold block text-[11px] text-amber-900">Doctor Advice:</span>
+                          <span className="font-medium">{rx.doctorNotes}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ==================================================== */}
+        {/* DEDICATED PRESCRIPTIONS TAB CONTENT                   */}
+        {/* ==================================================== */}
+        {activeTab === 'prescriptions' && (
+          <div className="space-y-4">
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <span className="p-2.5 rounded-xl bg-teal-50 text-teal-800 border border-teal-200 shrink-0">
+                    <FileText className="w-5 h-5 text-teal-700" />
+                  </span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold text-slate-900">
+                        Digital Clinical Prescriptions (℞)
+                      </h3>
+                      <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
+                        {patientPrescriptions.length} Total Issued
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Medication orders recorded on official Shriya Clinic letterhead. Ready to view, edit, print, or download as PDF.
+                    </p>
+                  </div>
+                </div>
+
                 <button
-                  onClick={() => handleTabChange('chart')}
-                  className="px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+                  type="button"
+                  onClick={() => {
+                    setPrescriptionToEdit(null);
+                    setShowPrescriptionModal(true);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs self-start sm:self-auto"
                 >
-                  <Stethoscope className="w-3.5 h-3.5" />
-                  <span>Open 3D Dental Chart</span>
-                  <span>→</span>
+                  <Plus className="w-4 h-4" />
+                  <span>+ Issue New Prescription</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 pt-3">
-                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-center">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase block">Healthy</span>
-                  <span className="text-base font-bold tabular-nums text-slate-700">
-                    {patient.dentalChart?.filter(t => t.condition === 'Healthy' || !t.condition).length || 26}
-                  </span>
+              {patientPrescriptions.length === 0 ? (
+                <div className="p-10 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-300 space-y-2">
+                  <FileText className="w-8 h-8 text-slate-400 mx-auto" />
+                  <p className="text-sm font-bold text-slate-700">No Prescriptions Recorded Yet</p>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    No medications have been prescribed for {patient.name}. Click "+ Issue New Prescription" to compose and print on official clinic letterhead.
+                  </p>
                 </div>
-                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-center">
-                  <span className="text-[10px] font-bold text-rose-600 uppercase block">Caries</span>
-                  <span className="text-base font-bold tabular-nums text-rose-700">
-                    {patient.dentalChart?.filter(t => t.condition === 'Caries').length || 1}
-                  </span>
+              ) : (
+                <div className="space-y-4">
+                  {patientPrescriptions.map((rx, rxIndex) => (
+                    <div
+                      key={rx.id}
+                      className="p-5 rounded-2xl border-2 border-slate-200 hover:border-teal-400 bg-white transition-all shadow-sm space-y-4"
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-black text-sm text-blue-900 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+                              Rx #{rx.id}
+                            </span>
+                            {rxIndex === 0 && (
+                              <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                Latest Prescription
+                              </span>
+                            )}
+                            <span className="text-xs font-semibold text-slate-500">
+                              📅 Date: <strong className="text-slate-800">{rx.date}</strong>
+                            </span>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-xs font-semibold text-slate-500">
+                              Doctor: <strong className="text-slate-800">{rx.doctorName}</strong>
+                            </span>
+                          </div>
+
+                          {rx.diagnosis && (
+                            <p className="text-xs font-bold text-slate-700 mt-1.5 flex items-center gap-1.5">
+                              <span className="text-slate-500 font-medium">Diagnosis / Indication:</span>
+                              <span className="text-teal-900 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                                {rx.diagnosis}
+                              </span>
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Direct Action Buttons */}
+                        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => setPrintablePrescriptionTarget(rx)}
+                            className="px-3.5 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-900 border border-teal-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-teal-700" />
+                            <span>View / Pad Preview</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setPrintablePrescriptionTarget(rx)}
+                            className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Download PDF 📥</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPrescriptionToEdit(rx);
+                              setShowPrescriptionModal(true);
+                            }}
+                            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-slate-600" />
+                            <span>Edit Rx ✏️</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (window.confirm(`Are you sure you want to delete prescription ${rx.id}?`)) {
+                                await deletePrescription(rx.id);
+                              }
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-xl hover:bg-rose-50 border border-transparent hover:border-rose-200 cursor-pointer transition-colors"
+                            title="Delete prescription"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Medications Table / Cards */}
+                      <div>
+                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 block mb-2">
+                          Prescribed Medications ({rx.items?.length || 0})
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                          {(rx.items || []).map((med, idx) => (
+                            <div
+                              key={med.id || idx}
+                              className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5"
+                            >
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="font-bold text-slate-900 text-xs truncate">
+                                  {idx + 1}. {med.medicine}
+                                </span>
+                                {med.dosage && (
+                                  <span className="text-[10px] font-mono font-black text-teal-800 bg-teal-50 px-1.5 py-0.2 rounded border border-teal-200 shrink-0">
+                                    {med.dosage}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 text-[11px] text-slate-600 font-medium flex-wrap">
+                                <span className="bg-slate-200 text-slate-800 px-1.5 py-0.2 rounded font-bold text-[10px]">
+                                  {med.frequency}
+                                </span>
+                                <span>•</span>
+                                <span>{med.duration}</span>
+                                <span>•</span>
+                                <span className="text-slate-800 font-semibold">{med.instructions}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Doctor Notes & Follow Up */}
+                      {(rx.doctorNotes || rx.followUpDate) && (
+                        <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                          {rx.doctorNotes && (
+                            <div>
+                              <span className="font-bold text-amber-900 block text-[11px]">Doctor Advice / Precautions:</span>
+                              <span className="text-slate-800 font-medium">{rx.doctorNotes}</span>
+                            </div>
+                          )}
+                          {rx.followUpDate && (
+                            <div className="shrink-0 sm:text-right">
+                              <span className="font-bold text-amber-900 block text-[11px]">Recommended Review Date:</span>
+                              <span className="text-slate-900 font-bold">{rx.followUpDate}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                <div className="p-2.5 rounded-lg bg-teal-50 border border-teal-200 text-center">
-                  <span className="text-[10px] font-bold text-teal-700 uppercase block">Root Canal</span>
-                  <span className="text-base font-bold tabular-nums text-teal-800">
-                    {patient.dentalChart?.filter(t => t.condition === 'Root Canal').length || 1}
-                  </span>
-                </div>
-                <div className="p-2.5 rounded-lg bg-cyan-50 border border-cyan-200 text-center">
-                  <span className="text-[10px] font-bold text-cyan-700 uppercase block">Fillings</span>
-                  <span className="text-base font-bold tabular-nums text-cyan-800">
-                    {patient.dentalChart?.filter(t => t.condition === 'Filling').length || 1}
-                  </span>
-                </div>
-                <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-center">
-                  <span className="text-[10px] font-bold text-amber-600 uppercase block">Crowns</span>
-                  <span className="text-base font-bold tabular-nums text-amber-700">
-                    {patient.dentalChart?.filter(t => t.condition === 'Crown').length || 1}
-                  </span>
-                </div>
-                <div className="p-2.5 rounded-lg bg-slate-100 border border-slate-300 text-center">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase block">Missing</span>
-                  <span className="text-base font-bold tabular-nums text-slate-600">
-                    {patient.dentalChart?.filter(t => t.condition === 'Missing').length || 2}
-                  </span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         )}
@@ -1601,7 +2177,12 @@ export const PatientProfileView: React.FC = () => {
                 isOpen={!!selectedToothForModal}
                 onClose={() => setSelectedToothForModal(null)}
                 onSaveTooth={(updated) => {
-                  handleUpdateTeeth(patient.dentalChart.map((t) => (t.toothNumber === updated.toothNumber ? updated : t)));
+                  const currentTeeth = Array.isArray(patient.dentalChart) ? patient.dentalChart : [];
+                  const exists = currentTeeth.some((t) => t.toothNumber === updated.toothNumber);
+                  const updatedChart = exists
+                    ? currentTeeth.map((t) => (t.toothNumber === updated.toothNumber ? updated : t))
+                    : [...currentTeeth, updated];
+                  handleUpdateTeeth(updatedChart);
                 }}
                 onAddTreatmentPlanItem={handleAddTreatmentPlan}
               />
@@ -2117,6 +2698,10 @@ export const PatientProfileView: React.FC = () => {
                           variant="mint"
                           size="sm"
                           onClick={() => {
+                            const matchVisit = visits.find((item) => item.id === fa.visitId || item.feeApproval?.id === fa.id);
+                            setCheckoutTargetVisit(matchVisit || activeVisit || effectiveVisit);
+                            setCheckoutTargetInvoiceId(fa.invoiceId);
+                            setCheckoutTargetFeeApprovalId(fa.id);
                             setShowCheckoutModal(true);
                           }}
                           icon={<Receipt className="w-4 h-4" />}
@@ -2198,6 +2783,9 @@ export const PatientProfileView: React.FC = () => {
                           variant="mint"
                           size="sm"
                           onClick={() => {
+                            setCheckoutTargetVisit(item.visit);
+                            setCheckoutTargetInvoiceId(item.visit.invoiceId);
+                            setCheckoutTargetFeeApprovalId(item.visit.feeApproval?.id);
                             setShowCheckoutModal(true);
                           }}
                           icon={<Receipt className="w-4 h-4" />}
@@ -2252,14 +2840,14 @@ export const PatientProfileView: React.FC = () => {
             )}
 
             {/* Active Treatment Plans Billing Action Banner */}
-            {patient.treatmentPlans?.length > 0 && (
+            {unbilledTreatmentPlans.length > 0 && (
               <div className="p-4 rounded-xl bg-teal-50/40 border border-teal-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <span className="text-xs font-semibold text-teal-800 bg-white px-2.5 py-0.5 rounded-full border border-teal-200">
                     Doctor Treatment Plans Available
                   </span>
                   <h4 className="text-sm font-bold text-slate-900 mt-1">
-                    {patient.treatmentPlans.length} Planned Procedure{patient.treatmentPlans.length > 1 ? 's' : ''} • Est. Total: <span className="tabular-nums text-emerald-800">₹{patient.treatmentPlans.reduce((sum, p) => sum + (p.estimatedCost || 0), 0).toLocaleString()}</span>
+                    {unbilledTreatmentPlans.length} Planned Procedure{unbilledTreatmentPlans.length > 1 ? 's' : ''} • Est. Total: <span className="tabular-nums text-emerald-800">₹{unbilledTreatmentPlans.reduce((sum, p) => sum + (p.estimatedCost || 0), 0).toLocaleString()}</span>
                   </h4>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Procedures with amounts added during doctor consultation and dental charting. Click below to issue an invoice with discount and payment options.
@@ -2271,10 +2859,10 @@ export const PatientProfileView: React.FC = () => {
                     variant="mint"
                     size="sm"
                     onClick={() => {
-                      const defaultConsultationFee = 500;
+                      const defaultConsultationFee = 0;
                       const items = [
                         { description: patient.currentTreatment || 'Doctor Dental Consultation & Examination', quantity: 1, unitPrice: defaultConsultationFee },
-                        ...patient.treatmentPlans.map((tp) => ({ description: tp.procedure, quantity: 1, unitPrice: Number(tp.estimatedCost) || 0 }))
+                        ...unbilledTreatmentPlans.map((tp) => ({ description: tp.procedure, quantity: 1, unitPrice: Number(tp.estimatedCost) || 0 }))
                       ];
                       handleGenerateBillForVisit(effectiveVisit, items);
                     }}
@@ -3177,27 +3765,44 @@ export const PatientProfileView: React.FC = () => {
         {showPrescriptionModal && (
           <DoctorPrescriptionModal
             isOpen={showPrescriptionModal}
-            onClose={() => setShowPrescriptionModal(false)}
+            onClose={() => {
+              setShowPrescriptionModal(false);
+              setPrescriptionToEdit(null);
+            }}
             visit={effectiveVisit}
             visitId={effectiveVisit.id}
             patient={patient}
             patientId={patient.id}
             patientName={patient.name}
             doctorName={effectiveVisit.doctorName || patient.assignedDoctorName}
+            prescriptionToEdit={prescriptionToEdit}
             onPrescriptionCreated={(rx) => {
               setPrintablePrescriptionTarget(rx);
               setShowPrescriptionModal(false);
+              setPrescriptionToEdit(null);
+            }}
+            onDeletePrescription={async (id) => {
+              await deletePrescription(id);
+              setShowPrescriptionModal(false);
+              setPrescriptionToEdit(null);
             }}
           />
         )}
 
         {/* RECEPTION CHECKOUT MODAL */}
-        {showCheckoutModal && (checkoutVisit || activeVisit || effectiveVisit) && (
+        {showCheckoutModal && (
           <ReceptionCheckoutModal
             isOpen={showCheckoutModal}
-            onClose={() => setShowCheckoutModal(false)}
-            visit={(checkoutVisit || activeVisit || effectiveVisit)!}
+            onClose={() => {
+              setShowCheckoutModal(false);
+              setCheckoutTargetVisit(null);
+              setCheckoutTargetInvoiceId(undefined);
+              setCheckoutTargetFeeApprovalId(undefined);
+            }}
+            visit={(checkoutTargetVisit || checkoutVisit || activeVisit || effectiveVisit)!}
             patient={patient}
+            targetInvoiceId={checkoutTargetInvoiceId}
+            targetFeeApprovalId={checkoutTargetFeeApprovalId}
           />
         )}
 
@@ -3207,6 +3812,15 @@ export const PatientProfileView: React.FC = () => {
             isOpen={!!printablePrescriptionTarget}
             onClose={() => setPrintablePrescriptionTarget(null)}
             prescription={printablePrescriptionTarget}
+            onEdit={(rx) => {
+              setPrintablePrescriptionTarget(null);
+              setPrescriptionToEdit(rx);
+              setShowPrescriptionModal(true);
+            }}
+            onDelete={async (id) => {
+              await deletePrescription(id);
+              setPrintablePrescriptionTarget(null);
+            }}
           />
         )}
 

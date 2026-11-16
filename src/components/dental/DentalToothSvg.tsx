@@ -24,15 +24,71 @@ export const DentalToothSvg: React.FC<DentalToothSvgProps> = ({
   const toothNum = tooth.toothNumber;
   const isUpper = (toothNum >= 11 && toothNum <= 28) || (toothNum >= 51 && toothNum <= 65);
   const type = getToothType(toothNum);
+  
+  const s = tooth.surfaces || {};
+  const hasSurfaceCaries = Object.values(s).some((v) => v === 'Caries');
+  const hasSurfaceFilling = Object.values(s).some((v) => v === 'Filling');
+  const hasSurfaceCrown = Object.values(s).some((v) => v === 'Crown');
+  const hasSurfaceRCT = Object.values(s).some((v) => v === 'Root Canal');
+
   const condition = tooth.condition;
-  const condColor = getConditionColor(condition);
-  const isMissing = condition === 'Missing';
-  const isRootCanal = condition === 'Root Canal' || tooth.treatmentCode === 'R';
-  const isCaries = condition === 'Caries' || tooth.treatmentCode === 'C';
-  const isCrown = condition === 'Crown' || tooth.treatmentCode === 'CR';
-  const isFilling = condition === 'Filling' || tooth.treatmentCode === 'F';
+  const isMissing = condition === 'Missing' || tooth.treatmentCode === 'X';
+  const isRootCanal = condition === 'Root Canal' || tooth.treatmentCode === 'R' || hasSurfaceRCT;
+  const isCrown = condition === 'Crown' || tooth.treatmentCode === 'CR' || hasSurfaceCrown;
+  const isFilling = condition === 'Filling' || tooth.treatmentCode === 'F' || hasSurfaceFilling;
+  const isCaries = condition === 'Caries' || tooth.treatmentCode === 'C' || hasSurfaceCaries;
   const isImplant = condition === 'Implant' || tooth.treatmentCode === 'I';
   const isExtraction = condition === 'Extraction Required' || tooth.treatmentCode === 'E';
+  const isFracture = condition === 'Fracture' || tooth.treatmentCode === 'FR' || Object.values(s).some((v) => v === 'Fracture');
+  const isMobility = condition === 'Mobility' || tooth.treatmentCode === 'M' || Object.values(s).some((v) => v === 'Mobility');
+  const isSensitivity = condition === 'Sensitivity' || tooth.treatmentCode === 'S' || Object.values(s).some((v) => v === 'Sensitivity');
+
+  const effectiveCondition = isRootCanal
+    ? 'Root Canal'
+    : isCrown
+    ? 'Crown'
+    : isFilling
+    ? 'Filling'
+    : isCaries
+    ? 'Caries'
+    : isFracture
+    ? 'Fracture'
+    : isMissing
+    ? 'Missing'
+    : isImplant
+    ? 'Implant'
+    : isExtraction
+    ? 'Extraction Required'
+    : isMobility
+    ? 'Mobility'
+    : isSensitivity
+    ? 'Sensitivity'
+    : condition;
+
+  const effectiveTreatmentCode =
+    tooth.treatmentCode ||
+    (isRootCanal
+      ? 'R'
+      : isCrown
+      ? 'CR'
+      : isFilling
+      ? 'F'
+      : isCaries
+      ? 'C'
+      : isFracture
+      ? 'FR'
+      : isMissing
+      ? 'X'
+      : isImplant
+      ? 'I'
+      : isExtraction
+      ? 'E'
+      : isMobility
+      ? 'M'
+      : isSensitivity
+      ? 'S'
+      : undefined);
+  const condColor = getConditionColor(effectiveCondition);
 
   // Dimension scaling
   const dimensions = {
@@ -42,7 +98,6 @@ export const DentalToothSvg: React.FC<DentalToothSvgProps> = ({
   }[size];
 
   // Surface colors
-  const s = tooth.surfaces || {};
   const mesialColor = s.mesial && s.mesial !== 'Healthy' ? getConditionColor(s.mesial) : '#f8fafc';
   const distalColor = s.distal && s.distal !== 'Healthy' ? getConditionColor(s.distal) : '#f8fafc';
   const occlusalColor = s.occlusal && s.occlusal !== 'Healthy' ? getConditionColor(s.occlusal) : '#f8fafc';
@@ -68,7 +123,7 @@ export const DentalToothSvg: React.FC<DentalToothSvgProps> = ({
             ? 'bg-sky-600 text-white shadow-sm'
             : isMultiSelected
             ? 'bg-indigo-600 text-white'
-            : condition !== 'Healthy'
+            : effectiveCondition !== 'Healthy'
             ? 'bg-slate-800 text-white'
             : 'bg-slate-200/90 text-slate-700 group-hover:bg-slate-300'
         }`}
@@ -237,11 +292,11 @@ export const DentalToothSvg: React.FC<DentalToothSvgProps> = ({
               )}
 
               {/* Fracture crack mark */}
-              {condition === 'Fracture' && (
+              {isFracture && (
                 <path
                   d="M32,95 L46,112 L40,126 L55,146"
-                  stroke="#f97316"
-                  strokeWidth="3"
+                  stroke="#ea580c"
+                  strokeWidth="3.5"
                   strokeLinecap="round"
                   fill="none"
                 />
@@ -267,26 +322,32 @@ export const DentalToothSvg: React.FC<DentalToothSvgProps> = ({
         </svg>
       </div>
 
-      {/* Treatment Code Badge (R, C, CR, F, I, X, E, etc.) */}
-      {showTreatmentBadge && tooth.treatmentCode && (
+      {/* Treatment Code Badge (R, C, CR, F, I, X, E, FR, M, S, etc.) */}
+      {showTreatmentBadge && effectiveTreatmentCode && (
         <span
           className={`absolute -bottom-1 text-[10px] font-black px-1.5 py-0.2 rounded-full border shadow-sm font-mono ${
-            tooth.treatmentCode === 'R'
+            effectiveTreatmentCode === 'R'
               ? 'bg-purple-600 text-white border-purple-400'
-              : tooth.treatmentCode === 'C'
+              : effectiveTreatmentCode === 'C'
               ? 'bg-rose-600 text-white border-rose-400'
-              : tooth.treatmentCode === 'CR'
+              : effectiveTreatmentCode === 'CR'
               ? 'bg-amber-500 text-white border-amber-300'
-              : tooth.treatmentCode === 'F'
+              : effectiveTreatmentCode === 'F'
               ? 'bg-blue-600 text-white border-blue-400'
-              : tooth.treatmentCode === 'I'
+              : effectiveTreatmentCode === 'I'
               ? 'bg-teal-600 text-white border-teal-400'
-              : tooth.treatmentCode === 'E'
+              : effectiveTreatmentCode === 'E'
               ? 'bg-red-700 text-white border-red-500'
+              : effectiveTreatmentCode === 'FR'
+              ? 'bg-orange-600 text-white border-orange-400'
+              : effectiveTreatmentCode === 'M'
+              ? 'bg-yellow-500 text-slate-900 border-yellow-300 font-extrabold'
+              : effectiveTreatmentCode === 'S'
+              ? 'bg-cyan-600 text-white border-cyan-400'
               : 'bg-slate-700 text-white border-slate-500'
           }`}
         >
-          {tooth.treatmentCode}
+          {effectiveTreatmentCode}
         </span>
       )}
 

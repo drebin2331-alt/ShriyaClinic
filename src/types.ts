@@ -140,6 +140,18 @@ export interface PrescriptionItem {
   instructions: string; // After food, Before food, etc.
 }
 
+export interface MedicineRecord {
+  id: string;
+  name: string;
+  dosage?: string;
+  route?: string;
+  frequency?: string;
+  duration?: string;
+  instructions?: string;
+  category?: string;
+  createdAt?: string;
+}
+
 export interface PrescriptionRecord {
   id: string; // e.g. RX-2026-0001
   visitId: string;
