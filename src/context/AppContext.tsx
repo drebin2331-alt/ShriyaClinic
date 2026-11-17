@@ -51,7 +51,7 @@ import {
   SEED_FEE_APPROVALS,
   SEED_MEDICINES,
   SEED_DOCTORS
-} from '../data/seedClinicData';
+} from '../seed/seedClinicData';
 import { createFullDefaultDentalChart } from '../utils/dentalChartHelper';
 import { apiClient } from '../utils/apiClient';
 import {
@@ -439,41 +439,62 @@ export const deduplicatePatients = (list: PatientRecord[]): PatientRecord[] => {
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Initialize authoritative clinic data (Customer 1, 2, 3, etc.) on first boot
-  if (typeof window !== 'undefined' && !localStorage.getItem('shriya_clinic_seeded_v2')) {
-    const existingPatients = localStorage.getItem('smilecare_patients_list');
-    if (!existingPatients || existingPatients === '[]') {
+  // Guaranteed auto-seed of authoritative clinic data (Customer 1, 2, 3, etc.)
+  if (typeof window !== 'undefined') {
+    try {
+      const p = localStorage.getItem('smilecare_patients_list');
+      const parsedP = p ? JSON.parse(p) : [];
+      if (!Array.isArray(parsedP) || parsedP.length === 0) {
+        localStorage.setItem('smilecare_patients_list', JSON.stringify(SEED_PATIENTS));
+      }
+    } catch {
       localStorage.setItem('smilecare_patients_list', JSON.stringify(SEED_PATIENTS));
     }
-    const existingTokens = localStorage.getItem('smilecare_tokens_list');
-    if (!existingTokens || existingTokens === '[]') {
+    try {
+      const t = localStorage.getItem('smilecare_tokens_list');
+      const parsedT = t ? JSON.parse(t) : [];
+      if (!Array.isArray(parsedT) || parsedT.length === 0) {
+        localStorage.setItem('smilecare_tokens_list', JSON.stringify(SEED_TOKENS));
+      }
+    } catch {
       localStorage.setItem('smilecare_tokens_list', JSON.stringify(SEED_TOKENS));
     }
-    const existingVisits = localStorage.getItem('smilecare_visits_list');
-    if (!existingVisits || existingVisits === '[]') {
+    try {
+      const v = localStorage.getItem('smilecare_visits_list');
+      const parsedV = v ? JSON.parse(v) : [];
+      if (!Array.isArray(parsedV) || parsedV.length === 0) {
+        localStorage.setItem('smilecare_visits_list', JSON.stringify(SEED_VISITS));
+      }
+    } catch {
       localStorage.setItem('smilecare_visits_list', JSON.stringify(SEED_VISITS));
     }
-    const existingInvoices = localStorage.getItem('smilecare_invoices_list');
-    if (!existingInvoices || existingInvoices === '[]') {
+    try {
+      const inv = localStorage.getItem('smilecare_invoices_list');
+      const parsedInv = inv ? JSON.parse(inv) : [];
+      if (!Array.isArray(parsedInv) || parsedInv.length === 0) {
+        localStorage.setItem('smilecare_invoices_list', JSON.stringify(SEED_INVOICES));
+      }
+    } catch {
       localStorage.setItem('smilecare_invoices_list', JSON.stringify(SEED_INVOICES));
     }
-    const existingPayments = localStorage.getItem('smilecare_payments_list');
-    if (!existingPayments || existingPayments === '[]') {
+    try {
+      const pay = localStorage.getItem('smilecare_payments_list');
+      const parsedPay = pay ? JSON.parse(pay) : [];
+      if (!Array.isArray(parsedPay) || parsedPay.length === 0) {
+        localStorage.setItem('smilecare_payments_list', JSON.stringify(SEED_PAYMENTS));
+      }
+    } catch {
       localStorage.setItem('smilecare_payments_list', JSON.stringify(SEED_PAYMENTS));
     }
-    const existingRx = localStorage.getItem('smilecare_prescriptions_list');
-    if (!existingRx || existingRx === '[]') {
+    try {
+      const rx = localStorage.getItem('smilecare_prescriptions_list');
+      const parsedRx = rx ? JSON.parse(rx) : [];
+      if (!Array.isArray(parsedRx) || parsedRx.length === 0) {
+        localStorage.setItem('smilecare_prescriptions_list', JSON.stringify(SEED_PRESCRIPTIONS));
+      }
+    } catch {
       localStorage.setItem('smilecare_prescriptions_list', JSON.stringify(SEED_PRESCRIPTIONS));
     }
-    const existingMeds = localStorage.getItem('smilecare_medicines_list');
-    if (!existingMeds || existingMeds === '[]') {
-      localStorage.setItem('smilecare_medicines_list', JSON.stringify(SEED_MEDICINES));
-    }
-    const existingFees = localStorage.getItem('smilecare_fee_approvals');
-    if (!existingFees || existingFees === '[]') {
-      localStorage.setItem('smilecare_fee_approvals', JSON.stringify(SEED_FEE_APPROVALS));
-    }
-    localStorage.setItem('shriya_clinic_seeded_v2', 'true');
   }
 
   const [activeView, setActiveView] = useState<ViewMode>(() => {
@@ -764,6 +785,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           safeSetItem('smilecare_patients_list', JSON.stringify(merged));
           return merged;
         });
+      } else {
+        setPatients((prev) => {
+          if (!prev || prev.length === 0) {
+            safeSetItem('smilecare_patients_list', JSON.stringify(SEED_PATIENTS));
+            return SEED_PATIENTS;
+          }
+          return prev;
+        });
       }
 
       // Merge appointments safely (NEVER wipe out with empty array)
@@ -788,6 +817,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           safeSetItem('smilecare_tokens_list', JSON.stringify(merged));
           return merged;
         });
+      } else {
+        setTokens((prev) => {
+          if (!prev || prev.length === 0) {
+            safeSetItem('smilecare_tokens_list', JSON.stringify(SEED_TOKENS));
+            return SEED_TOKENS;
+          }
+          return prev;
+        });
       }
 
       // Merge visits
@@ -797,6 +834,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           (data.visits || []).forEach((v) => map.set(v.id, v));
           (prev || []).forEach((v) => { if (!map.has(v.id)) map.set(v.id, v); });
           return Array.from(map.values());
+        });
+      } else {
+        setVisits((prev) => {
+          if (!prev || prev.length === 0) return SEED_VISITS;
+          return prev;
         });
       }
 

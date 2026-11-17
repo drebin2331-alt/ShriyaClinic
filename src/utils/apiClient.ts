@@ -20,7 +20,7 @@ import {
   SEED_PRESCRIPTIONS,
   SEED_FEE_APPROVALS,
   SEED_MEDICINES
-} from '../data/seedClinicData';
+} from '../seed/seedClinicData';
 import { safeSetItem } from './safeStorage';
 
 function getAuthHeaders(): Record<string, string> {

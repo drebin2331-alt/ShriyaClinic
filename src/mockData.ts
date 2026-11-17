@@ -18,7 +18,7 @@ import {
   SEED_INVOICES,
   SEED_PAYMENTS,
   SEED_DOCTORS
-} from './data/seedClinicData';
+} from './seed/seedClinicData';
 
 // ============================================================================
 // CLINICAL SERVICES DIRECTORY
