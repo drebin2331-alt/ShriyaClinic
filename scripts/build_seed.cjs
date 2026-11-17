@@ -56,3 +56,4 @@ export const SEED_DOCTORS: Doctor[] = SEED_USERS
 
 fs.writeFileSync(path.join(__dirname, '..', 'src', 'seed', 'seedClinicData.ts'), content, 'utf8');
 console.log('Successfully written src/seed/seedClinicData.ts');
+

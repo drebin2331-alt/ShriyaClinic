@@ -20,3 +20,4 @@ const code = `export default function handler(req, res) {
 
 fs.writeFileSync(path.join(__dirname, '..', 'api', 'state.js'), code, 'utf8');
 console.log('Successfully generated api/state.js with full clinic data embedded');
+

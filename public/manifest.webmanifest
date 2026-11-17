@@ -1,0 +1,42 @@
+{
+  "name": "Shriya Multispeciality Dental Clinic",
+  "short_name": "Shriya Dental",
+  "description": "Smart Clinical EMR, Live Queue & Patient Dental Health App",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#0f766e",
+  "categories": ["medical", "health", "productivity"],
+  "icons": [
+    {
+      "src": "/app-icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Live Queue",
+      "short_name": "Queue",
+      "description": "View live OPD token queue",
+      "url": "/admin?tab=queue",
+      "icons": [{ "src": "/app-icon.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Patients Directory",
+      "short_name": "Patients",
+      "description": "Inspect patients and dental charts",
+      "url": "/admin?tab=patients",
+      "icons": [{ "src": "/app-icon.svg", "sizes": "192x192" }]
+    }
+  ]
+}

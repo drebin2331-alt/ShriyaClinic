@@ -53,6 +53,29 @@ export const MobileAppDashboard: React.FC = () => {
 
   const [isModulesModalOpen, setIsModulesModalOpen] = useState(false);
   const [selectedCabin, setSelectedCabin] = useState('Cabin 1 — Dr. DOCTOR TEST');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  React.useEffect(() => {
+    const handleBeforeInstall = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice?.outcome === 'accepted') {
+        addToast('Installing App 📱', 'Shriya Dental Clinic OS is being installed on your device.', 'success');
+      }
+      setDeferredPrompt(null);
+    } else {
+      addToast('Install App 📲', 'To install on Android: Tap the 3 dots (⋮) in Chrome and select "Install app" or "Add to Home screen".', 'info');
+    }
+  };
 
   // Live Metrics
   const waitingTokens = tokens.filter((t) => t.status === 'Waiting');
@@ -479,10 +502,7 @@ export const MobileAppDashboard: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => {
-                  setIsModulesModalOpen(false);
-                  addToast('App Installed 📱', 'Shriya Dental Clinic OS is optimized for full offline mobile home screen use.', 'success');
-                }}
+                onClick={handleInstallApp}
                 className="px-3.5 py-1.5 rounded-xl bg-white text-teal-900 font-black text-xs shrink-0 cursor-pointer shadow-xs hover:bg-emerald-50 active:scale-95 transition-all"
               >
                 Install
