@@ -11,6 +11,17 @@ import {
   PatientEnquiry,
   MedicineRecord
 } from '../types';
+import {
+  SEED_PATIENTS,
+  SEED_TOKENS,
+  SEED_VISITS,
+  SEED_INVOICES,
+  SEED_PAYMENTS,
+  SEED_PRESCRIPTIONS,
+  SEED_FEE_APPROVALS,
+  SEED_MEDICINES
+} from '../data/seedClinicData';
+import { safeSetItem } from './safeStorage';
 
 function getAuthHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
@@ -47,15 +58,94 @@ export interface ClinicSyncState {
   serverTime: string;
 }
 
+function getLocalFallbackState(): ClinicSyncState {
+  let patients = SEED_PATIENTS;
+  let tokens = SEED_TOKENS;
+  let visits = SEED_VISITS;
+  let invoices = SEED_INVOICES;
+  let payments = SEED_PAYMENTS;
+  let prescriptions = SEED_PRESCRIPTIONS;
+  let feeApprovals = SEED_FEE_APPROVALS;
+  let medicines = SEED_MEDICINES;
+  let appointments: Appointment[] = [];
+  let enquiries: PatientEnquiry[] = [];
+  let auditEvents: AuditEvent[] = [];
+
+  try {
+    const p = localStorage.getItem('smilecare_patients_list');
+    if (p) {
+      const parsed = JSON.parse(p);
+      if (Array.isArray(parsed) && parsed.length > 0) patients = parsed;
+    }
+    const t = localStorage.getItem('smilecare_tokens_list');
+    if (t) {
+      const parsed = JSON.parse(t);
+      if (Array.isArray(parsed) && parsed.length > 0) tokens = parsed;
+    }
+    const v = localStorage.getItem('smilecare_visits_list');
+    if (v) {
+      const parsed = JSON.parse(v);
+      if (Array.isArray(parsed) && parsed.length > 0) visits = parsed;
+    }
+    const inv = localStorage.getItem('smilecare_invoices_list');
+    if (inv) {
+      const parsed = JSON.parse(inv);
+      if (Array.isArray(parsed) && parsed.length > 0) invoices = parsed;
+    }
+    const pay = localStorage.getItem('smilecare_payments_list');
+    if (pay) {
+      const parsed = JSON.parse(pay);
+      if (Array.isArray(parsed) && parsed.length > 0) payments = parsed;
+    }
+    const rx = localStorage.getItem('smilecare_prescriptions_list');
+    if (rx) {
+      const parsed = JSON.parse(rx);
+      if (Array.isArray(parsed) && parsed.length > 0) prescriptions = parsed;
+    }
+    const appts = localStorage.getItem('smilecare_appointments_list');
+    if (appts) {
+      const parsed = JSON.parse(appts);
+      if (Array.isArray(parsed)) appointments = parsed;
+    }
+  } catch (e) {
+    // Ignore storage parse errors
+  }
+
+  return {
+    patients,
+    tokens,
+    visits,
+    appointments,
+    invoices,
+    payments,
+    prescriptions,
+    feeApprovals,
+    medicines,
+    auditEvents,
+    enquiries,
+    serverTime: new Date().toISOString()
+  };
+}
+
 export const apiClient = {
   async getState(): Promise<ClinicSyncState> {
-    const res = await fetch('/api/state', {
-      headers: getAuthHeaders()
-    });
-    if (!res.ok) {
-      throw new Error(`Failed to fetch state: ${res.statusText}`);
+    try {
+      const res = await fetch('/api/state', {
+        headers: getAuthHeaders()
+      });
+      if (res.ok) {
+        const text = await res.text();
+        if (text && (text.trim().startsWith('{') || text.trim().startsWith('['))) {
+          const parsed = JSON.parse(text);
+          if (parsed && typeof parsed === 'object') {
+            return parsed;
+          }
+        }
+      }
+    } catch {
+      // Offline or Vercel static hosting fallback
     }
-    return res.json();
+    return getLocalFallbackState();
   },
 
   async registerPatient(data: {

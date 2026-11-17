@@ -275,31 +275,37 @@ export const PatientManagementView: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Mobile Native Card View (<768px) */}
-              <div className="md:hidden divide-y divide-slate-100">
+              {/* Mobile Native App Cards (<768px) - User-Friendly Touch Design */}
+              <div className="md:hidden p-3 space-y-3 bg-slate-50/50">
                 {filteredPatients.map((patient) => {
                   const hasAllergy = patient.medicalHistory?.allergies && patient.medicalHistory.allergies.length > 0;
                   const balance = patient.outstandingBalance || 0;
+                  const rawPhone = (patient.phone || '').replace(/\D/g, '');
+                  const intlPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
 
                   return (
                     <div
                       key={`mob-${patient.id}`}
                       onClick={() => handleOpenPatientEMR(patient, 'patient-detail')}
-                      className="p-3 sm:p-4 hover:bg-teal-50/50 active:bg-teal-100/60 transition-colors cursor-pointer space-y-2"
+                      className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-2xs hover:shadow-md active:scale-99 transition-all cursor-pointer space-y-3"
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-teal-700 to-emerald-500 text-white font-black text-xs sm:text-sm flex items-center justify-center shrink-0 shadow-xs">
-                            {patient.name.charAt(0)}
+                      {/* Top Row: Avatar, Name, OP Badge, Status */}
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-700 via-emerald-600 to-teal-500 text-white font-black text-base flex items-center justify-center shrink-0 shadow-sm">
+                            {patient.name.charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-extrabold text-sm text-slate-900 leading-tight truncate">
+                            <h3 className="font-black text-base text-slate-900 leading-tight truncate">
                               {patient.name}
-                            </div>
-                            <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
-                              <span>{patient.age}y • {patient.gender}</span>
-                              <span className="text-slate-300">•</span>
-                              <span className="font-mono font-bold text-teal-800 text-[11px] truncate">{patient.opNumber || patient.id}</span>
+                            </h3>
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                              <span className="font-mono font-extrabold text-[11px] text-teal-800 bg-teal-50 px-2 py-0.5 rounded-lg border border-teal-200/60">
+                                {patient.opNumber || patient.id}
+                              </span>
+                              <span className="text-[11px] font-semibold text-slate-500">
+                                {patient.age}y • {patient.gender}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -309,42 +315,73 @@ export const PatientManagementView: React.FC = () => {
                         </div>
                       </div>
 
+                      {/* Medical History & Allergies Flag */}
                       {hasAllergy && (
-                        <div className="inline-flex items-center gap-1 text-[10px] text-rose-700 font-bold bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
-                          <AlertCircle className="w-3 h-3 text-rose-500" />
-                          <span>Allergy: {patient.medicalHistory.allergies[0]}</span>
+                        <div className="inline-flex items-center gap-1.5 text-[11px] text-rose-700 font-bold bg-rose-50 px-2.5 py-1 rounded-xl border border-rose-200/80">
+                          <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                          <span>Allergy Alert: {patient.medicalHistory.allergies.join(', ')}</span>
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between text-xs bg-slate-50/80 p-2 sm:p-2.5 rounded-xl border border-slate-100">
-                        <div className="flex items-center gap-1 text-slate-600 font-mono text-[11px] truncate">
-                          <Phone className="w-3 h-3 text-slate-400 shrink-0" />
-                          <span className="truncate">{patient.phone}</span>
+                      {/* Info Strip: Assigned Doctor & Outstanding Balance */}
+                      <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-100 text-xs">
+                        <div className="min-w-0">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Attending Doctor</span>
+                          <span className="font-bold text-slate-800 truncate block text-[11.5px] mt-0.5">
+                            {patient.assignedDoctorName || 'Dr. DOCTOR TEST'}
+                          </span>
                         </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-[11px] text-slate-500">Balance:</span>
+                        <div className="text-right">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Ledger Balance</span>
                           {balance > 0 ? (
-                            <span className="font-mono font-black text-rose-700 bg-rose-100/70 px-1.5 py-0.2 rounded text-xs">
-                              ₹{balance.toLocaleString()}
+                            <span className="font-mono font-black text-rose-700 bg-rose-100/80 px-2 py-0.5 rounded-lg text-xs inline-block mt-0.5">
+                              ₹{balance.toLocaleString()} Due
                             </span>
                           ) : (
-                            <span className="font-bold text-emerald-700 text-xs">
-                              Settled ✓
+                            <span className="font-extrabold text-emerald-700 text-xs inline-flex items-center gap-1 mt-0.5">
+                              <span>✓</span> Settled
                             </span>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between text-xs pt-0.5">
-                        <span className="text-slate-500 text-[11px] truncate">
-                          Doctor: <strong className="text-slate-800 font-semibold">{patient.assignedDoctorName || 'Dr. DOCTOR TEST'}</strong>
-                        </span>
+                      {/* Action Bar: Direct 1-Tap Call, WhatsApp, and Open EMR */}
+                      <div className="flex items-center gap-2 pt-0.5">
+                        {patient.phone && (
+                          <>
+                            <a
+                              href={`tel:${patient.phone}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex-1 py-2 px-2.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 font-extrabold text-xs flex items-center justify-center gap-1.5 border border-teal-200 active:scale-95 transition-all shadow-2xs"
+                              title="Direct Phone Call"
+                            >
+                              <Phone className="w-3.5 h-3.5 text-teal-700" />
+                              <span>Call</span>
+                            </a>
 
-                        <span className="inline-flex items-center gap-1 text-teal-700 font-bold text-xs shrink-0">
+                            <a
+                              href={`https://wa.me/${intlPhone}?text=Hello%20${encodeURIComponent(patient.name)},%20this%20is%20Shriya%20Multispeciality%20Dental%20Clinic.`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex-1 py-2 px-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center justify-center gap-1.5 border border-emerald-200 active:scale-95 transition-all shadow-2xs"
+                              title="WhatsApp Patient"
+                            >
+                              <span>💬</span>
+                              <span>Chat</span>
+                            </a>
+                          </>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenPatientEMR(patient, 'patient-detail')}
+                          className="flex-[1.5] py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-sm"
+                        >
                           <span>Open EMR</span>
                           <ArrowRight className="w-3.5 h-3.5" />
-                        </span>
+                        </button>
                       </div>
                     </div>
                   );

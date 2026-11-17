@@ -262,23 +262,40 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="xs:hidden">Book</span>
             </button>
 
-            {/* Staff / Admin Portal Route Link */}
+            {/* Staff / Admin Portal Route Link or Active Session Badge */}
             {isStaff ? (
-              <button
-                onClick={handleAdminRoute}
-                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-xl border border-emerald-200 transition-colors cursor-pointer"
-                title="Open Clinical EMR Dashboard"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Admin Dashboard →</span>
-              </button>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <button
+                  type="button"
+                  onClick={handleAdminRoute}
+                  className="inline-flex items-center gap-1.5 text-xs font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-emerald-200 transition-colors cursor-pointer shadow-2xs active:scale-95"
+                  title="Open Clinical EMR Dashboard"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                  <span className="truncate max-w-[100px] xs:max-w-none">{currentUser.name || 'Doctor'} EMR →</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await logout();
+                    addToast('Signed Out Successfully', 'You have been logged out of Clinic OS.', 'info');
+                  }}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 px-2 py-1.5 rounded-xl border border-rose-200 transition-colors cursor-pointer active:scale-95 shrink-0"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-3.5 h-3.5 text-rose-600" />
+                  <span className="hidden xs:inline">Sign Out</span>
+                </button>
+              </div>
             ) : (
               <button
+                type="button"
                 onClick={handleAdminRoute}
-                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-100 px-3 py-2 rounded-xl border border-slate-200 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-slate-200 transition-colors cursor-pointer shadow-2xs active:scale-95"
                 title="Clinic Staff & Administration Login"
               >
-                <Lock className="w-3.5 h-3.5 text-slate-400" />
+                <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                 <span>Staff Portal</span>
               </button>
             )}
@@ -515,12 +532,12 @@ export const Header: React.FC<HeaderProps> = ({
               await logout();
               addToast('Signed Out Successfully', 'You have been logged out of Clinic OS.', 'info');
             }}
-            className="px-2 sm:px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-2xs active:scale-95 shrink-0"
+            className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-700 border border-rose-200 text-xs font-black flex items-center gap-1.5 cursor-pointer transition-all shadow-2xs active:scale-95 shrink-0"
             title="Sign Out from Clinic OS"
             aria-label="Sign Out"
           >
             <LogOut className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-            <span className="hidden xs:inline">Sign Out</span>
+            <span className="text-[11px] font-black">Sign Out</span>
           </button>
 
           {/* User Account Profile Pill (Tap opens Mobile App Profile Bottom Sheet) */}
@@ -530,8 +547,8 @@ export const Header: React.FC<HeaderProps> = ({
                 setIsProfileSheetOpen(true);
                 setProfileDropdownOpen((prev) => !prev);
               }}
-              className="flex items-center gap-2 sm:gap-2.5 px-2 sm:px-2.5 py-1 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 cursor-pointer transition-all shadow-2xs group active:scale-95"
-              title="Doctor & Staff Account Profile (Tap to view details & sign out)"
+              className="flex items-center gap-2 px-2 sm:px-2.5 py-1 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 cursor-pointer transition-all shadow-2xs group active:scale-95"
+              title="Doctor & Staff Account Profile (Tap to view details & switch role)"
             >
               <div className="relative shrink-0">
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-800 text-white font-bold text-xs flex items-center justify-center shadow-xs">
@@ -539,11 +556,11 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
                 <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
               </div>
-              <div className="text-left hidden md:block min-w-0">
+              <div className="text-left min-w-0 max-w-[95px] xs:max-w-[130px] sm:max-w-none">
                 <div className="text-xs font-bold text-slate-800 leading-tight truncate group-hover:text-emerald-800">
                   {currentUser.name || 'Admin'}
                 </div>
-                <div className="text-[10px] text-slate-500 leading-tight uppercase font-extrabold">
+                <div className="text-[10px] text-slate-500 leading-tight uppercase font-extrabold truncate">
                   Role: {currentUser.role}
                 </div>
               </div>

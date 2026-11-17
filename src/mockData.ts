@@ -11,6 +11,14 @@ import {
   Invoice, 
   PaymentRecord 
 } from './types';
+import {
+  SEED_PATIENTS,
+  SEED_TOKENS,
+  SEED_VISITS,
+  SEED_INVOICES,
+  SEED_PAYMENTS,
+  SEED_DOCTORS
+} from './data/seedClinicData';
 
 // ============================================================================
 // CLINICAL SERVICES DIRECTORY
@@ -83,9 +91,24 @@ export const MOCK_SERVICES: Service[] = [
 ];
 
 // ============================================================================
-// CLINICAL DOCTORS (Empty by default - Created manually by Admin in Supabase)
+// CLINICAL DOCTORS (Default doctor initialized from authoritative clinic store)
 // ============================================================================
-export const MOCK_DOCTORS: Doctor[] = [];
+export const MOCK_DOCTORS: Doctor[] = SEED_DOCTORS.length > 0 ? SEED_DOCTORS : [
+  {
+    id: 'staff-1792653030970',
+    name: 'Dr. DOCTOR TEST',
+    specialization: 'Orthodontics & Aligners',
+    qualification: 'BDS, MDS',
+    experience: '8+ Years',
+    avatar: '',
+    availability: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    cabinNumber: 'Cabin 101',
+    rating: 4.9,
+    reviewsCount: 120,
+    phone: '+91 9400320890',
+    email: 'doctor@gmail.com'
+  }
+];
 
 // ============================================================================
 // DENTAL OPERATORIES & CHAIRS (Matches Supabase Schema)
@@ -94,7 +117,7 @@ export const MOCK_CHAIRS: DentalChair[] = [
   {
     id: 'chair-1',
     name: 'Dental Operatory 1 (Main Surgery)',
-    doctorName: 'Unassigned',
+    doctorName: 'Dr. DOCTOR TEST',
     status: 'Available',
     isOperational: true
   },
@@ -122,15 +145,14 @@ export const MOCK_CHAIRS: DentalChair[] = [
 ];
 
 // ============================================================================
-// REAL CLINIC DATA - EMPTY ARRAYS (Ready for live Supabase insertion)
-// All mock patients, mock appointments, mock visits, mock tokens, mock invoices,
-// and mock payments have been deleted as requested.
+// REAL CLINIC DATA - PRE-LOADED FROM AUTHORITATIVE CLINIC DATASET
+// Pre-loads Customer 1, customer 2, customer 3 and their clinical charts
 // ============================================================================
-export const MOCK_PATIENTS: PatientRecord[] = [];
+export const MOCK_PATIENTS: PatientRecord[] = SEED_PATIENTS;
 export const INITIAL_APPOINTMENTS: Appointment[] = [];
-export const INITIAL_VISITS: ClinicVisit[] = [];
-export const INITIAL_TOKENS: QueueToken[] = [];
-export const INITIAL_INVOICES: Invoice[] = [];
-export const INITIAL_PAYMENTS: PaymentRecord[] = [];
+export const INITIAL_VISITS: ClinicVisit[] = SEED_VISITS;
+export const INITIAL_TOKENS: QueueToken[] = SEED_TOKENS;
+export const INITIAL_INVOICES: Invoice[] = SEED_INVOICES;
+export const INITIAL_PAYMENTS: PaymentRecord[] = SEED_PAYMENTS;
 export const MOCK_WHATSAPP_REMINDERS: WhatsAppReminder[] = [];
 export const MOCK_INVENTORY: InventoryItem[] = [];

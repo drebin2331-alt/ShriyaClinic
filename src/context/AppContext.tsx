@@ -40,6 +40,18 @@ import {
   INITIAL_INVOICES,
   INITIAL_PAYMENTS
 } from '../mockData';
+import {
+  SEED_PATIENTS,
+  SEED_TOKENS,
+  SEED_VISITS,
+  SEED_INVOICES,
+  SEED_PAYMENTS,
+  SEED_PRESCRIPTIONS,
+  SEED_USERS,
+  SEED_FEE_APPROVALS,
+  SEED_MEDICINES,
+  SEED_DOCTORS
+} from '../data/seedClinicData';
 import { createFullDefaultDentalChart } from '../utils/dentalChartHelper';
 import { apiClient } from '../utils/apiClient';
 import {
@@ -427,22 +439,41 @@ export const deduplicatePatients = (list: PatientRecord[]): PatientRecord[] => {
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // One-time purge of legacy mock tokens and demo entries from browser localStorage
-  if (typeof window !== 'undefined' && !localStorage.getItem('smilecare_clean_db_v7')) {
-    localStorage.removeItem('smilecare_tokens_list');
-    localStorage.removeItem('smilecare_visits_list');
-    localStorage.removeItem('smilecare_appointments_list');
-    localStorage.removeItem('smilecare_invoices_list');
-    localStorage.removeItem('smilecare_payments_list');
-    localStorage.removeItem('smilecare_patients_list');
-    localStorage.removeItem('smilecare_enquiries_list');
-    localStorage.removeItem('smilecare_sent_tokens');
-    localStorage.removeItem('smilecare_clean_db_v6');
-    localStorage.removeItem('smilecare_clean_db_v5');
-    localStorage.removeItem('smilecare_clean_db_v4');
-    localStorage.removeItem('smilecare_clean_db_v3');
-    sessionStorage.removeItem('smilecare_selected_patient');
-    localStorage.setItem('smilecare_clean_db_v7', 'true');
+  // Initialize authoritative clinic data (Customer 1, 2, 3, etc.) on first boot
+  if (typeof window !== 'undefined' && !localStorage.getItem('shriya_clinic_seeded_v2')) {
+    const existingPatients = localStorage.getItem('smilecare_patients_list');
+    if (!existingPatients || existingPatients === '[]') {
+      localStorage.setItem('smilecare_patients_list', JSON.stringify(SEED_PATIENTS));
+    }
+    const existingTokens = localStorage.getItem('smilecare_tokens_list');
+    if (!existingTokens || existingTokens === '[]') {
+      localStorage.setItem('smilecare_tokens_list', JSON.stringify(SEED_TOKENS));
+    }
+    const existingVisits = localStorage.getItem('smilecare_visits_list');
+    if (!existingVisits || existingVisits === '[]') {
+      localStorage.setItem('smilecare_visits_list', JSON.stringify(SEED_VISITS));
+    }
+    const existingInvoices = localStorage.getItem('smilecare_invoices_list');
+    if (!existingInvoices || existingInvoices === '[]') {
+      localStorage.setItem('smilecare_invoices_list', JSON.stringify(SEED_INVOICES));
+    }
+    const existingPayments = localStorage.getItem('smilecare_payments_list');
+    if (!existingPayments || existingPayments === '[]') {
+      localStorage.setItem('smilecare_payments_list', JSON.stringify(SEED_PAYMENTS));
+    }
+    const existingRx = localStorage.getItem('smilecare_prescriptions_list');
+    if (!existingRx || existingRx === '[]') {
+      localStorage.setItem('smilecare_prescriptions_list', JSON.stringify(SEED_PRESCRIPTIONS));
+    }
+    const existingMeds = localStorage.getItem('smilecare_medicines_list');
+    if (!existingMeds || existingMeds === '[]') {
+      localStorage.setItem('smilecare_medicines_list', JSON.stringify(SEED_MEDICINES));
+    }
+    const existingFees = localStorage.getItem('smilecare_fee_approvals');
+    if (!existingFees || existingFees === '[]') {
+      localStorage.setItem('smilecare_fee_approvals', JSON.stringify(SEED_FEE_APPROVALS));
+    }
+    localStorage.setItem('shriya_clinic_seeded_v2', 'true');
   }
 
   const [activeView, setActiveView] = useState<ViewMode>(() => {
@@ -474,10 +505,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('smilecare_visits_list');
       if (saved) {
         const parsed: ClinicVisit[] = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed.filter((v) => !isDemoPatientOrToken(v.patientName));
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.filter((v) => !isDemoPatientOrToken(v.patientName));
       }
     } catch { }
-    return [];
+    return SEED_VISITS;
   });
 
   const [tokens, setTokens] = useState<QueueToken[]>(() => {
@@ -485,10 +516,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('smilecare_tokens_list');
       if (saved) {
         const parsed: QueueToken[] = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed.filter((t) => !isDemoPatientOrToken(t.patientName));
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.filter((t) => !isDemoPatientOrToken(t.patientName));
       }
     } catch { }
-    return [];
+    return SEED_TOKENS;
   });
 
   const [staffMembers, setStaffMembers] = useState<StaffUser[]>(() => {
@@ -560,13 +591,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('smilecare_patients_list');
       if (saved) {
         const parsed: PatientRecord[] = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           const cleaned = deduplicatePatients(parsed);
           if (cleaned.length > 0) return cleaned;
         }
       }
     } catch { }
-    return [];
+    return SEED_PATIENTS;
   });
 
   const [chairs, setChairs] = useState<DentalChair[]>(MOCK_CHAIRS);
@@ -577,10 +608,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('smilecare_invoices_list');
       if (saved) {
         const parsed: Invoice[] = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed.filter((i) => !isDemoPatientOrToken(i.patientName));
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.filter((i) => !isDemoPatientOrToken(i.patientName));
       }
     } catch { }
-    return [];
+    return SEED_INVOICES;
   });
 
   const [payments, setPayments] = useState<PaymentRecord[]>(() => {
@@ -588,23 +619,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('smilecare_payments_list');
       if (saved) {
         const parsed: PaymentRecord[] = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed.filter((p) => !isDemoPatientOrToken(p.patientName));
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.filter((p) => !isDemoPatientOrToken(p.patientName));
       }
     } catch { }
-    return [];
+    return SEED_PAYMENTS;
   });
   const [prescriptions, setPrescriptions] = useState<PrescriptionRecord[]>(() => {
     try {
       const saved = localStorage.getItem('smilecare_prescriptions_list');
       if (saved) {
         const parsed: PrescriptionRecord[] = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch { }
-    return [];
+    return SEED_PRESCRIPTIONS;
   });
-  const [medicines, setMedicines] = useState<MedicineRecord[]>([]);
-  const [feeApprovals, setFeeApprovals] = useState<FeeApprovalRecord[]>([]);
+  const [medicines, setMedicines] = useState<MedicineRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem('smilecare_medicines_list');
+      if (saved) {
+        const parsed: MedicineRecord[] = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch { }
+    return SEED_MEDICINES;
+  });
+  const [feeApprovals, setFeeApprovals] = useState<FeeApprovalRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem('smilecare_fee_approvals');
+      if (saved) {
+        const parsed: FeeApprovalRecord[] = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch { }
+    return SEED_FEE_APPROVALS;
+  });
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [userRole, setUserRole] = useState<UserRole>('admin');
   const [reminders, setReminders] = useState<WhatsAppReminder[]>(MOCK_WHATSAPP_REMINDERS);

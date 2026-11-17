@@ -47,6 +47,7 @@ const MainContent: React.FC = () => {
   };
 
   const isAdminRoute = currentPath.startsWith('/admin') || window.location.hash.startsWith('#/admin');
+  const isStaffMode = isStaff || isAdminRoute;
 
   // Reception TV View takes full screen
   if (activeView === 'reception-tv') {
@@ -99,7 +100,7 @@ const MainContent: React.FC = () => {
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col bg-[#f8fafc] text-slate-900 pb-28 lg:pb-8">
       <Header 
-        isAdminRoute={isAdminRoute} 
+        isAdminRoute={isStaffMode} 
         onNavigateToAdmin={() => {
           navigateTo('/admin');
           if (isStaff) {
@@ -108,13 +109,17 @@ const MainContent: React.FC = () => {
         }}
         onNavigateToHome={() => {
           navigateTo('/');
-          setActiveView('landing');
+          if (isStaff) {
+            setActiveView('admin-dashboard');
+          } else {
+            setActiveView('landing');
+          }
         }}
       />
 
       <div className="flex-1 w-full max-w-full overflow-x-hidden">
-        {/* If on /admin route and user is authenticated as staff: show EMR views */}
-        {isAdminRoute && isStaff ? (
+        {/* If user is authenticated as staff or on /admin route: show full Clinic EMR views */}
+        {isStaffMode && isStaff ? (
           <>
             {/* Staff / Reception dedicated Check-In */}
             {activeView === 'staff-checkin' && <StaffCheckInView />}
