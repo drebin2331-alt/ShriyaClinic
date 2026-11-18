@@ -159,6 +159,71 @@ const CLINIC_GALLERY_PHOTOS: ClinicPhoto[] = [
   }
 ];
 
+interface GooglePatientReview {
+  id: string;
+  author: string;
+  timeframe: string;
+  isNew?: boolean;
+  treatment: string;
+  treatmentColor: string;
+  rating: number;
+  reviewText: string;
+  avatarBg: string;
+  avatarText: string;
+}
+
+const GOOGLE_PATIENT_REVIEWS: GooglePatientReview[] = [
+  {
+    id: 'rev-infant-letitia',
+    author: 'Infant Letitia.L',
+    timeframe: '2 months ago',
+    treatment: 'Wisdom Tooth Surgeries',
+    treatmentColor: 'bg-teal-50 text-teal-800 border-teal-200',
+    rating: 5,
+    avatarBg: 'bg-gradient-to-tr from-teal-600 to-emerald-600 text-white',
+    avatarText: 'IL',
+    reviewText:
+      "I've had two wisdom tooth surgeries here, and honestly, both times I felt at ease knowing I was in good hands. The doctors and surgeons are incredibly skilled, but what I love most is how kind and warm everyone is — from the staff to the surgeons themselves. I've been going to this dental hospital for all my dental needs. This dental hospital truly feels like being cared for by people who genuinely want the best for you.\n\nEven something as small as a regular appointment feels comfortable here.\n\nHighly recommend this place if you want a dental hospital that truly looks after you!"
+  },
+  {
+    id: 'rev-arjun-suresh',
+    author: 'Arjun Suresh',
+    timeframe: 'a month ago',
+    treatment: 'Dental Cleaning & Checkup',
+    treatmentColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    rating: 5,
+    avatarBg: 'bg-purple-600 text-white',
+    avatarText: 'A',
+    reviewText:
+      "I had a wonderful experience at this clinic. The staff is incredibly friendly and welcoming from the moment you walk in. The dentist was thorough, gentle during the cleaning, and took the time to explain everything clearly. The clinic itself is modern, pristine, and very comfortable. Highly recommend to anyone looking for a reliable and stress-free dental practice!"
+  },
+  {
+    id: 'rev-chandana',
+    author: 'Chandana',
+    timeframe: '2 months ago',
+    treatment: 'Gentle Care & Service',
+    treatmentColor: 'bg-indigo-50 text-indigo-800 border-indigo-200',
+    rating: 5,
+    avatarBg: 'bg-indigo-600 text-white',
+    avatarText: 'C',
+    reviewText:
+      "Good experience at the clinic. The doctor and staff were very kind and friendly. The treatment was done with good care. Thank you for the wonderful service"
+  },
+  {
+    id: 'rev-blackie',
+    author: 'Blackie',
+    timeframe: '2 weeks ago',
+    isNew: true,
+    treatment: 'Orthodontics & Braces',
+    treatmentColor: 'bg-amber-50 text-amber-800 border-amber-200',
+    rating: 5,
+    avatarBg: 'bg-emerald-700 text-white',
+    avatarText: 'B',
+    reviewText:
+      "New braces, zero hassle, and amazing results! Loving my experience at Shriya Multispeciality Dental Clinic & Orthodontic Centre. 😁 🎉"
+  }
+];
+
 export const LandingPage: React.FC = () => {
   const { doctors, services, setActiveView, addEnquiry } = useApp();
   const [formSubmitted, setFormSubmitted] = useState(false);
@@ -937,104 +1002,90 @@ export const LandingPage: React.FC = () => {
       <section id="testimonials" className="px-4 scroll-mt-20">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="text-xs font-extrabold text-amber-800 uppercase tracking-widest px-3 py-1 rounded-full bg-amber-50 border border-amber-200">
-              Patient Experiences
+            <span className="text-xs font-extrabold text-amber-800 uppercase tracking-widest px-3 py-1 rounded-full bg-amber-50 border border-amber-200 inline-flex items-center gap-1.5 shadow-2xs">
+              <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+              <span>Real Google Patient Reviews</span>
             </span>
             <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mt-3 tracking-tight">
               Words From Our Happy Patients
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-2">
-              Over 5,000+ happy smiles restored with care, comfort, and clinical precision.
+            <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+              Authentic verified reviews from patients treated at Shriya Multispeciality Dental Clinic & Orthodontic Centre.
             </p>
+            <div className="mt-3 flex items-center justify-center">
+              <a
+                href="https://share.google/hYmPWXJH4JB4OxuM2"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-xs font-extrabold text-teal-800 bg-teal-50 hover:bg-teal-100 px-3.5 py-1.5 rounded-full border border-teal-200 transition-colors shadow-2xs"
+              >
+                <span className="flex items-center gap-0.5 text-amber-500">
+                  <Star className="w-3.5 h-3.5 fill-amber-400" />
+                  <strong className="text-slate-900">5.0 Rating</strong>
+                </span>
+                <span className="text-teal-400">•</span>
+                <span>Verified Google Reviews</span>
+                <span className="text-teal-700 underline font-bold ml-1">View on Google Maps →</span>
+              </a>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-1 text-amber-400">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-amber-400" />
-                    ))}
-                  </div>
-                  <span className="text-[10px] font-black uppercase text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
-                    Dental Implants
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 leading-relaxed italic">
-                  "I was terrified of dental implants due to past experiences. The specialist dental surgeons at Shriya Multispeciality Dental Clinic made the entire surgical procedure completely painless with 3D guided surgery. Highly recommended for senior care!"
-                </p>
-              </div>
-              <div className="flex items-center gap-3 mt-5 pt-3 border-t border-slate-100">
-                <img
-                  src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80"
-                  alt="Dr. Sunita Varma"
-                  className="w-10 h-10 rounded-full object-cover border border-slate-200"
-                />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+            {GOOGLE_PATIENT_REVIEWS.map((rev) => (
+              <div
+                key={rev.id}
+                className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-2xs hover:shadow-md hover:border-teal-300 transition-all flex flex-col justify-between group"
+              >
                 <div>
-                  <div className="text-xs font-extrabold text-slate-800">Dr. Sunita Varma</div>
-                  <div className="text-[10px] text-slate-500">Architect & Patient</div>
-                </div>
-              </div>
-            </div>
+                  <div className="flex items-center justify-between gap-2 mb-3.5">
+                    <div className="flex items-center gap-1 text-amber-400">
+                      {[...Array(rev.rating)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {rev.isNew && (
+                        <span className="text-[10px] font-black uppercase text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-full border border-emerald-300">
+                          New
+                        </span>
+                      )}
+                      <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${rev.treatmentColor}`}>
+                        {rev.treatment}
+                      </span>
+                    </div>
+                  </div>
 
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-1 text-amber-400">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-amber-400" />
-                    ))}
-                  </div>
-                  <span className="text-[10px] font-black uppercase text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    Single-Sitting RCT
-                  </span>
+                  <p className="text-xs sm:text-[13px] text-slate-700 leading-relaxed font-medium whitespace-pre-line">
+                    "{rev.reviewText}"
+                  </p>
                 </div>
-                <p className="text-xs text-slate-600 leading-relaxed italic">
-                  "Microscopic root canal treatment completed in exactly 50 minutes with zero pain. The clinic hygiene at Shriya Dental is pristine, just like a top-tier hospital operatory suite. True professionals!"
-                </p>
-              </div>
-              <div className="flex items-center gap-3 mt-5 pt-3 border-t border-slate-100">
-                <img
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80"
-                  alt="Ramesh Krishnan"
-                  className="w-10 h-10 rounded-full object-cover border border-slate-200"
-                />
-                <div>
-                  <div className="text-xs font-extrabold text-slate-800">Ramesh Krishnan</div>
-                  <div className="text-[10px] text-slate-500">Senior IT Director</div>
-                </div>
-              </div>
-            </div>
 
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-1 text-amber-400">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-amber-400" />
-                    ))}
+                <div className="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-10 h-10 rounded-full ${rev.avatarBg} flex items-center justify-center font-black text-sm shrink-0 shadow-2xs`}
+                    >
+                      {rev.avatarText}
+                    </div>
+                    <div>
+                      <div className="text-xs sm:text-sm font-black text-slate-900">
+                        {rev.author}
+                      </div>
+                      <div className="text-[11px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
+                        <span>1 review</span>
+                        <span>•</span>
+                        <span>{rev.timeframe}</span>
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-[10px] font-black uppercase text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
-                    Clear Aligners
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 leading-relaxed italic">
-                  "Got my digital clear aligners here. The 3D treatment simulation showed my exact teeth movement before starting. My smile transformation has exceeded all expectations. Thank you Shriya Dental team!"
-                </p>
-              </div>
-              <div className="flex items-center gap-3 mt-5 pt-3 border-t border-slate-100">
-                <img
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80"
-                  alt="Neha Deshmukh"
-                  className="w-10 h-10 rounded-full object-cover border border-slate-200"
-                />
-                <div>
-                  <div className="text-xs font-extrabold text-slate-800">Neha Deshmukh</div>
-                  <div className="text-[10px] text-slate-500">Corporate Attorney</div>
+
+                  <div className="flex items-center gap-1 text-[11px] font-extrabold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-100 shrink-0">
+                    <span>Google</span>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  </div>
                 </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
