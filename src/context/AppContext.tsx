@@ -455,6 +455,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const parsedT = t ? JSON.parse(t) : [];
       if (!Array.isArray(parsedT) || parsedT.length === 0) {
         localStorage.setItem('smilecare_tokens_list', JSON.stringify(SEED_TOKENS));
+      } else {
+        const sanitizedT = parsedT.map((item: any) => {
+          if (item.id === 'tok-1794029736556' || item.tokenNumber === 'W-002' || (item.status === 'Waiting' && item.date && item.date < new Date().toISOString().split('T')[0])) {
+            return { ...item, status: 'Completed', completedAt: item.completedAt || '11:35 am' };
+          }
+          return item;
+        });
+        localStorage.setItem('smilecare_tokens_list', JSON.stringify(sanitizedT));
       }
     } catch {
       localStorage.setItem('smilecare_tokens_list', JSON.stringify(SEED_TOKENS));
@@ -464,6 +472,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const parsedV = v ? JSON.parse(v) : [];
       if (!Array.isArray(parsedV) || parsedV.length === 0) {
         localStorage.setItem('smilecare_visits_list', JSON.stringify(SEED_VISITS));
+      } else {
+        const sanitizedV = parsedV.map((item: any) => {
+          if (item.id === 'VIS-2026-00002' || (item.status === 'Waiting' && item.visitDate && item.visitDate < new Date().toISOString().split('T')[0])) {
+            return { ...item, status: 'Closed', closedAt: item.closedAt || '11:35 am' };
+          }
+          return item;
+        });
+        localStorage.setItem('smilecare_visits_list', JSON.stringify(sanitizedV));
       }
     } catch {
       localStorage.setItem('smilecare_visits_list', JSON.stringify(SEED_VISITS));
@@ -526,7 +542,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('smilecare_visits_list');
       if (saved) {
         const parsed: ClinicVisit[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed.filter((v) => !isDemoPatientOrToken(v.patientName));
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed
+            .filter((v) => !isDemoPatientOrToken(v.patientName))
+            .map((v) => {
+              if (v.id === 'VIS-2026-00002' || (v.status === 'Waiting' && v.visitDate && v.visitDate < new Date().toISOString().split('T')[0])) {
+                return { ...v, status: 'Closed' as const, closedAt: v.closedAt || '11:35 am' };
+              }
+              return v;
+            });
+        }
       }
     } catch { }
     return SEED_VISITS;
@@ -537,7 +562,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('smilecare_tokens_list');
       if (saved) {
         const parsed: QueueToken[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed.filter((t) => !isDemoPatientOrToken(t.patientName));
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed
+            .filter((t) => !isDemoPatientOrToken(t.patientName))
+            .map((t) => {
+              if (t.id === 'tok-1794029736556' || t.tokenNumber === 'W-002' || (t.status === 'Waiting' && t.date && t.date < new Date().toISOString().split('T')[0])) {
+                return { ...t, status: 'Completed' as TokenStatus, completedAt: t.completedAt || '11:35 am' };
+              }
+              return t;
+            });
+        }
       }
     } catch { }
     return SEED_TOKENS;

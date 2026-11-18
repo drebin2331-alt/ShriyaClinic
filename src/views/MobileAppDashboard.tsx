@@ -52,7 +52,6 @@ export const MobileAppDashboard: React.FC = () => {
   const { currentUser, logout, setIsDemoModalOpen } = useAuth();
 
   const [isModulesModalOpen, setIsModulesModalOpen] = useState(false);
-  const [selectedCabin, setSelectedCabin] = useState('Cabin 1 — Dr. DOCTOR TEST');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   React.useEffect(() => {
@@ -190,19 +189,11 @@ export const MobileAppDashboard: React.FC = () => {
 
   return (
     <div className="w-full max-w-lg mx-auto pb-6 px-3.5 sm:px-4 space-y-4 animate-in fade-in duration-200">
-      {/* 1. TOP APP BAR CONTEXT PILL (Matching Reference Screenshot 1) */}
+      {/* 1. TOP APP BAR CONTEXT PILL */}
       <div className="flex items-center justify-between gap-2 pt-1 pb-0.5">
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200/80 border border-slate-200 transition-colors cursor-pointer text-xs font-bold text-slate-800">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-xs font-bold text-slate-800 select-none">
           <Stethoscope className="w-3.5 h-3.5 text-teal-700 shrink-0" />
-          <select 
-            value={selectedCabin}
-            onChange={(e) => setSelectedCabin(e.target.value)}
-            className="bg-transparent border-none text-xs font-bold text-slate-800 focus:outline-none cursor-pointer truncate max-w-[190px] xs:max-w-none"
-          >
-            <option value="Cabin 1 — Dr. DOCTOR TEST">Cabin 1 — Dr. DOCTOR TEST</option>
-            <option value="Cabin 2 — General Dental Suite">Cabin 2 — General Dental Suite</option>
-            <option value="Reception & Front Desk">Reception &amp; Front Desk</option>
-          </select>
+          <span>Doctor Consultation Suite</span>
         </div>
 
         <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 shrink-0">

@@ -21,7 +21,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install Node Dependencies
@@ -64,6 +64,9 @@ jobs:
         with:
           tag_name: v1.0.0
           name: Shriya Dental Clinic Mobile App v1.0.0
+          make_latest: true
+          draft: false
+          prerelease: false
           body: |
             ### 📱 Shriya Multispeciality Dental Clinic - Android Mobile App
             Official Android Mobile App APK build for patients & doctors.
