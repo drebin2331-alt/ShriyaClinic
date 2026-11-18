@@ -384,7 +384,7 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Visual Area: Real Clinic Photo + Floating Clinical Badges */}
+          {/* Right Visual Area: Real Clinic Photo */}
           <div className="lg:col-span-5 relative flex justify-center w-full">
             <div className="relative w-full max-w-md lg:max-w-lg aspect-[4/3] sm:aspect-[5/4] bg-white rounded-3xl p-2.5 sm:p-3 shadow-xl border-4 border-white overflow-hidden group mx-auto">
               <img
@@ -393,18 +393,7 @@ export const LandingPage: React.FC = () => {
                 className="w-full h-full object-cover rounded-2xl transition-transform duration-700 group-hover:scale-105"
               />
 
-              {/* Floating Badge 1: Sterilization Accreditation */}
-              <div className="absolute top-3 left-3 sm:top-6 sm:left-6 bg-white/95 backdrop-blur-md rounded-2xl p-2 sm:p-3 shadow-lg border border-slate-100 flex items-center gap-2 sm:gap-3 animate-in fade-in max-w-[85%]">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-teal-700 to-emerald-600 text-white flex items-center justify-center font-black shrink-0">
-                  <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] sm:text-xs font-black text-slate-900 truncate">NABH & ISO Compliant</div>
-                  <div className="text-[9px] sm:text-[10px] font-bold text-teal-700 truncate">4-Tier Autoclave Protocols</div>
-                </div>
-              </div>
-
-              {/* Floating Badge 2: Google Rating */}
+              {/* Floating Badge: Google Rating */}
               <div className="absolute bottom-3 right-3 sm:bottom-6 sm:right-6 bg-white/95 backdrop-blur-md rounded-2xl p-2 sm:p-3 shadow-lg border border-slate-100 flex items-center gap-2 sm:gap-3 max-w-[85%]">
                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
                   <Star className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />
@@ -469,11 +458,11 @@ export const LandingPage: React.FC = () => {
       {/* 3. CLINICAL STATISTICS COUNTERS                                       */}
       {/* ===================================================================== */}
       <section className="px-4">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs text-center">
-            <div className="text-2xl sm:text-4xl font-black text-teal-800">15+</div>
+            <div className="text-2xl sm:text-4xl font-black text-teal-800">10+</div>
             <div className="text-xs font-bold text-slate-600 mt-1">Years of Dental Excellence</div>
-            <div className="text-[10px] text-slate-400 mt-0.5">Serving families since 2011</div>
+            <div className="text-[10px] text-slate-400 mt-0.5">Serving families since 2015</div>
           </div>
 
           <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs text-center">
@@ -482,19 +471,13 @@ export const LandingPage: React.FC = () => {
             <div className="text-[10px] text-slate-400 mt-0.5">Implants, aligners & root canals</div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs text-center">
+          <div className="col-span-2 md:col-span-1 bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs text-center">
             <div className="text-2xl sm:text-4xl font-black text-amber-500 flex items-center justify-center gap-1">
               <span>4.9</span>
               <Star className="w-5 h-5 fill-amber-400" />
             </div>
             <div className="text-xs font-bold text-slate-600 mt-1">Google Patient Rating</div>
             <div className="text-[10px] text-slate-400 mt-0.5">Over 2,400+ verified reviews</div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs text-center">
-            <div className="text-2xl sm:text-4xl font-black text-teal-700">100%</div>
-            <div className="text-xs font-bold text-slate-600 mt-1">Sterilization Adherence</div>
-            <div className="text-[10px] text-slate-400 mt-0.5">Hospital Class-B Autoclave</div>
           </div>
         </div>
       </section>
@@ -590,9 +573,9 @@ export const LandingPage: React.FC = () => {
                     <ShieldCheck className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-extrabold text-slate-900">Hospital-Grade 4-Tier Sterilization</h4>
+                    <h4 className="text-sm font-extrabold text-slate-900">Comprehensive Hygiene & Sterilization</h4>
                     <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                      Every surgical instrument undergoes ultrasonic pre-cleansing, vacuum Class-B autoclaving, and sealed pouch validation.
+                      Every surgical instrument undergoes ultrasonic pre-cleansing, medical autoclaving, and sealed pouch validation.
                     </p>
                   </div>
                 </div>
