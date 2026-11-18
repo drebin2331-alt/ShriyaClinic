@@ -500,13 +500,25 @@ export const MobileAppDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={handleInstallApp}
-                className="px-3.5 py-1.5 rounded-xl bg-white text-teal-900 font-black text-xs shrink-0 cursor-pointer shadow-xs hover:bg-emerald-50 active:scale-95 transition-all"
-              >
-                Install
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <a
+                  href="https://github.com/drebin2331-alt/ShriyaClinic/releases/latest"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-teal-950 font-black text-xs shrink-0 cursor-pointer shadow-xs active:scale-95 transition-all flex items-center gap-1"
+                  title="Download Android APK"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>APK</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={handleInstallApp}
+                  className="px-3 py-1.5 rounded-xl bg-white text-teal-900 font-black text-xs shrink-0 cursor-pointer shadow-xs hover:bg-emerald-50 active:scale-95 transition-all"
+                >
+                  Install
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -29,7 +29,9 @@ import {
   X,
   ZoomIn,
   MessageSquare,
-  Scan
+  Scan,
+  Smartphone,
+  Download
 } from 'lucide-react';
 import { PatientEnquiryModal } from '../components/common/PatientEnquiryModal';
 
@@ -1365,7 +1367,7 @@ export const LandingPage: React.FC = () => {
                 Shriya Multispeciality Dental Clinic<br />
                 Pollachi Road, Kozhinjapara, Palakkad.
               </p>
-              <div className="pt-1">
+              <div className="pt-1 flex flex-col gap-1.5">
                 <a
                   href="https://share.google/hYmPWXJH4JB4OxuM2"
                   target="_blank"
@@ -1374,6 +1376,15 @@ export const LandingPage: React.FC = () => {
                 >
                   <MapPin className="w-3 h-3" />
                   <span>Google Maps Location →</span>
+                </a>
+                <a
+                  href="https://github.com/drebin2331-alt/ShriyaClinic/releases/latest"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-emerald-700 hover:text-emerald-800 font-extrabold text-xs inline-flex items-center gap-1 hover:underline"
+                >
+                  <Smartphone className="w-3 h-3 text-emerald-600" />
+                  <span>📱 Download Android APK App</span>
                 </a>
               </div>
               <div className="pt-2">
