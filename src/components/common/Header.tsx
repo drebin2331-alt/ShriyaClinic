@@ -29,7 +29,8 @@ import {
   Clock,
   ShieldCheck,
   Phone,
-  MessageSquare
+  MessageSquare,
+  MapPin
 } from 'lucide-react';
 
 interface HeaderProps {

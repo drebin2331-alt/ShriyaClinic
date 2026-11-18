@@ -42,6 +42,12 @@ export const supabase: SupabaseClient = createClient(
 
 // Circuit breaker for Supabase billing/quota restrictions (HTTP 402 Payment Required)
 let supabaseServiceRestricted = false;
+try {
+  if (typeof window !== 'undefined' && sessionStorage.getItem('supabase_restricted') === 'true') {
+    supabaseServiceRestricted = true;
+  }
+} catch {}
+
 let restrictedWarned = false;
 let probePromise: Promise<boolean> | null = null;
 const supabaseStatusListeners = new Set<() => void>();
@@ -63,6 +69,11 @@ export const isSupabaseBillingError = (error: any): boolean => {
 export const markSupabaseRestricted = (reason?: string): void => {
   if (!supabaseServiceRestricted) {
     supabaseServiceRestricted = true;
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('supabase_restricted', 'true');
+      }
+    } catch {}
     try {
       supabase.removeAllChannels();
       (supabase as any).realtime?.disconnect?.();
