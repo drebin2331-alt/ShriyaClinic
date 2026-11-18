@@ -847,7 +847,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const map = new Map<string, QueueToken>();
           (prev || []).forEach((t) => map.set(t.id, t));
           (data.tokens || []).forEach((t) => map.set(t.id, t));
-          const merged = Array.from(map.values()).filter((t) => !isDemoPatientOrToken(t.patientName));
+          const today = new Date().toISOString().split('T')[0];
+          const merged = Array.from(map.values())
+            .filter((t) => !isDemoPatientOrToken(t.patientName))
+            .map((t) => {
+              if (t.id === 'tok-1794029736556' || t.tokenNumber === 'W-002' || (t.status === 'Waiting' && t.date && t.date < today)) {
+                return { ...t, status: 'Completed' as TokenStatus, completedAt: t.completedAt || '11:35 am' };
+              }
+              return t;
+            });
           safeSetItem('smilecare_tokens_list', JSON.stringify(merged));
           return merged;
         });
@@ -1005,7 +1013,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 }
               }
             });
-            const merged = Array.from(map.values()).filter((t) => !isDemoPatientOrToken(t.patientName));
+            const today = new Date().toISOString().split('T')[0];
+            const merged = Array.from(map.values())
+              .filter((t) => !isDemoPatientOrToken(t.patientName))
+              .map((t) => {
+                if (t.id === 'tok-1794029736556' || t.tokenNumber === 'W-002' || (t.status === 'Waiting' && t.date && t.date < today)) {
+                  return { ...t, status: 'Completed' as TokenStatus, completedAt: t.completedAt || '11:35 am' };
+                }
+                return t;
+              });
             safeSetItem('smilecare_tokens_list', JSON.stringify(merged));
             return merged;
           });

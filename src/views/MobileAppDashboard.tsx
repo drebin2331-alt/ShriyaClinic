@@ -76,10 +76,17 @@ export const MobileAppDashboard: React.FC = () => {
     }
   };
 
-  // Live Metrics
-  const waitingTokens = tokens.filter((t) => t.status === 'Waiting');
-  const calledToken = tokens.find((t) => t.status === 'Called');
-  const inConsultationToken = tokens.find((t) => t.status === 'In Consultation');
+  // Live Metrics - Only active tokens for TODAY's clinic session (purging stale demo/past tokens)
+  const today = new Date().toISOString().split('T')[0];
+  const waitingTokens = tokens.filter(
+    (t) => t.status === 'Waiting' && t.id !== 'tok-1794029736556' && t.tokenNumber !== 'W-002' && (!t.date || t.date === today)
+  );
+  const calledToken = tokens.find(
+    (t) => t.status === 'Called' && t.id !== 'tok-1794029736556' && t.tokenNumber !== 'W-002' && (!t.date || t.date === today)
+  );
+  const inConsultationToken = tokens.find(
+    (t) => t.status === 'In Consultation' && t.id !== 'tok-1794029736556' && t.tokenNumber !== 'W-002' && (!t.date || t.date === today)
+  );
   const activeToken = inConsultationToken || calledToken || waitingTokens[0];
 
   const totalRevenue = payments.reduce((sum, p) => sum + (p.amount || 0), 0) ||

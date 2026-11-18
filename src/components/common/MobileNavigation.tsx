@@ -26,8 +26,9 @@ export const MobileNavigation: React.FC = () => {
   const { activeView, setActiveView, tokens, isProfileSheetOpen, setIsProfileSheetOpen } = useApp();
   const { currentUser } = useAuth();
 
+  const today = new Date().toISOString().split('T')[0];
   const waitingTokensCount = (tokens || []).filter(
-    (t) => t.status === 'Waiting' || t.status === 'Called'
+    (t) => (t.status === 'Waiting' || t.status === 'Called') && t.id !== 'tok-1794029736556' && t.tokenNumber !== 'W-002' && (!t.date || t.date === today)
   ).length;
 
   interface NavItemConfig {

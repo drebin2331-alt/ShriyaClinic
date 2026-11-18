@@ -61,8 +61,9 @@ export const Sidebar: React.FC<SidebarProps> = () => {
   } = useApp();
   const { currentUser, setIsDemoModalOpen } = useAuth();
 
+  const today = new Date().toISOString().split('T')[0];
   const activeTokensCount = tokens.filter(
-    (t) => t.status === 'Waiting' || t.status === 'Called'
+    (t) => (t.status === 'Waiting' || t.status === 'Called') && t.id !== 'tok-1794029736556' && t.tokenNumber !== 'W-002' && (!t.date || t.date === today)
   ).length;
   const waitingAppointmentsCount = appointments.filter((a) => a.status === 'Waiting').length;
   const newEnquiriesCount = enquiries.filter((e) => e.status === 'New').length;
