@@ -357,19 +357,39 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="grid grid-cols-2 gap-2">
                 <a
                   href="tel:+919400320890"
-                  className="py-2.5 px-3 rounded-xl bg-slate-100 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 border border-slate-200"
+                  className="py-2.5 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 border border-slate-200"
+                  title="Call Reception"
                 >
-                  <Phone className="w-3.5 h-3.5 text-teal-700" />
-                  <span>Call 9400320890</span>
+                  <Phone className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+                  <span className="truncate">Reception: 9400320890</span>
                 </a>
+                <a
+                  href="tel:+917904221656"
+                  className="py-2.5 px-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 border border-rose-200"
+                  title="Call Emergency"
+                >
+                  <Phone className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                  <span className="truncate">Emergency: 7904221656</span>
+                </a>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
                 <a
                   href="https://wa.me/919400320890?text=Hello%20Shriya%20Multispeciality%20Dental%20Clinic"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="py-2.5 px-3 rounded-xl bg-emerald-50 text-emerald-800 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer border border-emerald-200 active:scale-98"
+                  className="py-2.5 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer border border-emerald-200 active:scale-98"
                 >
                   <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>WhatsApp</span>
+                  <span>WhatsApp Chat</span>
+                </a>
+                <a
+                  href="https://share.google/hYmPWXJH4JB4OxuM2"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2.5 px-3 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer border border-teal-200 active:scale-98"
+                >
+                  <MapPin className="w-3.5 h-3.5 text-teal-700" />
+                  <span>Google Maps</span>
                 </a>
               </div>
 

@@ -151,7 +151,7 @@ export const MobileProfileSheet: React.FC = () => {
                 <Building className="w-3 h-3 text-teal-400" />
                 <span>Shriya Multispeciality Clinic</span>
               </span>
-              <span className="font-mono text-slate-400">Cabin Suite 402</span>
+              <span className="font-mono text-slate-400">Pollachi Road, Kozhinjapara</span>
             </div>
           </div>
 

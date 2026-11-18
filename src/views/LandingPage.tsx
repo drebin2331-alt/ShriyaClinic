@@ -28,7 +28,8 @@ import {
   AlertCircle,
   X,
   ZoomIn,
-  MessageSquare
+  MessageSquare,
+  Scan
 } from 'lucide-react';
 import { PatientEnquiryModal } from '../components/common/PatientEnquiryModal';
 
@@ -52,6 +53,28 @@ export interface SmileTransformationCase {
 }
 
 export const SMILE_TRANSFORMATIONS: SmileTransformationCase[] = [
+  {
+    id: 'case-complete-dentures',
+    src: '/images/case-complete-dentures.jpg',
+    title: 'Complete Dentures & Full Arch Aesthetic Rehabilitation',
+    category: 'Bridges & Dentures',
+    badge: 'Complete Dentures',
+    procedure: 'High-Precision Custom Complete Dentures & Occlusal Bite Reconstruction',
+    diagnosis: 'Severe edentulism and multi-tooth loss causing chewing difficulty and sunken facial profile',
+    outcome: 'Natural gum-shaded emergence profile, balanced bilateral bite, restored chewing comfort, and smile confidence',
+    highlights: ['Natural Gum Shading', 'High-Impact Denture Base', 'Balanced Functional Bite']
+  },
+  {
+    id: 'case-invisalign-aligners',
+    src: '/images/case-invisalign-aligners.png',
+    title: 'Invisalign® Clear Aligners Smile Transformation',
+    category: 'Cosmetic Makeover',
+    badge: 'Invisalign® Certified',
+    procedure: '3D Digitally Simulated Clear Aligner Orthodontic Realignment',
+    diagnosis: 'Dental spacing, crowding, and arch misalignment seeking a wire-free aesthetic solution',
+    outcome: 'Discreet invisible alignment, easily removable for meals, and comfortable daily wear with zero brackets',
+    highlights: ['Virtually Invisible', 'Easily Removable & Hygienic', 'Comfortable Custom Fit']
+  },
   {
     id: 'case-anterior-aesthetic-crown',
     src: '/images/case-anterior-aesthetic-crown.jpg',
@@ -131,7 +154,7 @@ const CLINIC_GALLERY_PHOTOS: ClinicPhoto[] = [
   {
     src: '/images/clinic-exterior.jpg',
     title: 'Shriya Multispeciality Dental Clinic Exterior',
-    subtitle: 'Easily accessible roadside clinic entrance with clear signage.',
+    subtitle: 'Easily accessible roadside clinic entrance on Pollachi Road, Kozhinjapara with clear signage.',
     badge: 'Clinic Location'
   }
 ];
@@ -253,13 +276,24 @@ export const LandingPage: React.FC = () => {
                 <span>Explore Specialities</span>
               </button>
 
-              <a
-                href="tel:+919800012345"
-                className="inline-flex items-center justify-center gap-2 text-xs font-bold text-teal-700 hover:text-teal-900 py-2 sm:py-3 px-2 transition-colors text-center"
-              >
-                <Phone className="w-4 h-4" />
-                <span>Helpline: +91 98000 12345</span>
-              </a>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 py-1 text-xs font-bold">
+                <a
+                  href="tel:+919400320890"
+                  className="inline-flex items-center gap-1.5 text-teal-800 hover:text-teal-950 bg-teal-50 hover:bg-teal-100/80 px-3 py-2 rounded-xl border border-teal-200 transition-colors"
+                  title="Call Reception"
+                >
+                  <Phone className="w-3.5 h-3.5 text-teal-700" />
+                  <span>Reception: 9400320890</span>
+                </a>
+                <a
+                  href="tel:+917904221656"
+                  className="inline-flex items-center gap-1.5 text-rose-800 hover:text-rose-950 bg-rose-50 hover:bg-rose-100/80 px-3 py-2 rounded-xl border border-rose-200 transition-colors"
+                  title="Call Emergency"
+                >
+                  <Phone className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Emergency: 7904221656</span>
+                </a>
+              </div>
             </div>
 
             {/* Trust Metrics Pill Strip */}
@@ -340,16 +374,23 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0 w-full md:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0 w-full md:w-auto">
             <a
-              href="tel:+919800012345"
+              href="tel:+917904221656"
+              className="flex-1 md:flex-none text-center px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black transition-all shadow-sm flex items-center justify-center gap-1.5"
+            >
+              <Phone className="w-3.5 h-3.5" />
+              <span>Emergency: 7904221656</span>
+            </a>
+            <a
+              href="tel:+919400320890"
               className="flex-1 md:flex-none text-center px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all border border-white/15"
             >
-              📞 Call Reception
+              📞 Reception: 9400320890
             </a>
             <button
               onClick={() => setActiveView('booking')}
-              className="flex-1 md:flex-none px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black transition-all cursor-pointer shadow-sm"
+              className="w-full md:w-auto px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black transition-all cursor-pointer shadow-sm"
             >
               Book Priority Visit →
             </button>
@@ -494,7 +535,7 @@ export const LandingPage: React.FC = () => {
                     <Camera className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-extrabold text-slate-900">Low-Radiation 3D Digital Imaging</h4>
+                    <h4 className="text-sm font-extrabold text-slate-900">Low-Radiation 2D Digital Imaging</h4>
                     <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
                       Instant intraoral digital sensors with 90% lower radiation than conventional film X-rays, allowing pinpoint accuracy.
                     </p>
@@ -530,11 +571,11 @@ export const LandingPage: React.FC = () => {
             {/* Right Feature Showcase Cards */}
             <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs text-center flex flex-col items-center justify-center hover:border-teal-300 transition-colors">
-                <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center text-2xl mb-2.5">
-                  🦷
+                <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center mb-2.5">
+                  <Scan className="w-6 h-6 stroke-[2.2]" />
                 </div>
-                <h4 className="text-xs sm:text-sm font-extrabold text-slate-900">Digital 3D Scans</h4>
-                <p className="text-[11px] text-slate-500 mt-1">No messy impression pastes. Instant CAD/CAM 3D models.</p>
+                <h4 className="text-xs sm:text-sm font-extrabold text-slate-900">Digital 2D Scans</h4>
+                <p className="text-[11px] text-slate-500 mt-1">High-definition chairside digital imaging with instant diagnostic clarity.</p>
               </div>
 
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs text-center flex flex-col items-center justify-center hover:border-teal-300 transition-colors">
@@ -1022,9 +1063,21 @@ export const LandingPage: React.FC = () => {
                     <MapPin className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="text-slate-900 font-extrabold text-xs">Clinic Address</div>
-                    <div className="text-slate-500 font-medium mt-0.5">
-                      Suite 402, Shriya Healthcare Plaza, Metro Station Road, City Center
+                    <div className="text-slate-900 font-extrabold text-xs">Clinic Location & Directions</div>
+                    <div className="text-slate-600 font-medium mt-0.5 leading-relaxed">
+                      <strong>Shriya Multispeciality Dental Clinic</strong><br />
+                      Pollachi Road, Kozhinjapara, Palakkad.
+                    </div>
+                    <div className="mt-2">
+                      <a
+                        href="https://share.google/hYmPWXJH4JB4OxuM2"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-extrabold text-teal-700 hover:text-teal-900 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-xl border border-teal-200 transition-colors shadow-2xs"
+                      >
+                        <MapPin className="w-3.5 h-3.5 text-teal-700" />
+                        <span>Open in Google Maps →</span>
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -1033,10 +1086,31 @@ export const LandingPage: React.FC = () => {
                   <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-800 shrink-0 border border-emerald-100">
                     <Phone className="w-4 h-4" />
                   </div>
-                  <div>
+                  <div className="w-full">
                     <div className="text-slate-900 font-extrabold text-xs">Reception & Emergency Helpline</div>
-                    <div className="text-slate-500 font-medium mt-0.5 font-mono">
-                      +91 98000 12345 / +91 98000 54321
+                    <div className="mt-1.5 space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between sm:justify-start gap-3">
+                        <span className="px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 text-[10px] font-black uppercase border border-teal-200">
+                          Reception
+                        </span>
+                        <a
+                          href="tel:+919400320890"
+                          className="font-mono font-bold text-slate-800 hover:text-teal-700 transition-colors"
+                        >
+                          +91 94003 20890
+                        </a>
+                      </div>
+                      <div className="flex items-center justify-between sm:justify-start gap-3">
+                        <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-800 text-[10px] font-black uppercase border border-rose-200">
+                          Emergency 24/7
+                        </span>
+                        <a
+                          href="tel:+917904221656"
+                          className="font-mono font-bold text-rose-700 hover:text-rose-900 transition-colors"
+                        >
+                          +91 79042 21656
+                        </a>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1206,8 +1280,13 @@ export const LandingPage: React.FC = () => {
               <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
                 Premier center for painless laser dentistry, microscopic endodontics, dental implants, and digital smile design. Committed to clinical excellence and genuine care.
               </p>
-              <div className="text-xs text-slate-600 font-semibold">
-                Emergency Helpline: <a href="tel:+919800012345" className="text-teal-700 font-bold hover:underline">+91 98000 12345</a>
+              <div className="text-xs text-slate-600 font-semibold space-y-1">
+                <div>
+                  Reception Desk: <a href="tel:+919400320890" className="text-teal-700 font-bold hover:underline">+91 94003 20890</a>
+                </div>
+                <div>
+                  Emergency Helpline: <a href="tel:+917904221656" className="text-rose-700 font-bold hover:underline">+91 79042 21656</a>
+                </div>
               </div>
             </div>
 
@@ -1232,8 +1311,20 @@ export const LandingPage: React.FC = () => {
                 Clinic Access
               </span>
               <p className="text-slate-500 leading-relaxed">
-                Suite 402, Shriya Healthcare Plaza, Metro Station Road.
+                Shriya Multispeciality Dental Clinic<br />
+                Pollachi Road, Kozhinjapara, Palakkad.
               </p>
+              <div className="pt-1">
+                <a
+                  href="https://share.google/hYmPWXJH4JB4OxuM2"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-teal-700 hover:text-teal-800 font-bold text-xs inline-flex items-center gap-1 hover:underline"
+                >
+                  <MapPin className="w-3 h-3" />
+                  <span>Google Maps Location →</span>
+                </a>
+              </div>
               <div className="pt-2">
                 <button
                   onClick={() => {
