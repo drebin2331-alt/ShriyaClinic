@@ -103,6 +103,7 @@
   @media (max-width:767px) {
     .workspace :is(.truncate,.line-clamp-1,.line-clamp-2):not(select) {white-space:normal;overflow:visible;text-overflow:clip;-webkit-line-clamp:unset;overflow-wrap:anywhere}
     .workspace :is(button,a[title]) {min-height:46px}
+    .workspace :is(.compact-action-btn, .segmented-control button) {min-height:unset !important;height:32px;line-height:1.2;white-space:nowrap}
     .workspace button {line-height:1.4}
     .workspace button:has(> svg):not(:has(span)) {min-width:44px;flex-shrink:0}
     .workspace :is(h2,h3,h4) {overflow-wrap:anywhere}

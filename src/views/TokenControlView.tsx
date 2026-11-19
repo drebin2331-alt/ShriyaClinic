@@ -1,3 +1,6 @@
+import { ModalLayer } from '../components/common/ModalLayer';
+import './clinic-modules.css';
+import { WorkspaceHeading } from '../components/common/WorkspaceControls';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -172,73 +175,29 @@ export const TokenControlView: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden mx-auto px-2.5 sm:px-4 lg:px-6 py-3 sm:py-5 flex flex-col lg:flex-row gap-4 lg:gap-6">
+    <div className="workspace w-full max-w-full mx-auto px-2.5 sm:px-4 lg:px-6 py-3 sm:py-5 flex flex-col lg:flex-row gap-4 lg:gap-6">
       <Sidebar />
 
       <main className="flex-1 min-w-0 flex flex-col gap-4">
-        {/* Title Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              {currentUser.role === 'doctor' ? "Doctor's Consultation & Token Queue" : "Token Control & Queue Console"}
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Real-time consultation queue console. Call tokens, manage arrival queues, and complete clinical consultations.
-            </p>
+        <WorkspaceHeading title={currentUser.role === 'doctor' ? 'Consultation queue' : 'Patient queue'} />
+        {currentUser.role !== 'doctor' && (
+          <div className="module-filter-fields">
+            <div><ClaySelect aria-label="Filter by doctor" value={doctorFilter} onChange={event => setDoctorFilter(event.target.value)}
+              options={[{value: 'ALL', label: 'All doctors'}, ...doctors.map(doctor => ({value: doctor.id, label: doctor.name}))]} /></div>
+            <button className="work-action" onClick={() => setActiveView('reception-tv')}><Tv2 size={16} /> Reception TV</button>
           </div>
-
-          <div className="flex items-center gap-2">
-            {currentUser.role !== 'doctor' && (
-              <div className="w-44">
-                <ClaySelect
-                  value={doctorFilter}
-                  onChange={(e) => setDoctorFilter(e.target.value)}
-                  options={[
-                    { value: 'ALL', label: 'All Doctors' },
-                    ...doctors.map((d) => ({ value: d.id, label: d.name }))
-                  ]}
-                />
-              </div>
-            )}
-
-            {currentUser.role !== 'doctor' && (
-              <button
-                onClick={() => setActiveView('reception-tv')}
-                className="px-3.5 py-1.5 rounded-md bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-              >
-                <Tv2 className="w-3.5 h-3.5" />
-                <span>Reception TV Mode</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Attention needed Alert Bar */}
-        <div className="bg-amber-50/90 border border-amber-200/90 rounded-lg px-4 py-2.5 flex items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2 text-amber-900">
-            <span className="w-4 h-4 rounded-full border border-amber-500 text-amber-700 flex items-center justify-center font-bold text-[10px]">
-              !
-            </span>
-            <span>
-              <strong className="font-semibold text-amber-950">Queue Status:</strong> {waitingQueue.length} patient(s) waiting • {followUpQueue.length} at reception follow-up
-            </span>
-          </div>
-
-          <span className="text-xs text-amber-800 font-semibold">
-            Auto-Sync Live • Token Display Active
-          </span>
-        </div>
+        )}
 
         {/* ACTIVE OPERATORY DISPLAY BOX */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* CURRENT IN CABIN / CALLED HIGHLIGHT */}
           <div className="lg:col-span-8">
-            <ClayCard variant="accent" className="p-7 relative border-2 border-white shadow-xl flex flex-col justify-between min-h-[300px]">
+            <ClayCard variant="accent" className="p-3.5 sm:p-5 relative flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between pb-3 border-b border-sky-200">
+                <div className="module-section-heading pb-2 border-b border-sky-200">
                   <span className="text-xs font-black uppercase text-sky-900 flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                    Live Consultation Suite
+                    Consultation room
                   </span>
                   {currentInConsultation ? (
                     <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black border border-emerald-300">
@@ -249,7 +208,7 @@ export const TokenControlView: React.FC = () => {
                       Patient Called • Proceeding to Cabin
                     </span>
                   ) : (
-                    <span className="text-xs font-bold text-slate-400">Consultation Suite Standing By</span>
+                    <span className="text-xs font-bold text-slate-400">Available</span>
                   )}
                 </div>
 
@@ -257,7 +216,7 @@ export const TokenControlView: React.FC = () => {
                   <div className="py-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                     <div>
                       <div className="text-[11px] font-bold text-slate-500 uppercase">Now Serving Token</div>
-                      <div className="text-7xl md:text-8xl font-black text-sky-950 font-mono tracking-tight my-1">
+                      <div className="text-4xl md:text-6xl font-black text-sky-950 font-mono tracking-tight my-1">
                         {currentInConsultation.tokenNumber}
                       </div>
                       <div className="text-xl font-black text-slate-900">{currentInConsultation.patientName}</div>
@@ -312,7 +271,7 @@ export const TokenControlView: React.FC = () => {
                   <div className="py-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                     <div>
                       <div className="text-[11px] font-bold text-amber-700 uppercase">Called & Directed to Doctor</div>
-                      <div className="text-7xl font-black text-amber-950 font-mono tracking-tight my-1">
+                      <div className="text-4xl md:text-6xl font-black text-amber-950 font-mono tracking-tight my-1">
                         {currentCalled.tokenNumber}
                       </div>
                       <div className="text-xl font-black text-slate-900">{currentCalled.patientName}</div>
@@ -343,12 +302,9 @@ export const TokenControlView: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="py-12 text-center text-slate-500 font-bold flex flex-col items-center gap-3">
-                    <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-3xl">
-                      🩺
-                    </div>
+                  <div className="py-4">
                     <div>
-                      <h4 className="text-base font-black text-slate-700">No Patient Inside Consultation Room</h4>
+                      <h4 className="text-base font-semibold text-slate-700">No active consultation</h4>
                       <p className="text-xs text-slate-400 mt-0.5">
                         {isReceptionist 
                           ? 'Send checked-in patients to the doctor’s cabin from the queue below.' 
@@ -359,10 +315,10 @@ export const TokenControlView: React.FC = () => {
                 )}
               </div>
 
-              <div className="pt-3 border-t border-sky-200/80 flex items-center justify-between text-xs font-semibold text-slate-500">
-                <span>Active Waiting Patients: {waitingQueue.length}</span>
-                <span>Follow-Up / Billing: {followUpQueue.length}</span>
-                <span>Completed Consultations: {completedQueue.length}</span>
+              <div className="module-section-heading pt-2 border-t border-sky-200/80 text-xs text-slate-600">
+                <span>Waiting <strong>{waitingQueue.length}</strong></span>
+                <span>Follow-up <strong>{followUpQueue.length}</strong></span>
+                <span>Completed <strong>{completedQueue.length}</strong></span>
               </div>
             </ClayCard>
           </div>
@@ -464,7 +420,7 @@ export const TokenControlView: React.FC = () => {
                 return (
                   <div
                     key={tok.id}
-                    className="bg-white border border-amber-200 rounded-xl p-3 shadow-2xs flex items-center justify-between gap-3"
+                    className="module-section-heading bg-white border border-amber-200 rounded-xl p-3"
                   >
                     <div>
                       <div className="flex items-center gap-2">
@@ -516,47 +472,51 @@ export const TokenControlView: React.FC = () => {
 
         {/* ACTIVE WAITING QUEUE TABLE */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-1 pb-1">
             <div>
               <h2 className="text-base font-black text-slate-800 flex items-center gap-2">
                 <Users className="w-4 h-4 text-sky-600" />
-                <span>Today's Active Checked-In Queue ({waitingQueue.length})</span>
+                <span>Waiting queue ({waitingQueue.length})</span>
               </h2>
               <p className="text-xs text-slate-500">
-                Sorted by priority (Emergency &gt; Urgent &gt; Normal) and arrival check-in timestamp.
+                Ordered by priority, then arrival time.
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="flex items-center p-0.5 rounded-xl bg-slate-100 border border-slate-200 text-xs">
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="segmented-control inline-flex items-center p-0.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold">
                 <button
                   type="button"
                   onClick={() => setShowAllDatesHistory(false)}
-                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                    !showAllDatesHistory ? 'bg-white text-sky-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  className={`compact-action-btn px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer ${
+                    !showAllDatesHistory
+                      ? 'bg-white text-sky-700 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  Today Only
+                  Today
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAllDatesHistory(true)}
-                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                    showAllDatesHistory ? 'bg-white text-sky-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  className={`compact-action-btn px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer ${
+                    showAllDatesHistory
+                      ? 'bg-white text-sky-700 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  All Dates History
+                  All History
                 </button>
               </div>
 
-              <ClayButton
-                variant="secondary"
-                size="sm"
+              <button
+                type="button"
                 onClick={() => setActiveView('staff-checkin')}
-                icon={<ArrowRight className="w-3.5 h-3.5" />}
+                className="compact-action-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-extrabold text-xs border border-slate-200 shadow-2xs transition-all whitespace-nowrap cursor-pointer shrink-0"
               >
-                Go to Check-In Desk
-              </ClayButton>
+                <span>Check-In Desk</span>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+              </button>
             </div>
           </div>
 
@@ -697,7 +657,7 @@ export const TokenControlView: React.FC = () => {
 
         {/* CONSULTATION SUMMARY / COMPLETION MODAL */}
         {completingToken && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <ModalLayer onDismiss={() => setCompletingToken(null)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
             <div className="clay-card w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-white space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
@@ -708,7 +668,7 @@ export const TokenControlView: React.FC = () => {
                     Complete Consultation: {completingToken.patientName} ({completingToken.tokenNumber})
                   </h3>
                 </div>
-                <button
+                <button aria-label="Close dialog"
                   onClick={() => setCompletingToken(null)}
                   className="p-2 text-slate-400 hover:text-slate-700"
                 >
@@ -781,7 +741,7 @@ export const TokenControlView: React.FC = () => {
                 </ClayButton>
               </div>
             </div>
-          </div>
+          </ModalLayer>
         )}
 
         {/* DOCTOR FEE APPROVAL MODAL */}
