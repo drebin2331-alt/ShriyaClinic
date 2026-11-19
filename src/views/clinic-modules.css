@@ -1,0 +1,35 @@
+@media screen {
+  .module-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .7rem 1rem;
+    padding: .875rem 1rem;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    background: var(--sheet);
+  }
+  .module-summary dt { color: var(--muted); font-size: .8125rem; }
+  .module-summary dd { color: var(--ink); font-weight: 650; font-size: 1.125rem; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .module-summary small { display: block; color: var(--muted); font-size: .75rem; }
+  .module-balance-link { display: inline-flex; align-items: center; gap: .25rem; color: var(--forest); cursor: pointer; }
+  .module-section-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
+  .module-section-heading > button { flex: 0 0 auto; max-width: 100%; }
+  .module-filter-fields { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+  .module-filter-fields > div { flex: 1 1 11.5rem; }
+  .module-filter-fields > select, .module-filter-fields > button { flex: 0 1 auto; max-width: 100%; }
+  @container work (min-width: 40rem) {
+    .module-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  @container work (max-width: 39.99rem) {
+    .bill-item-editor, .bill-item-editor tbody { display: block; }
+    .bill-item-editor thead { position: absolute; clip-path: inset(50%); width: 1px; height: 1px; overflow: hidden; }
+    .bill-item-editor tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: 8px; padding: 12px; }
+    .bill-item-editor td { padding: 0; text-align: start; }
+    .bill-item-editor td:first-child { grid-column: 1 / -1; }
+    .bill-item-editor td[data-field]::before { content: attr(data-field); display: block; margin-bottom: 3px; color: var(--muted); font: 600 .8125rem/1.4 system-ui, sans-serif; }
+    .bill-item-editor input { width: 100%; text-align: start; }
+    .bill-item-editor td:last-child { justify-self: end; }
+    .module-compact-heading .work-heading-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .module-compact-heading .work-heading-actions button { width: auto; min-height: 32px !important; height: 32px; padding: 4px 10px; font-size: .8125rem; font-weight: 600; border-radius: 8px; }
+  }
+}

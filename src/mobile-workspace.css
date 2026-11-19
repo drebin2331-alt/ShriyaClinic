@@ -19,10 +19,12 @@
   .workspace .work-heading h1 {font-size:clamp(1.8rem,4vw,2.6rem);line-height:1.1}
   .work-heading p,.document-toolbar p {color:var(--muted);font-size:.875rem;margin-top:4px}
   .work-heading-actions,.bill-actions,.document-actions {display:flex;flex-wrap:wrap;gap:8px}
-  .work-action {display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:46px;padding:8px 14px;border:1px solid #becdc1;border-radius:10px;background:var(--sheet);color:var(--ink);font-size:.875rem;font-weight:650;cursor:pointer;overflow-wrap:normal;text-align:center}
+  .work-action {display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:5px 12px;border:1px solid #cbd5e1;border-radius:8px;background:var(--sheet);color:#1e293b;font-size:.8125rem;font-weight:600;cursor:pointer;overflow-wrap:normal;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.04);transition:all .15s ease}
+  .work-action:hover {border-color:#94a3b8;background:#f8fafc}
   .work-action svg {flex:none}
-  .work-action.primary {background:var(--forest);color:white;border-color:var(--forest)}
-  .work-action:active,.work-segments button:active {filter:brightness(.93)}
+  .work-action.primary {background:var(--forest);color:white;border-color:var(--forest);box-shadow:0 1px 3px rgba(15,61,46,.25)}
+  .work-action.primary:hover {filter:brightness(1.08)}
+  .work-action:active,.work-segments button:active {filter:brightness(.95);transform:scale(.98)}
   .work-picker {width:100%;min-width:0}
   .work-segments {display:grid;grid-auto-columns:minmax(0,1fr);grid-auto-flow:column;gap:4px;padding:4px;border-radius:12px;background:#e4ebe4}
   .work-segments button {min-height:44px;padding:5px 6px;border-radius:8px;color:#40584d;font-size:.875rem;font-weight:650;cursor:pointer;overflow-wrap:normal}
@@ -87,7 +89,7 @@
   .bill-amounts {display:flex;flex-wrap:wrap;gap:10px 20px;border-block:1px solid var(--rule);margin-block:12px;padding-block:9px}
   .bill-amounts dd {font-size:.95rem;font-weight:650;font-variant-numeric:tabular-nums}
   @container work (min-width:56rem) {.patient-roster-table,.invoice-list-table {display:block}.patient-roster-list,.invoice-list-cards,.work-picker-field {display:none}.billing-summary {grid-template-columns:repeat(4,1fr)}.work-picker.many .work-segments {display:flex;flex-wrap:wrap}.work-picker.many button {flex:1 1 auto}}
-  @container work (max-width:31rem) {.directory-tools {grid-template-columns:1fr}.directory-tools .work-select {display:flex;align-items:center;gap:12px}.directory-tools select {flex:1}.work-heading-actions {flex:1 1 100%}.work-heading-actions .work-action {width:100%}}
+  @container work (max-width:31rem) {.directory-tools {grid-template-columns:1fr}.directory-tools .work-select {display:flex;align-items:center;gap:12px}.directory-tools select {flex:1}.work-heading-actions {flex:1 1 100%;display:flex;flex-wrap:wrap;gap:6px}.work-heading-actions .work-action {width:auto;flex:0 0 auto}}
   @container work (max-width:22rem) {.work-segments[data-count="4"] {grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-flow:row}}
   .document-layer {padding:12px;background:#20352e90}
   .document-dialog {container:document / inline-size;display:flex;flex-direction:column;width:min(100%,46rem);min-width:0;max-height:calc(var(--dialog-height,100dvh) - 24px);background:white;border-radius:16px;overflow:hidden;box-shadow:0 12px 50px #152e2a26}
@@ -103,7 +105,7 @@
   @media (max-width:767px) {
     .workspace :is(.truncate,.line-clamp-1,.line-clamp-2):not(select) {white-space:normal;overflow:visible;text-overflow:clip;-webkit-line-clamp:unset;overflow-wrap:anywhere}
     .workspace :is(button,a[title]) {min-height:46px}
-    .workspace :is(.queue-filter-btn, .compact-action-btn, .segmented-control button) {min-height:unset !important;height:28px !important;line-height:1 !important;white-space:nowrap !important;flex-shrink:0 !important}
+    .workspace :is(.work-action, .queue-filter-btn, .compact-action-btn, .segmented-control button) {min-height:unset !important;height:32px !important;line-height:1 !important;white-space:nowrap !important;flex-shrink:0 !important;font-size:.8125rem !important}
     .workspace button {line-height:1.4}
     .workspace button:has(> svg):not(:has(span)) {min-width:44px;flex-shrink:0}
     .workspace :is(h2,h3,h4) {overflow-wrap:anywhere}

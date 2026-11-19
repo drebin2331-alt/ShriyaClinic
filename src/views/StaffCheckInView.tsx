@@ -1,3 +1,6 @@
+import './clinic-modules.css';
+import { SectionPicker, WorkspaceHeading } from '../components/common/WorkspaceControls';
+import { ModalLayer } from '../components/common/ModalLayer';
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { ClayCard } from '../components/common/ClayCard';
@@ -307,127 +310,25 @@ export const StaffCheckInView: React.FC = () => {
     : null;
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden mx-auto px-2.5 sm:px-4 lg:px-6 py-3 sm:py-5 flex flex-col lg:flex-row gap-4 lg:gap-6">
+    <div className="workspace w-full max-w-full mx-auto px-2.5 sm:px-4 lg:px-6 py-3 sm:py-5 flex flex-col lg:flex-row gap-4 lg:gap-6">
       <Sidebar />
 
       <main className="flex-1 min-w-0 flex flex-col gap-4">
-        {/* Top Header Row with Registration & Queue actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              Reception Desk & Patient Check-In
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Register new patients with unique OP numbers, check in returning patients, or manage checkout handoffs.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => {
-                setRegisterInitialData(null);
-                setShowNewPatientModal(true);
-              }}
-              className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>+ Register New Patient</span>
-            </button>
-
-            <button
-              onClick={() => setShowWalkInModal(true)}
-              className="px-3 py-1.5 rounded-lg bg-sky-700 hover:bg-sky-800 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>+ Walk-In Quick Token</span>
-            </button>
-
-            <button
-              onClick={() => setActiveView('reception-tv')}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-              title="Open Reception TV Waiting Room Mode"
-            >
-              <Tv2 className="w-3.5 h-3.5 text-slate-500" />
-              <span>Reception TV Display</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Sub-Tab Navigation Bar (Mobile-Optimized Horizontal Scrollable Strip) */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-200 no-scrollbar scroll-smooth">
-          <button
-            onClick={() => setActiveSubTab('queue')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-              activeSubTab === 'queue'
-                ? 'bg-sky-600 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Today's Live Queue ({todayActiveTokens.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('scheduled')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-              activeSubTab === 'scheduled'
-                ? 'bg-sky-600 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <Calendar className="w-3.5 h-3.5" />
-            <span>Scheduled Appts ({todayAppointments.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('enquiries')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-              activeSubTab === 'enquiries'
-                ? 'bg-emerald-700 text-white shadow-xs'
-                : newEnquiriesCount > 0
-                ? 'bg-rose-50 text-rose-800 border-2 border-rose-400 font-black animate-pulse'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <Inbox className="w-3.5 h-3.5" />
-            <span>Online Inquiries ({enquiries.length})</span>
-            {newEnquiriesCount > 0 && (
-              <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black ml-1">
-                {newEnquiriesCount} New
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('returning')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-              activeSubTab === 'returning'
-                ? 'bg-sky-600 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>Returning Patient Check-In</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('checkout')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-              activeSubTab === 'checkout'
-                ? 'bg-amber-600 text-white shadow-xs'
-                : checkoutVisits.length > 0
-                ? 'bg-amber-100 text-amber-900 border border-amber-300 font-extrabold animate-pulse'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <Receipt className="w-3.5 h-3.5" />
-            <span>Checkout Desk ({checkoutVisits.length})</span>
-          </button>
-        </div>
+        <div className="module-compact-heading"><WorkspaceHeading title="Reception desk">
+          <button className="work-action primary" onClick={() => { setRegisterInitialData(null); setShowNewPatientModal(true); }}><UserPlus size={14} /> Register patient</button>
+          <button className="work-action" onClick={() => setShowWalkInModal(true)}><Plus size={14} /> Walk-in token</button>
+          <button className="work-action" onClick={() => setActiveView('reception-tv')}><Tv2 size={14} /> Reception TV</button>
+        </WorkspaceHeading></div>
+        <SectionPicker label="Reception section" value={activeSubTab} onChange={setActiveSubTab} options={[
+          { id: 'queue', label: 'Live queue', count: todayActiveTokens.length },
+          { id: 'scheduled', label: 'Scheduled appointments', count: todayAppointments.length },
+          { id: 'enquiries', label: 'Online inquiries', count: enquiries.length },
+          { id: 'returning', label: 'Returning patient check-in' }, { id: 'checkout', label: 'Checkout desk', count: checkoutVisits.length }
+        ]} />
 
         {/* High-Priority Notification Banner: Online Website Inquiries */}
         {newEnquiriesCount > 0 && activeSubTab !== 'enquiries' && (
-          <div className="bg-gradient-to-r from-rose-50 via-teal-50 to-emerald-50 border-2 border-rose-300 rounded-xl px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs animate-in fade-in">
+          <div className="bg-rose-50 border-2 border-rose-300 rounded-xl px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs animate-in fade-in">
             <div className="flex items-center gap-2.5 text-rose-950 font-medium">
               <span className="relative flex h-3 w-3 shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
@@ -447,25 +348,9 @@ export const StaffCheckInView: React.FC = () => {
           </div>
         )}
 
-        {/* Attention needed Alert Bar */}
-        <div className="bg-amber-50/90 border border-amber-200/90 rounded-lg px-4 py-2 flex items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2 text-amber-900">
-            <span className="w-4 h-4 rounded-full border border-amber-500 text-amber-700 flex items-center justify-center font-bold text-[10px]">
-              !
-            </span>
-            <span>
-              <strong className="font-semibold text-amber-950">Active Clinic Status:</strong> {arrivedCount} waiting in queue • {checkoutVisits.length} awaiting reception billing checkout
-            </span>
-          </div>
-
-          <button 
-            onClick={() => setActiveView('reception-tv')}
-            className="text-amber-800 hover:text-amber-950 font-semibold flex items-center gap-1 hover:underline cursor-pointer shrink-0"
-          >
-            <span>View Reception TV Display</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        <p className="rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-950 px-3 py-2">
+          <strong>{arrivedCount}</strong> waiting · <strong>{checkoutVisits.length}</strong> awaiting checkout
+        </p>
 
         {/* ========================================================= */}
         {/* SUB-TAB 0: TODAY'S LIVE QUEUE & WALK-IN TOKENS             */}
@@ -528,7 +413,7 @@ export const StaffCheckInView: React.FC = () => {
               ) : (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse responsive-records">
                       <thead>
                         <tr className="bg-slate-50 text-slate-500 font-extrabold text-[11px] uppercase tracking-wider border-b border-slate-200">
                           <th className="py-3 px-4">Token #</th>
@@ -562,7 +447,7 @@ export const StaffCheckInView: React.FC = () => {
 
                           return (
                             <tr key={t.id || t.tokenNumber} className="hover:bg-sky-50/40 transition-colors">
-                              <td className="py-3.5 px-4">
+                              <td data-label="Token #" className="py-3.5 px-4">
                                 <span className={`inline-flex items-center px-2.5 py-1 rounded-lg font-black font-mono text-xs border ${
                                   isWalkIn 
                                     ? 'bg-amber-50 text-amber-900 border-amber-300' 
@@ -571,7 +456,7 @@ export const StaffCheckInView: React.FC = () => {
                                   {t.tokenNumber}
                                 </span>
                               </td>
-                              <td className="py-3.5 px-4">
+                              <td data-label="Patient Name" className="py-3.5 px-4">
                                 <div>
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     <span className="font-extrabold text-slate-900 block">{t.patientName}</span>
@@ -584,13 +469,13 @@ export const StaffCheckInView: React.FC = () => {
                                   <span className="text-[11px] text-slate-500 font-mono">{t.patientPhone || 'Walk-In Patient'}</span>
                                 </div>
                               </td>
-                              <td className="py-3.5 px-4">
+                              <td data-label="Assigned Doctor" className="py-3.5 px-4">
                                 <div>
                                   <span className="font-bold text-slate-800 block">{t.doctorName || doc?.name || 'Doctor'}</span>
                                   <span className="text-[10px] text-teal-700 font-semibold">{doc?.roomNumber || 'Consulting Room'}</span>
                                 </div>
                               </td>
-                              <td className="py-3.5 px-4">
+                              <td data-label="Priority / Type" className="py-3.5 px-4">
                                 <div className="flex flex-col gap-1 items-start">
                                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
                                     isUrgent 
@@ -604,7 +489,7 @@ export const StaffCheckInView: React.FC = () => {
                                   </span>
                                 </div>
                               </td>
-                              <td className="py-3.5 px-4">
+                              <td data-label="Status" className="py-3.5 px-4">
                                 <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black border ${
                                   isWaiting
                                     ? 'bg-amber-50 text-amber-800 border-amber-200'
@@ -617,10 +502,10 @@ export const StaffCheckInView: React.FC = () => {
                                   {t.status}
                                 </span>
                               </td>
-                              <td className="py-3.5 px-4 text-slate-500 text-[11px] font-mono">
+                              <td data-label="Time" className="py-3.5 px-4 text-slate-500 text-[11px] font-mono">
                                 {t.createdAt ? t.createdAt.split('T')[1]?.slice(0, 5) || t.createdAt : 'Now'}
                               </td>
-                              <td className="py-3.5 px-4 text-right">
+                              <td data-label="Actions" className="py-3.5 px-4 text-right">
                                 <div className="flex items-center justify-end gap-1.5 flex-wrap">
                                   {isWaiting && (
                                     sentToDoctorTokens.includes(t.tokenNumber) ? (
@@ -1415,7 +1300,7 @@ export const StaffCheckInView: React.FC = () => {
 
         {/* CHECK-IN ARRIVAL MODAL */}
         {checkInModalAppointment && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <ModalLayer onDismiss={() => setCheckInModalAppointment(null)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
             <div className="clay-card w-full max-w-2xl bg-white rounded-3xl p-6 shadow-2xl border border-white space-y-5">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
@@ -1426,7 +1311,7 @@ export const StaffCheckInView: React.FC = () => {
                     Check-In: {checkInModalAppointment.patientName}
                   </h3>
                 </div>
-                <button
+                <button aria-label="Close dialog"
                   onClick={() => setCheckInModalAppointment(null)}
                   className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer"
                 >
@@ -1550,12 +1435,12 @@ export const StaffCheckInView: React.FC = () => {
                 </ClayButton>
               </div>
             </div>
-          </div>
+          </ModalLayer>
         )}
 
                 {/* RETURNING PATIENT ARRIVAL CHECK-IN MODAL */}
         {returningPatientTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <ModalLayer onDismiss={() => setReturningPatientTarget(null)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
             <div className="clay-card w-full max-w-xl bg-white rounded-3xl p-6 shadow-2xl border border-white space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
@@ -1569,7 +1454,7 @@ export const StaffCheckInView: React.FC = () => {
                     OP: {returningPatientTarget.opNumber || returningPatientTarget.id} • Phone: {returningPatientTarget.phone}
                   </p>
                 </div>
-                <button
+                <button aria-label="Close dialog"
                   onClick={() => setReturningPatientTarget(null)}
                   className="p-2 text-slate-400 hover:text-slate-700 cursor-pointer"
                 >
@@ -1642,12 +1527,12 @@ export const StaffCheckInView: React.FC = () => {
                 </ClayButton>
               </div>
             </div>
-          </div>
+          </ModalLayer>
         )}
 
                 {/* WALK-IN PATIENT MODAL */}
         {showWalkInModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <ModalLayer onDismiss={() => setShowWalkInModal(false)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
             <div className="clay-card w-full max-w-xl bg-white rounded-3xl p-6 shadow-2xl border border-white space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
@@ -1656,7 +1541,7 @@ export const StaffCheckInView: React.FC = () => {
                   </span>
                   <h3 className="text-xl font-black text-slate-900 mt-1">Register Walk-In Patient</h3>
                 </div>
-                <button
+                <button aria-label="Close dialog"
                   onClick={() => setShowWalkInModal(false)}
                   className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer"
                 >
@@ -1771,18 +1656,18 @@ export const StaffCheckInView: React.FC = () => {
                 </ClayButton>
               </div>
             </div>
-          </div>
+          </ModalLayer>
         )}
 
                 {/* RESCHEDULE MODAL */}
         {rescheduleAppointmentTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <ModalLayer onDismiss={() => setRescheduleAppointmentTarget(null)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
             <div className="clay-card w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-white space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <h3 className="text-lg font-black text-slate-900">
                   Reschedule Appointment
                 </h3>
-                <button
+                <button aria-label="Close dialog"
                   onClick={() => setRescheduleAppointmentTarget(null)}
                   className="p-2 text-slate-400 hover:text-slate-700"
                 >
@@ -1838,7 +1723,7 @@ export const StaffCheckInView: React.FC = () => {
                 </ClayButton>
               </div>
             </div>
-          </div>
+          </ModalLayer>
         )}
 
                 {/* NEW PATIENT REGISTRATION MODAL (PHASE 2) */}
