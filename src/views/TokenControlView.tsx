@@ -471,26 +471,27 @@ export const TokenControlView: React.FC = () => {
         )}
 
         {/* ACTIVE WAITING QUEUE TABLE */}
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-1 pb-1">
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
             <div>
-              <h2 className="text-base font-black text-slate-800 flex items-center gap-2">
+              <h2 className="text-sm sm:text-base font-black text-slate-800 flex items-center gap-1.5">
                 <Users className="w-4 h-4 text-sky-600" />
                 <span>Waiting queue ({waitingQueue.length})</span>
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-[11px] sm:text-xs text-slate-500">
                 Ordered by priority, then arrival time.
               </p>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="segmented-control inline-flex items-center p-0.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold">
+            {/* Same-line compact controls */}
+            <div className="flex items-center gap-2 shrink-0 flex-nowrap w-fit self-start sm:self-auto">
+              <div className="inline-flex items-center p-0.5 rounded-lg bg-slate-100 border border-slate-200/90 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowAllDatesHistory(false)}
-                  className={`compact-action-btn px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer ${
+                  className={`queue-filter-btn px-2.5 py-1 rounded-md text-[11px] font-extrabold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                     !showAllDatesHistory
-                      ? 'bg-white text-sky-700 shadow-2xs'
+                      ? 'bg-white text-sky-800 shadow-2xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -499,23 +500,24 @@ export const TokenControlView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowAllDatesHistory(true)}
-                  className={`compact-action-btn px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer ${
+                  className={`queue-filter-btn px-2.5 py-1 rounded-md text-[11px] font-extrabold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                     showAllDatesHistory
-                      ? 'bg-white text-sky-700 shadow-2xs'
+                      ? 'bg-white text-sky-800 shadow-2xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  All History
+                  <span className="sm:hidden">All</span>
+                  <span className="hidden sm:inline">All Dates</span>
                 </button>
               </div>
 
               <button
                 type="button"
                 onClick={() => setActiveView('staff-checkin')}
-                className="compact-action-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-extrabold text-xs border border-slate-200 shadow-2xs transition-all whitespace-nowrap cursor-pointer shrink-0"
+                className="queue-filter-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-extrabold text-[11px] border border-slate-200 shadow-2xs transition-all whitespace-nowrap cursor-pointer shrink-0"
               >
-                <span>Check-In Desk</span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+                <span>Check-In<span className="hidden sm:inline"> Desk</span></span>
+                <ArrowRight className="w-3 h-3 text-slate-400" />
               </button>
             </div>
           </div>
