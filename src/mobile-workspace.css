@@ -1,0 +1,136 @@
+/* Measure the workspace itself: at desktop widths the sidebar also takes space. */
+.phone-dock {display:none}
+@media screen and (max-width:1023px) {
+  .phone-dock {display:block;position:fixed;z-index:40;inset:auto 0 0;background:var(--sheet);border-top:1px solid var(--rule);padding:3px max(4px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(4px,env(safe-area-inset-left))}
+  .phone-dock > div {display:grid;grid-template-columns:repeat(5,minmax(0,1fr));max-width:36rem;margin:auto}
+  .phone-dock button {display:grid;place-content:center;justify-items:center;gap:2px;min-height:52px;font-size:.72rem;font-weight:600;color:#54695f;overflow-wrap:normal}
+  .phone-dock button[aria-current] {color:var(--forest);font-weight:750}
+  .dock-symbol {display:grid;place-items:center;position:relative;width:40px;height:24px;border-radius:9px}
+  .dock-symbol svg {width:19px;height:19px}
+  .phone-dock [aria-current] .dock-symbol {background:var(--mint)}
+  .dock-symbol sup {position:absolute;right:0;top:0;background:#963642;color:white;padding:1px 3px;border-radius:8px;font-size:.65rem;line-height:1}
+  .work-wrap-controls {flex-wrap:wrap}
+  .work-wrap-controls button {white-space:normal;overflow-wrap:normal;min-height:44px}
+}
+@media screen {
+  .workspace > main { container: work / inline-size; }
+  .work-heading, .roster-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+  .work-heading { padding-block:8px; }
+  .workspace .work-heading h1 {font-size:clamp(1.8rem,4vw,2.6rem);line-height:1.1}
+  .work-heading p,.document-toolbar p {color:var(--muted);font-size:.875rem;margin-top:4px}
+  .work-heading-actions,.bill-actions,.document-actions {display:flex;flex-wrap:wrap;gap:8px}
+  .work-action {display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:46px;padding:8px 14px;border:1px solid #becdc1;border-radius:10px;background:var(--sheet);color:var(--ink);font-size:.875rem;font-weight:650;cursor:pointer;overflow-wrap:normal;text-align:center}
+  .work-action svg {flex:none}
+  .work-action.primary {background:var(--forest);color:white;border-color:var(--forest)}
+  .work-action:active,.work-segments button:active {filter:brightness(.93)}
+  .work-picker {width:100%;min-width:0}
+  .work-segments {display:grid;grid-auto-columns:minmax(0,1fr);grid-auto-flow:column;gap:4px;padding:4px;border-radius:12px;background:#e4ebe4}
+  .work-segments button {min-height:44px;padding:5px 6px;border-radius:8px;color:#40584d;font-size:.875rem;font-weight:650;cursor:pointer;overflow-wrap:normal}
+  .work-segments button[aria-pressed=true] {background:white;color:#183d32;box-shadow:0 1px 3px #213b3220}
+  .section-count {font-size:.75rem;margin-left:4px}
+  .work-picker-field,.work-select {display:grid;gap:4px;font-size:.8125rem;color:var(--muted);font-weight:600}
+  .work-picker-field select,.work-select select,.work-search {min-height:46px;border:1px solid #bdcbbf;border-radius:10px;background:white;color:var(--ink);font-size:1rem}
+  .work-select select,.work-picker-field select {padding:7px 9px;width:100%}
+  .work-search {display:flex;align-items:center;gap:9px;padding-inline:12px}
+  .work-search svg {flex:none;color:#66796c}
+  .work-search input {flex:1;min-width:0;width:100%;font-size:1rem;outline-offset:0;min-height:44px}
+  .directory-tools {display:grid;align-items:end;grid-template-columns:minmax(0,1fr) minmax(9rem,15rem);gap:10px}
+  .appointment-tools {display:flex;align-items:flex-start;flex-wrap:wrap;gap:8px}
+  .appointment-tools .work-search {flex:1 1 12rem}
+  .appointment-filters summary,.roster-totals summary {cursor:pointer;min-height:44px;padding:10px 12px;font-weight:600;color:var(--forest)}
+  .appointment-filters summary {display:flex;align-items:center;gap:6px;border:1px solid var(--rule);border-radius:10px;background:white}
+  .appointment-filters[open] {flex:1 1 100%}
+  .appointment-filter-fields {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(12rem,100%),1fr));gap:12px;padding-block:10px}
+  .appointment-list,.patient-roster-list,.invoice-list-cards {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,21rem),1fr));gap:12px}
+  .appointment-patient,.appointment-actions,.appointment-actions > div {display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  .appointment-actions {border-top:1px solid var(--rule);padding-top:10px}
+  .appointment-actions button {min-height:44px;overflow-wrap:normal}
+  .schedule-list-empty {grid-column:1/-1;padding:1.5rem;text-align:center}
+  .roster-heading {margin-bottom:8px}
+  .roster-heading h2 {font-size:1.1rem;font-weight:650}
+  .roster-totals[open] {flex-basis:100%}
+  .roster-totals dl,.billing-summary {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;background:#e8eee6;padding:14px;border-radius:12px}
+  .roster-totals dt,.billing-summary dt,.bill-amounts dt,.record-facts dt {font-size:.8125rem;color:var(--muted)}
+  .billing-summary dd,.roster-totals dd {font-size:1.2rem;font-weight:650;overflow-wrap:anywhere}
+  .billing-summary .billing-methods {font-size:.95rem}
+  .patient-roster-card,.bill-card {container:card / inline-size;position:relative;padding:16px;border:1px solid var(--rule);border-radius:16px;background:var(--sheet);min-width:0}
+  .patient-record-heading {display:grid;grid-template-columns:38px minmax(0,1fr);align-items:start;gap:10px}
+  .patient-monogram {display:grid;place-items:center;height:38px;background:var(--mint);color:var(--forest);border-radius:11px;font-weight:700}
+  .patient-roster-card h3,.bill-card h3 {font-size:1.12rem;font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+  .patient-identifiers,.record-statuses,.bill-card-id {display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;font-size:.8125rem;color:var(--muted)}
+  .patient-record-id {font-variant-numeric:tabular-nums;color:var(--forest)}
+  .record-statuses {margin-block:10px}
+  .record-status {color:#245942;background:#e6efe5;border-radius:6px;padding:3px 7px;font-size:.8rem;font-weight:650}
+  .balance-due {color:#963630}
+  .record-facts {border-block:1px solid var(--rule);padding-block:8px}
+  .record-facts > div {display:grid;grid-template-columns:5rem minmax(0,1fr);align-items:baseline;gap:8px;padding-block:2px}
+  .record-facts dd {font-size:.9rem;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+  .record-alert {display:flex;align-items:baseline;gap:7px;font-size:.85rem;color:#842d37;margin-top:10px}
+  .record-alert svg {align-self:flex-start;flex:none;margin-top:2px}
+  .patient-record-actions {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}
+  .patient-record-actions .work-action {padding-inline:6px;position:relative;z-index:2}
+  .patient-record-actions a {position:relative;z-index:2}
+  .patient-record-actions .record-open {position:relative;z-index:2}
+  .record-open::after {position:absolute;inset:0;border-radius:16px;content:'';z-index:1;pointer-events:auto}
+  .patient-record-actions .record-open:only-child {grid-column:1/-1}
+  .record-token-action {background:#ecfdf5 !important;color:#065f46 !important;border-color:#a7f3d0 !important}
+  .record-token-action:hover {background:#d1fae5 !important;border-color:#6ee7b7 !important}
+  .record-token-action.active-token {background:#fefce8 !important;color:#854d0e !important;border-color:#fde047 !important}
+  .record-token-action.active-token:hover {background:#fef9c3 !important;border-color:#eab308 !important}
+  .record-status-token {border:1px solid #fde68a}
+  .patient-roster-table,.invoice-list-table,.work-picker.many .work-segments {display:none}
+  .invoice-list-panel {min-width:0}
+  .invoice-status-options {display:flex;gap:5px;flex-wrap:wrap}
+  .invoice-status-options button {min-height:44px}
+  .bill-card-id {justify-content:space-between;margin-bottom:8px}
+  .bill-card > p {font-size:.85rem;color:var(--muted)}
+  .bill-amounts {display:flex;flex-wrap:wrap;gap:10px 20px;border-block:1px solid var(--rule);margin-block:12px;padding-block:9px}
+  .bill-amounts dd {font-size:.95rem;font-weight:650;font-variant-numeric:tabular-nums}
+  @container work (min-width:56rem) {.patient-roster-table,.invoice-list-table {display:block}.patient-roster-list,.invoice-list-cards,.work-picker-field {display:none}.billing-summary {grid-template-columns:repeat(4,1fr)}.work-picker.many .work-segments {display:flex;flex-wrap:wrap}.work-picker.many button {flex:1 1 auto}}
+  @container work (max-width:31rem) {.directory-tools {grid-template-columns:1fr}.directory-tools .work-select {display:flex;align-items:center;gap:12px}.directory-tools select {flex:1}.work-heading-actions {flex:1 1 100%}.work-heading-actions .work-action {width:100%}}
+  @container work (max-width:22rem) {.work-segments[data-count="4"] {grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-flow:row}}
+  .document-layer {padding:12px;background:#20352e90}
+  .document-dialog {container:document / inline-size;display:flex;flex-direction:column;width:min(100%,46rem);min-width:0;max-height:calc(var(--dialog-height,100dvh) - 24px);background:white;border-radius:16px;overflow:hidden;box-shadow:0 12px 50px #152e2a26}
+  .document-toolbar,.document-actions {background:white;padding:12px 16px}
+  .document-toolbar {display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--rule)}
+  .document-toolbar h2 {font-size:1.15rem;font-weight:650}
+  .document-close {width:44px;padding:0}
+  .document-scroll {min-height:0;overflow:auto;overscroll-behavior:contain;padding:16px;background:#f1f4ee}
+  .document-actions {justify-content:flex-end;border-top:1px solid var(--rule)}
+  .document-actions button {flex:1 1 10rem}
+  @media (max-width:600px) {.clinic-modal-layer.document-layer {padding:0}.document-dialog {border-radius:0;width:100%;height:var(--dialog-height,100dvh);max-height:100%;padding-top:env(safe-area-inset-top)}.document-scroll {flex:1;padding:10px}.document-actions {padding-bottom:max(10px,env(safe-area-inset-bottom))}}
+  @media (max-height:450px) {.document-dialog {display:block;overflow:auto}.document-scroll {overflow:visible}}
+  @media (max-width:767px) {
+    .workspace :is(.truncate,.line-clamp-1,.line-clamp-2):not(select) {white-space:normal;overflow:visible;text-overflow:clip;-webkit-line-clamp:unset;overflow-wrap:anywhere}
+    .workspace :is(button,a[title]) {min-height:46px}
+    .workspace button {line-height:1.4}
+    .workspace button:has(> svg):not(:has(span)) {min-width:44px;flex-shrink:0}
+    .workspace :is(h2,h3,h4) {overflow-wrap:anywhere}
+    .workspace .patient-identity > div:first-child > div:first-child {width:100%}
+    .workspace .patient-identity select {width:100%;max-width:100%;min-height:46px}
+    .workspace .patient-identity > div:first-child > div:first-child > .min-w-0 {width:100%}
+    .workspace .patient-identity span.shrink-0 {flex-shrink:1;white-space:normal}
+    .workspace .grid.grid-cols-3 {grid-template-columns:repeat(auto-fit,minmax(min(100%,7rem),1fr))}
+    /* The print iframe keeps the original two-column letterhead. */
+    .shriya-pad-root {min-height:0 !important;padding:12px !important}
+    .shriya-pad-root .shriya-clinic-name {font-size:1.2rem !important;text-transform:none !important;letter-spacing:0 !important}
+    .rx-controls .document-toolbar {padding:0 0 10px;margin-bottom:8px}
+    .rx-controls .bill-actions {display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+    .rx-controls .bill-actions button {justify-content:center}
+    .shriya-pad-root .shriya-two-col-body {display:block !important}
+    .shriya-pad-root :is(.shriya-left-column,.shriya-right-column) {width:100% !important;min-width:0 !important;max-width:none !important;border:0 !important;padding:8px 0 !important}
+    .shriya-sub-header,.shriya-patient-bar,#shriya-receipt-sheet div[style*="space-between"] {flex-wrap:wrap;gap:8px}
+    #shriya-receipt-sheet div[style*="grid-template-columns"] {grid-template-columns:1fr !important}
+    .shriya-table,.shriya-table tbody,#shriya-receipt-sheet table,#shriya-receipt-sheet tbody {display:block;width:100%}
+    :is(.shriya-table,#shriya-receipt-sheet table) thead {position:absolute;width:1px;height:1px;clip-path:inset(50%);overflow:hidden}
+    :is(.shriya-table,#shriya-receipt-sheet table) tr {display:block;padding-block:6px}
+    :is(.shriya-table,#shriya-receipt-sheet table) td[data-label] {display:block;text-align:left !important;overflow-wrap:anywhere}
+    :is(.shriya-table,#shriya-receipt-sheet table) td[data-label]::before {display:block;content:attr(data-label);font:600 12px/1.4 system-ui;color:#4f6273}
+    .workspace {padding-inline:12px}
+    .workspace button,.clinic-modal-layer button,.workspace a {overflow-wrap:normal}
+    .workspace button > svg,.clinic-modal-layer button > svg {flex-shrink:0}
+    .workspace :is(input:not([type=checkbox],[type=radio]),select,textarea),.clinic-modal-layer :is(input:not([type=checkbox],[type=radio]),select,textarea) {font-size:1rem}
+    .clinical-actions {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,8.2rem),1fr));width:100%;overflow:visible;gap:6px}
+    .clinical-actions button {white-space:normal;flex-wrap:wrap;justify-content:center;min-height:44px}
+  }
+}
