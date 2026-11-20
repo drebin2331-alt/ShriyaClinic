@@ -24,6 +24,7 @@ try{
   ['global-search','admin-patients','^Search| Search ',true],
   ['profile-sheet','admin-dashboard','Staff Profile',true],
   ['registration','admin-patients','Register.*Patient|New Patient|Add Patient',true],
+  ['walk-in','staff-checkin','Walk.?in token|Walk.?in Quick',true],
   ['staff-account','admin-staff','Create Account',true],
   ['booking','appointment-mgmt','New Booking',true],
   ['case-sheet','patient-profile','Clinical Case Sheet',true],
@@ -38,7 +39,16 @@ try{
   ['lab-order','patient-profile','Dispatch New Lab Order',true,'Lab Orders'],
   ['prescription-print','patient-profile','View / Pad',true,'Prescriptions'],
  ]){
-  await navigate(view,staff);if(setup){await click(setup);await sleep(100);}const clicked=await click(pattern);const r=await measure(name);r.clicked=clicked;
+  await navigate(view,staff);if(setup){await click(setup);await sleep(100);}
+  let clicked;
+  if(name==='global-search'){
+    await p.send('Input.dispatchKeyEvent',{type:'keyDown',key:'k',code:'KeyK',modifiers:2});
+    await p.send('Input.dispatchKeyEvent',{type:'keyUp',key:'k',code:'KeyK',modifiers:2});
+    clicked='Ctrl+K';
+  }else{
+    clicked=await click(name==='profile-sheet' ? 'Profile' : pattern);
+  }
+  const r=await measure(name);r.clicked=clicked;
   if(r.dialog){await p.setViewport({width:320,height:360});await measure(name+'-short');await p.setViewport({width:1440,height:900});await measure(name+'-desktop');await p.setViewport({width:320,height:640});await p.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape'});await p.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape'});await sleep(100);results.push({name:name+'-dismiss',closed:await p.eval(()=>!document.querySelector('[role="dialog"]')),unlocked:await p.eval(()=>document.body.style.overflow!=='hidden')});}
   console.log(name+': '+(r.dialog?'dialog checked':'TRIGGER NOT FOUND'));
  }

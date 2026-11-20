@@ -1,3 +1,4 @@
+import { PrioritySelector } from '../common/PrioritySelector';
 import React, { useState, useEffect } from 'react';
 import { ModalLayer } from '../common/ModalLayer';
 import { useApp } from '../../context/AppContext';
@@ -257,39 +258,7 @@ export const IssueTokenModal: React.FC<IssueTokenModalProps> = ({
             </div>
 
             {/* Priority Selector */}
-            <div>
-              <label className="font-bold text-slate-700 block mb-1">
-                Queue Priority *
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: 'Normal' as const, label: 'Normal', desc: 'Standard queue' },
-                  { id: 'Urgent' as const, label: 'Urgent', desc: 'Next in line' },
-                  { id: 'Emergency' as const, label: 'Emergency', desc: 'Immediate' }
-                ].map((p) => {
-                  const isSelected = priority === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => setPriority(p.id)}
-                      className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
-                        isSelected
-                          ? p.id === 'Emergency'
-                            ? 'bg-rose-50 border-rose-500 text-rose-900 font-black ring-1 ring-rose-500 shadow-2xs'
-                            : p.id === 'Urgent'
-                            ? 'bg-amber-50 border-amber-500 text-amber-900 font-black ring-1 ring-amber-500 shadow-2xs'
-                            : 'bg-emerald-50 border-emerald-600 text-emerald-950 font-black ring-1 ring-emerald-600 shadow-2xs'
-                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="font-extrabold text-xs">{p.label}</div>
-                      <div className="text-[10px] text-slate-400 font-medium">{p.desc}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <PrioritySelector value={priority} onChange={setPriority} />
 
             {/* Chief Complaint / Reason */}
             <div>

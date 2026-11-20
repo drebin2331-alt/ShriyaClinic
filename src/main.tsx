@@ -2,6 +2,7 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import './clinic-primitives.css';
 import './daybook.css';
 import './mobile-workspace.css';
 import './utils/safeStorage';
@@ -17,6 +18,6 @@ createRoot(document.getElementById('root')!).render(
 
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(() => {});
   });
 }

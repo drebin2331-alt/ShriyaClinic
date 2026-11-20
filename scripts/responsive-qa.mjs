@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 const url = process.env.QA_URL || 'http://127.0.0.1:3001';
 const out = process.env.QA_OUT || 'scratch/responsive-qa';
 mkdirSync(out,{recursive:true});
-const widths=[320,360,375,390,414,430,600,768,1024,1280,1440];
+const widths=[320,360,375,390,412,414,430,600,768,1024,1280,1440];
 const views = ['landing','booking','live-queue','patient-portal','customer-appointments','customer-token','customer-treatment','customer-records','customer-profile','customer-billing','admin-dashboard','staff-checkin','tokens','appointment-mgmt','admin-patients','patient-profile','billing','admin-staff','admin-doctors','admin-settings','whatsapp','reports','reception-tv'];
 const browser=await Browser.launch();
 const page=await browser.newPage({width:390,height:844});

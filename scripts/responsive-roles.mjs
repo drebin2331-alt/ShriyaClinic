@@ -24,7 +24,7 @@ try{
   for(const width of[320,768,1440]){await p.setViewport({width,height:844});await sleep(50);results.push({role:account.role,view,...await p.eval(()=>({width:innerWidth,scrollWidth:document.documentElement.scrollWidth}))});}
  }
  await p.setViewport({width:320,height:640});
- await p.eval(()=>document.querySelector('button[aria-label="Search"]')?.click());await sleep(100);
+ await p.send('Input.dispatchKeyEvent',{type:'keyDown',key:'k',code:'KeyK',modifiers:2});await p.send('Input.dispatchKeyEvent',{type:'keyUp',key:'k',code:'KeyK',modifiers:2});await sleep(100);
  await p.eval(()=>{const d=document.querySelector('[role="dialog"]');const all=[...d.querySelectorAll('button,input,select,textarea,a[href]')].filter(x=>x.getClientRects().length&&!x.disabled);all.at(-1)?.focus();});
  await p.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
  await p.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});

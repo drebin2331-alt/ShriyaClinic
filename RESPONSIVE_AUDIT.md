@@ -1,6 +1,61 @@
 # Shriya Clinic responsive audit
 
-Audit date: 19 November 2026. Changes apply to the local repository; no deployment was performed.
+Audit updated on 20 November 2026. Verification used the local production build.
+
+## Consolidated mobile controls
+
+### Walk-in implementation correction
+
+The actual form was embedded in StaffCheckInView with a 20px heading, repeated 12–16px spacing, and stacked Age and Gender rows below the 640px breakpoint. At 360px, its rendered panel was 727.19px tall. Utility padding on shared components also competed with page-level padding and later mobile overrides. The previous component-level tests did not record the panel's total height.
+
+The form now uses WalkInTokenDialog. Age and Gender share a responsive row. A dedicated scrolling field region keeps the footer accessible on short screens. The existing reception state setters and confirmation handler are passed through. Labels use associated controls, and phone entry uses tel input semantics.
+
+Another conflict appeared below 500px viewport height. The old short-screen rule applied flex positioning to grid-based dialog layers. That rule now targets only flex dialog layers. The walk-in layer defines its grid column explicitly.
+
+At 360px, the measured panel is 328px wide and 608.5px tall. The heading is 16px. Fields are 44px, Cancel is 44px and the primary action is 48px. Both buttons use 14px labels. The triage choices remain equal-width at 360px. At 320px, the footer stacks and triage labels use 13px text to fit. With enlarged text, the selector can stack at its own container width.
+
+| Measured at 360px | Before | After |
+| --- | --- | --- |
+| Panel width | 344px | 328px |
+| Panel height | 727.19px | 608.5px |
+| Heading | 20px | 16px |
+| Triage label | 13px | 14px |
+| Triage control height | 44px | 44px |
+| Cancel height | 44px | 44px |
+| Primary action height | 44px | 48px |
+| Age and Gender | Separate rows | Shared row |
+
+The strict walk-in checks passed 24 cases. Eighteen cover nine widths at standard and enlarged text sizes. Six cover 320, 360, 375, 390, 412 and 430px at a short 360px height, asserting both visible footer actions and a scrollable field region. All six requested phone widths also have separate screenshots and computed-style measurements. Native priority selection, keyboard focus and Escape dismissal were checked. The role suite passed 48 additional cases. The service-worker checks passed current-shell retrieval, offline fallback, static-asset caching, request bypass and scoped cache cleanup.
+
+The service worker previously returned cached HTML before fetching the current shell. That could retain an older CSS/script build after deployment. Navigations now fetch current HTML first, with a cached offline fallback. Static hashed assets remain cached, and the worker only cleans up its own older clinic caches.
+
+Exact implementation files changed in this correction
+
+- `src/views/StaffCheckInView.tsx`
+- `src/components/dental/WalkInTokenDialog.tsx`
+- `src/components/dental/walk-in-token.css`
+- `src/components/common/ClayButton.tsx`
+- `src/components/common/ClayCard.tsx`
+- `src/components/common/ClayInput.tsx`
+- `src/components/common/ClaySelect.tsx`
+- `src/components/common/priority-selector.css`
+- `src/clinic-primitives.css`
+- `src/index.css`
+- `src/mobile-workspace.css`
+- `src/daybook.css`
+- `src/main.tsx`
+- `public/sw.js`
+
+Verification files changed are `scripts/triage-layout-qa.mjs` and `scripts/sw-cache-qa.mjs`. Computed sizes and screenshots for 320, 360, 375, 390, 412 and 430px are in `scratch/walkin-before` and `scratch/walkin-after`. The page checks for the shared-control implementation are in `scratch/source-fix-pages/results.json`.
+
+The production build passed, along with 288 page-width checks and 120 interaction checks. Source comparison still reports 67 pre-existing TypeScript diagnostics and zero introduced diagnostics. The Vite bundle-size warning remains. Verification uses local browser emulation and isolated local records. Physical keyboards, live clinic transactions and the deployed site require separate verification.
+
+- Replaced competing 26–32px fixed-height overrides with shared 44px touch controls, readable labels and wrapping action groups.
+- Reused one native-radio priority selector in scheduled check-in, returning arrivals, walk-ins, directory token issuance and clinical token issuance.
+- Shortened reception footer labels and preserved the existing state setters and submission handlers.
+- Adjusted mobile clinical actions, account data rows, queue-panel spacing and the reminder preview.
+- The walk-in selector passed 18 layout cases across nine widths with standard and enlarged text. Selection, label fit, button height and footer fit were checked.
+- Current navigation tests use the existing search shortcut and the bottom Profile control.
 
 ## Scope and inventory
 
@@ -62,11 +117,11 @@ The browser suites use isolated Chrome profiles and the application's local reco
 | Check | Result |
 | --- | --- |
 | Production build (`npm run build`) | Passed |
-| Production viewport suite | 264 checks; no detected page overflow or uncaught runtime exceptions |
-| Widths | 320, 360, 375, 390, 414, 430, 600, 768, 1024, 1280, 1440 CSS pixels |
+| Production viewport suite | 288 checks passed with no detected page overflow or uncaught runtime exceptions |
+| Widths | 320, 360, 375, 390, 412, 414, 430, 600, 768, 1024, 1280, 1440 CSS pixels |
 | Doctor, receptionist and billing roles | 48 additional layout checks at 320, 768 and 1440 pixels passed, including navigation from the accounts desk to billing |
 | Keyboard focus trap and Escape release | Passed |
-| Production interaction suite | 116 assertions passed: 18 dialog workflows, short-screen/desktop variants, clinical/billing/calendar tabs and public menu navigation |
+| Production interaction suite | 120 assertions passed across 19 dialog workflows, short-screen/desktop variants, clinical/billing/calendar tabs and public menu navigation |
 | Desktop/tablet regression | Production routes measured at 768, 1024, 1280 and 1440; representative screenshots reviewed |
 | TypeScript baseline comparison | 67 existing diagnostics before and after; zero introduced |
 | Screenshot regressions | The previous build failed 24 of 36 component-layout cases. The revised build passed all 36, including 320px with 125% root text size. These checks measure internal clipping, word breaks, OP numbers, tap-target heights and invoice contents. |
@@ -74,7 +129,8 @@ The browser suites use isolated Chrome profiles and the application's local reco
 
 Browser artifacts and machine-readable results:
 
-- `scratch/handset-pages/results.json` and screenshots of the redesigned application at phone, tablet and desktop widths.
+- `scratch/unified-mobile-final/results.json` and screenshots of the current application at phone, tablet and desktop widths.
+- `scratch/triage-review/results.json` and `walk-in-390.jpg` cover the specific triage regression.
 - `scratch/handset-before/results.json` and `scratch/handset-review/results.json` record the before and after measurements. The review directory includes phone screenshots of the appointment book, patient cards and invoice.
 - `scratch/responsive-interactions/summary.json`, detailed results and dialog screenshots.
 - `scratch/responsive-roles/results.json`.
@@ -89,6 +145,7 @@ npm run preview -- --host 127.0.0.1 --port 4173
 $env:QA_URL='http://127.0.0.1:4173'
 node scripts/responsive-qa.mjs
 node scripts/mobile-layout-qa.mjs
+node scripts/triage-layout-qa.mjs
 node scripts/responsive-interactions.mjs
 node scripts/responsive-roles.mjs
 ```

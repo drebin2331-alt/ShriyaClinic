@@ -1,3 +1,5 @@
+import { WalkInTokenDialog } from '../components/dental/WalkInTokenDialog';
+import { PrioritySelector } from '../components/common/PrioritySelector';
 import './clinic-modules.css';
 import { SectionPicker, WorkspaceHeading } from '../components/common/WorkspaceControls';
 import { ModalLayer } from '../components/common/ModalLayer';
@@ -1390,31 +1392,7 @@ export const StaffCheckInView: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      Queue Priority
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(['Normal', 'Urgent', 'Emergency'] as const).map((pr) => (
-                        <button
-                          key={pr}
-                          type="button"
-                          onClick={() => setPriority(pr)}
-                          className={`py-2 text-xs font-black rounded-xl border transition-all cursor-pointer ${
-                            priority === pr
-                              ? pr === 'Emergency'
-                                ? 'bg-rose-500 text-white border-rose-600 shadow-md'
-                                : pr === 'Urgent'
-                                ? 'bg-amber-500 text-white border-amber-600 shadow-md'
-                                : 'bg-sky-600 text-white border-sky-700 shadow-md'
-                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          {pr}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  <PrioritySelector label="Queue priority" value={priority} onChange={setPriority} />
 
                   <div>
                     <label className="text-xs font-bold text-slate-700 block mb-1">
@@ -1430,7 +1408,7 @@ export const StaffCheckInView: React.FC = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+              <div className="clinic-dialog-actions">
                 <ClayButton
                   variant="secondary"
                   size="md"
@@ -1445,7 +1423,7 @@ export const StaffCheckInView: React.FC = () => {
                   onClick={handleConfirmArrival}
                   icon={<CheckCircle2 className="w-5 h-5" />}
                 >
-                  CONFIRM ARRIVAL & GENERATE TOKEN 🎟️
+                  Confirm arrival
                 </ClayButton>
               </div>
             </div>
@@ -1498,32 +1476,10 @@ export const StaffCheckInView: React.FC = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Triage Priority</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(['Normal', 'Urgent', 'Emergency'] as const).map((pr) => (
-                      <button
-                        key={pr}
-                        type="button"
-                        onClick={() => setReturningPriority(pr)}
-                        className={`py-2 text-xs font-black rounded-xl border transition-all cursor-pointer ${
-                          returningPriority === pr
-                            ? pr === 'Emergency'
-                              ? 'bg-rose-500 text-white border-rose-600 shadow-md'
-                              : pr === 'Urgent'
-                              ? 'bg-amber-500 text-white border-amber-600 shadow-md'
-                              : 'bg-sky-600 text-white border-sky-700 shadow-md'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                        }`}
-                      >
-                        {pr}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <PrioritySelector label="Triage priority" value={returningPriority} onChange={setReturningPriority} />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+              <div className="clinic-dialog-actions">
                 <ClayButton
                   variant="secondary"
                   size="md"
@@ -1537,7 +1493,7 @@ export const StaffCheckInView: React.FC = () => {
                   onClick={handleConfirmReturningArrival}
                   icon={<UserCheck className="w-5 h-5" />}
                 >
-                  ISSUE TOKEN FOR TODAY 🎟️
+                  Issue token
                 </ClayButton>
               </div>
             </div>
@@ -1545,133 +1501,15 @@ export const StaffCheckInView: React.FC = () => {
         )}
 
                 {/* WALK-IN PATIENT MODAL */}
-        {showWalkInModal && (
-          <ModalLayer onDismiss={() => setShowWalkInModal(false)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-            <div className="clay-card w-full max-w-xl bg-white rounded-3xl p-6 shadow-2xl border border-white space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-                <div>
-                  <span className="text-[10px] font-black uppercase text-amber-700 px-2 py-0.5 rounded-full bg-amber-100">
-                    Unscheduled Walk-In
-                  </span>
-                  <h3 className="text-xl font-black text-slate-900 mt-1">Register Walk-In Patient</h3>
-                </div>
-                <button aria-label="Close dialog"
-                  onClick={() => setShowWalkInModal(false)}
-                  className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">Full Name *</label>
-                    <ClayInput
-                      value={walkInName}
-                      onChange={(e) => setWalkInName(e.target.value)}
-                      placeholder="e.g. Ramesh Chandra"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">Phone Number *</label>
-                    <ClayInput
-                      value={walkInPhone}
-                      onChange={(e) => setWalkInPhone(e.target.value)}
-                      placeholder="+91 98765 43210"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">Age</label>
-                    <ClayInput
-                      type="number"
-                      value={walkInAge}
-                      onChange={(e) => setWalkInAge(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">Gender</label>
-                    <ClaySelect
-                      value={walkInGender}
-                      onChange={(e) => setWalkInGender(e.target.value as any)}
-                      options={[
-                        { value: 'Male', label: 'Male' },
-                        { value: 'Female', label: 'Female' },
-                        { value: 'Other', label: 'Other' }
-                      ]}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Consulting Doctor</label>
-                  <ClaySelect
-                    value={walkInDoctorId}
-                    onChange={(e) => setWalkInDoctorId(e.target.value)}
-                    options={doctors.map((d) => ({
-                      value: d.id,
-                      label: `${d.name} (${d.specialization})`
-                    }))}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Reason for Walk-in</label>
-                  <ClayInput
-                    value={walkInReason}
-                    onChange={(e) => setWalkInReason(e.target.value)}
-                    placeholder="e.g. Acute toothache, broken crown, pain"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Triage Priority</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(['Normal', 'Urgent', 'Emergency'] as const).map((pr) => (
-                      <button
-                        key={pr}
-                        type="button"
-                        onClick={() => setWalkInPriority(pr)}
-                        className={`py-2 text-xs font-black rounded-xl border transition-all cursor-pointer ${
-                          walkInPriority === pr
-                            ? pr === 'Emergency'
-                              ? 'bg-rose-500 text-white border-rose-600 shadow-md'
-                              : pr === 'Urgent'
-                              ? 'bg-amber-500 text-white border-amber-600 shadow-md'
-                              : 'bg-sky-600 text-white border-sky-700 shadow-md'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                        }`}
-                      >
-                        {pr}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
-                <ClayButton
-                  variant="secondary"
-                  size="md"
-                  onClick={() => setShowWalkInModal(false)}
-                >
-                  Cancel
-                </ClayButton>
-                <ClayButton
-                  variant="mint"
-                  size="md"
-                  onClick={handleConfirmWalkIn}
-                  icon={<UserPlus className="w-5 h-5" />}
-                >
-                  ISSUE WALK-IN TOKEN
-                </ClayButton>
-              </div>
-            </div>
-          </ModalLayer>
-        )}
+        {showWalkInModal && <WalkInTokenDialog
+          name={walkInName} phone={walkInPhone} age={walkInAge} gender={walkInGender}
+          doctorId={walkInDoctorId} reason={walkInReason} priority={walkInPriority}
+          doctors={doctors.map(doctor => ({ value: doctor.id, label: doctor.name + ' (' + doctor.specialization + ')' }))}
+          onNameChange={setWalkInName} onPhoneChange={setWalkInPhone} onAgeChange={setWalkInAge}
+          onGenderChange={setWalkInGender} onDoctorChange={setWalkInDoctorId}
+          onReasonChange={setWalkInReason} onPriorityChange={setWalkInPriority}
+          onClose={() => setShowWalkInModal(false)} onConfirm={handleConfirmWalkIn}
+        />}
 
                 {/* RESCHEDULE MODAL */}
         {rescheduleAppointmentTarget && (
@@ -1720,7 +1558,7 @@ export const StaffCheckInView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+              <div className="clinic-dialog-actions">
                 <ClayButton
                   variant="secondary"
                   size="sm"

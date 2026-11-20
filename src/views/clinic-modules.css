@@ -21,6 +21,18 @@
     .module-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   }
   @container work (max-width: 39.99rem) {
+    @media (max-width: 767px) {
+    .responsive-records tbody > tr {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 12px;
+      padding: 12px;
+    }
+    .responsive-records tbody > tr > td[data-label] { padding: 0; min-width: 0; }
+    .responsive-records tbody > tr > td[data-label]:first-child,
+    .responsive-records tbody > tr > td[data-label="Actions"],
+    .responsive-records tbody > tr > td[colspan] { grid-column: 1 / -1; }
+    }
     .bill-item-editor, .bill-item-editor tbody { display: block; }
     .bill-item-editor thead { position: absolute; clip-path: inset(50%); width: 1px; height: 1px; overflow: hidden; }
     .bill-item-editor tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: 8px; padding: 12px; }
@@ -29,8 +41,7 @@
     .bill-item-editor td[data-field]::before { content: attr(data-field); display: block; margin-bottom: 3px; color: var(--muted); font: 600 .8125rem/1.4 system-ui, sans-serif; }
     .bill-item-editor input { width: 100%; text-align: start; }
     .bill-item-editor td:last-child { justify-self: end; }
-    .module-compact-heading { padding: 8px 10px !important; border-radius: 12px !important; }
-    .module-compact-heading .work-heading-actions { display: flex; flex-wrap: nowrap !important; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 4px !important; align-items: center; max-width: 100%; }
-    .module-compact-heading .work-heading-actions button { width: auto; min-height: 26px !important; height: 26px !important; padding: 2px 7px !important; font-size: .72rem !important; font-weight: 600; border-radius: 7px; gap: 3px; white-space: nowrap !important; flex-shrink: 0 !important; }
+    .module-compact-heading { padding: 12px; border-radius: 12px; }
+    .module-compact-heading .work-heading-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; max-width: 100%; }
   }
 }

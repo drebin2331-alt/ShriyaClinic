@@ -36,29 +36,19 @@ export const ClayButton: React.FC<ClayButtonProps> = ({
     }
   };
 
-  const getSizeClass = () => {
-    switch (size) {
-      case 'sm':
-        return 'px-3 py-1.5 text-xs font-semibold rounded-md gap-1.5';
-      case 'lg':
-        return 'px-5 py-2.5 text-sm font-semibold rounded-lg gap-2';
-      default:
-        return 'px-4 py-2 text-xs font-semibold rounded-md gap-2';
-    }
-  };
-
   return (
     <motion.button
       whileTap={disabled ? undefined : { scale: 0.99 }}
       transition={{ duration: 0.1 }}
       disabled={disabled}
+      data-size={size}
       onClick={onClick}
-      className={`clinic-action inline-flex min-w-0 max-w-full items-center justify-center transition-all duration-150 whitespace-normal cursor-pointer select-none ${getVariantClass()} ${getSizeClass()} ${
+      className={`clinic-action transition-colors duration-150 cursor-pointer select-none ${getVariantClass()} ${
         disabled ? 'opacity-50 cursor-not-allowed filter grayscale' : ''
       } ${className}`}
       {...rest}
     >
-      {icon && <span className="inline-flex shrink-0">{icon}</span>}
+      {icon && <span className="clinic-action-icon">{icon}</span>}
       <span>{children}</span>
     </motion.button>
   );

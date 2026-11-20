@@ -7,7 +7,7 @@
   --rule: #d7dfd7;
   --forest: #194e47;
   --mint: #e4efe6;
-  --radius: 16px;
+  --radius: 14px;
   --gutter: clamp(1rem, 3vw, 2.5rem);
 }
 @media screen {
@@ -54,7 +54,7 @@
   .clinic-status { font-weight: 650; letter-spacing: 0; text-transform: none; border-radius: 2rem; }
   .clinic-modal-layer { background-color: #142c2799; backdrop-filter: none; }
   @media (max-height: 499px) {
-    .clinic-modal-layer { align-items: center; justify-content: flex-start; flex-direction: column; animation: none; transition: none; }
+    .clinic-modal-layer.flex { align-items: center; justify-content: flex-start; flex-direction: column; animation: none; transition: none; }
     .clinic-modal-layer > div:not(.absolute) { max-height: min(calc(100dvh - 1rem), calc(var(--dialog-height,100dvh) - 1rem)); flex-shrink: 0; animation: none; transition: none; }
   }
   .clinic-modal-layer > div:not(.absolute) { border-radius: var(--radius); box-shadow: 0 12px 50px #152e2a26; }

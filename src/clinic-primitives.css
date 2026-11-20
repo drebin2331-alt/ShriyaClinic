@@ -1,0 +1,47 @@
+:root {
+  --control-height: 44px;
+  --primary-height: 48px;
+  --control-radius: 10px;
+  --panel-radius: 14px;
+  --panel-padding: 14px;
+  --control-gap: 8px;
+}
+.clinic-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height);
+  max-width: 100%;
+  min-width: 0;
+  gap: var(--control-gap);
+  padding: 8px 12px;
+  border-radius: var(--control-radius);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  white-space: normal;
+  overflow-wrap: normal;
+}
+.clinic-action[data-size="lg"] { min-height: var(--primary-height); }
+.clinic-action-icon { display: inline-flex; flex: none; }
+.clinic-action-icon svg { width: 18px; height: 18px; }
+.clinic-panel { padding: var(--panel-padding); border-radius: var(--panel-radius); }
+.clinic-field { display: grid; gap: 4px; min-width: 0; width: 100%; }
+.clinic-field-label { font-size: 13px; font-weight: 600; line-height: 18px; color: var(--ink); }
+.clinic-field-control { position: relative; display: flex; align-items: center; min-width: 0; }
+.clinic-field .clay-input {
+  min-height: var(--control-height);
+  width: 100%;
+  min-width: 0;
+  padding: 8px 12px;
+  border-radius: var(--control-radius);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+}
+.clinic-field .clay-input.with-icon { padding-left: 38px; }
+.clinic-field select.clay-input { padding-right: 36px; }
+.clinic-field-error { font-size: 12px; line-height: 18px; color: #b42332; }
+@media screen and (min-width: 768px) {
+  .clinic-panel { padding: 20px; }
+}

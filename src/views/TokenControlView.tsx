@@ -325,13 +325,13 @@ export const TokenControlView: React.FC = () => {
 
           {/* QUICK CALL NEXT STATION */}
           <div className="lg:col-span-4">
-            <ClayCard className="p-6 h-full flex flex-col justify-between space-y-4">
+            <ClayCard className="p-4 h-full flex flex-col justify-between space-y-3">
               <div>
                 <span className="text-xs font-black uppercase text-slate-400 tracking-wider">
                   {isReceptionist ? 'Reception Dispatch Station' : 'Call Next Waiting Patient'}
                 </span>
                 <h3 className="text-lg font-black text-slate-900 mt-1">
-                  {isReceptionist ? 'Send to Doctor Station' : 'Queue Priority Station'}
+                  {isReceptionist ? 'Send to Doctor Station' : 'Call next patient'}
                 </h3>
                 <p className="text-xs text-slate-500 mt-1">
                   {isReceptionist

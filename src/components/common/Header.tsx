@@ -11,7 +11,6 @@ import {
   Search,
   Bell,
   Moon,
-  Plus,
   ChevronDown,
   Menu,
   X,
@@ -22,7 +21,6 @@ import {
   Users,
   LayoutDashboard,
   Tv,
-  UserPlus,
   Activity,
   FileText,
   Stethoscope,
@@ -64,14 +62,11 @@ export const Header: React.FC<HeaderProps> = ({
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
-  const [quickActionOpen, setQuickActionOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [showEnquiryModal, setShowEnquiryModal] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setMobileMenuOpen(false);
-    setQuickActionOpen(false);
     setProfileDropdownOpen(false);
   }, [activeView]);
   useEffect(() => {
@@ -90,12 +85,9 @@ export const Header: React.FC<HeaderProps> = ({
     return () => window.removeEventListener('resize', resize);
   }, [isAdminRoute]);
 
-  // Close dropdowns on outside click
+  // Close profile dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setQuickActionOpen(false);
-      }
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
         setProfileDropdownOpen(false);
       }
@@ -509,55 +501,6 @@ export const Header: React.FC<HeaderProps> = ({
             <Bell className="w-4 h-4 text-slate-700" />
             <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           </button>
-
-          {/* Quick Action Button & Dropdown (Hidden on mobile < sm, visible on tablet/desktop) */}
-          <div className="relative hidden sm:block" ref={dropdownRef}>
-            <button
-              onClick={() => setQuickActionOpen(!quickActionOpen)}
-              className="bg-emerald-800 hover:bg-emerald-900 text-white font-medium text-xs px-3 py-1.5 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors active:scale-95"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Quick Action</span>
-              <ChevronDown className="w-3 h-3 opacity-80" />
-            </button>
-
-            {quickActionOpen && (
-              <div className="absolute right-0 mt-1.5 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-1.5 z-50 text-xs animate-in fade-in slide-in-from-top-1">
-                <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Clinic Quick Actions
-                </div>
-                
-                <button
-                  onClick={() => handleNavClick('staff-checkin')}
-                  className="w-full text-left px-3 py-1.5 hover:bg-slate-50 text-slate-700 flex items-center gap-2 font-medium"
-                >
-                  <UserPlus className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Check-In Patient</span>
-                </button>
-                <button
-                  onClick={() => handleNavClick('token-control')}
-                  className="w-full text-left px-3 py-1.5 hover:bg-slate-50 text-slate-700 flex items-center gap-2 font-medium"
-                >
-                  <Activity className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Call Next Token</span>
-                </button>
-                <button
-                  onClick={() => handleNavClick('appointment-mgmt')}
-                  className="w-full text-left px-3 py-1.5 hover:bg-slate-50 text-slate-700 flex items-center gap-2 font-medium"
-                >
-                  <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Appointments List</span>
-                </button>
-                <button
-                  onClick={() => handleNavClick('admin-billing')}
-                  className="w-full text-left px-3 py-1.5 hover:bg-slate-50 text-slate-700 flex items-center gap-2 font-medium"
-                >
-                  <CreditCard className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Billing & Payments</span>
-                </button>
-              </div>
-            )}
-          </div>
 
           {/* Direct 1-Tap Sign Out Button (Hidden on mobile < md, visible on desktop) */}
           <button

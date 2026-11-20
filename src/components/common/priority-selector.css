@@ -1,0 +1,15 @@
+.priority-selector { container: triage / inline-size; min-width: 0; }
+.priority-selector legend { font-size: .8125rem; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+.priority-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; background: #edf1ed; padding: 4px; border-radius: 12px; }
+.priority-options label { position: relative; display: grid; place-items: center; min-height: var(--control-height); padding: 6px 2px; border: 1px solid transparent; border-radius: var(--control-radius); font-size: .875rem; line-height: 20px; font-weight: 600; cursor: pointer; overflow-wrap: normal; color: #40564b; }
+.priority-options input { position: absolute; width: 1px; height: 1px; min-height: 0; opacity: 0; }
+.priority-options label[data-selected="true"] { background: white; border-color: #b5c9bb; color: #225b41; }
+.priority-options label[data-selected="true"][data-priority="Urgent"] { background: #fff8e8; color: #815514; border-color: #dfc890; }
+.priority-options label[data-selected="true"][data-priority="Emergency"] { background: #fff0f1; color: #913342; border-color: #e5adb5; }
+.priority-options label:focus-within { outline: 2px solid var(--forest); outline-offset: 1px; }
+@container triage (max-width: 16rem) {
+  .priority-options { grid-template-columns: 1fr; }
+}
+@container triage (min-width: 16.01rem) and (max-width: 17rem) {
+  .priority-options label { font-size: .8125rem; }
+}

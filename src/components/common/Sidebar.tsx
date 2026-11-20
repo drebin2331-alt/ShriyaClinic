@@ -24,7 +24,6 @@ import {
   Settings, 
   UserPlus, 
   Search,
-  ChevronLeft,
   ChevronRight,
   Menu,
   Sparkles,
@@ -63,7 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobile = false, onNavigate }) 
     toggleSidebar,
     enquiries = []
   } = useApp();
-  const { currentUser, setIsDemoModalOpen, logout } = useAuth();
+  const { currentUser, logout } = useAuth();
   const setActiveView = (view: ViewMode) => { changeView(view); onNavigate?.(); };
 
   const today = new Date().toISOString().split('T')[0];
@@ -117,7 +116,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobile = false, onNavigate }) 
           items: [
             { id: 'doctor-patients', label: 'Patients Directory (EMR)', icon: <Users className="w-4 h-4" />, badge: patients.length },
             ...(selectedPatientForDetail ? [
-              { id: 'patient-profile' as ViewMode, label: `${selectedPatientForDetail.name} (Active EMR)`, icon: <Stethoscope className="w-4 h-4" />, badge: 'Open' }
+              { id: 'patient-profile' as ViewMode, label: `${selectedPatientForDetail.name} (Active EMR)`, icon: <Stethoscope className="w-4 h-4" /> }
             ] : [])
           ]
         },
@@ -150,7 +149,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobile = false, onNavigate }) 
       {
         title: 'FRONT DESK',
         items: [
-          { id: 'staff-checkin', label: 'Patient Arrival & Check-In', icon: <UserPlus className="w-4 h-4" />, badge: newEnquiriesCount > 0 ? `${newEnquiriesCount} New` : 'Desk' },
+          { id: 'staff-checkin', label: 'Patient Arrival & Check-In', icon: <UserPlus className="w-4 h-4" />, badge: newEnquiriesCount > 0 ? newEnquiriesCount : undefined },
           { id: 'token-control', label: 'Live Queue & Token Control', icon: <Clock className="w-4 h-4" />, badge: activeTokensCount || undefined },
           { id: 'reception-tv', label: 'Reception TV Mode', icon: <Tv2 className="w-4 h-4" /> }
         ]
@@ -159,7 +158,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobile = false, onNavigate }) 
         title: 'PATIENT DIRECTORY',
         items: [
           { id: 'staff-patients', label: 'Patients Directory & Reg', icon: <Users className="w-4 h-4" />, badge: patients.length },
-          { id: 'staff-appointments', label: "Appointments & Inquiries", icon: <Calendar className="w-4 h-4" />, badge: newEnquiriesCount > 0 ? `${newEnquiriesCount} New` : appointments.length || undefined }
+          { id: 'staff-appointments', label: "Appointments & Inquiries", icon: <Calendar className="w-4 h-4" />, badge: newEnquiriesCount > 0 ? newEnquiriesCount : appointments.length || undefined }
         ]
       },
       {
@@ -220,9 +219,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobile = false, onNavigate }) 
                     >
                       <span className="shrink-0">{item.icon}</span>
 
-                      {item.badge !== undefined && (
+                      {item.badge !== undefined && typeof item.badge === 'number' && item.badge > 0 && (
                         <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-emerald-600 text-white rounded-full text-[9px] font-black flex items-center justify-center border-2 border-white shadow-2xs">
-                          {typeof item.badge === 'number' && item.badge > 9 ? '9+' : item.badge}
+                          {item.badge > 9 ? '9+' : item.badge}
                         </span>
                       )}
                     </button>
@@ -260,8 +259,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobile = false, onNavigate }) 
   // Expanded Sidebar View (Full Navigation with Clear Close Option)
   return (
     <aside className={`${mobile ? 'flex w-full' : 'hidden lg:flex w-64'} flex-col shrink-0 bg-white border-r border-slate-200 py-4 px-3 min-h-[calc(100dvh-60px)] transition-all duration-200 select-none`}>
-      {/* Brand Header with Close/Collapse Option */}
-      <div className="flex items-center justify-between px-2 pb-3 mb-2 border-b border-slate-100">
+      {/* Brand Header */}
+      <div className="flex items-center px-2 pb-3 mb-2 border-b border-slate-100">
         <div 
           onClick={() => setActiveView('landing')}
           className="flex items-center gap-2 cursor-pointer group"
@@ -280,16 +279,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobile = false, onNavigate }) 
             </span>
           </div>
         </div>
-
-        {/* Prominent Close/Collapse Option */}
-        <button 
-          onClick={toggleSidebar}
-          className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 shadow-2xs cursor-pointer transition-colors group flex items-center justify-center"
-          title="Close / Collapse Side Menu"
-          aria-label="Collapse Side Menu"
-        >
-          <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
-        </button>
       </div>
 
       {/* Navigation Sections */}
@@ -324,14 +313,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobile = false, onNavigate }) 
                     <span className={mobile ? 'whitespace-normal text-left' : 'truncate'}>{item.label}</span>
                   </div>
 
-                  {item.badge !== undefined && (
+                  {item.badge !== undefined && typeof item.badge === 'number' && item.badge > 0 && (
                     <span 
                       className={`ml-2 px-2 py-0.5 text-[10px] font-black rounded-full ${
                         isActive 
                           ? 'bg-emerald-700 text-white shadow-2xs' 
-                          : typeof item.badge === 'number' && item.badge > 0
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-slate-100 text-slate-600'
+                          : 'bg-emerald-100 text-emerald-800'
                       }`}
                     >
                       {item.badge}
@@ -344,42 +331,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobile = false, onNavigate }) 
         ))}
       </div>
 
-      {/* User Session Quick Switcher & Collapse Bar at Bottom */}
-      <div className="pt-3 mt-2 border-t border-slate-100 px-1 space-y-2">
-        <div 
-          onClick={() => setIsDemoModalOpen(true)}
-          className="flex items-center justify-between p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 cursor-pointer transition-colors"
-          title="Click to switch role or account"
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-emerald-800 text-white font-bold text-xs flex items-center justify-center shrink-0">
-              {currentUser.name.charAt(0)}
-            </div>
-            <div className="min-w-0">
-              <div className="text-[11px] font-bold text-slate-800 truncate">
-                {currentUser.name}
-              </div>
-              <div className="text-[9px] text-slate-500 capitalize">
-                {currentUser.role === 'doctor' || currentUser.role === 'admin'
-                  ? 'Doctor & Admin'
-                  : currentUser.role === 'customer'
-                    ? 'Patient'
-                    : 'Receptionist & Billing'}
-              </div>
-            </div>
-          </div>
-          <span className="text-[10px] font-bold text-emerald-700 hover:underline shrink-0">
-            Switch
-          </span>
-        </div>
-
-        {/* Quick Sign Out from Sidebar (Especially handy on mobile) */}
+      {/* Sign Out Action at Bottom */}
+      <div className="pt-3 mt-2 border-t border-slate-100 px-1">
         <button
           onClick={async () => {
             onNavigate?.();
             await logout();
           }}
-          className="w-full flex items-center justify-between text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer border border-rose-200/80 shadow-2xs"
+          className="w-full flex items-center justify-between text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-2 rounded-xl transition-colors cursor-pointer border border-rose-200/80 shadow-2xs"
           title="Sign Out from Clinic OS"
         >
           <span className="flex items-center gap-1.5">
@@ -388,21 +347,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobile = false, onNavigate }) 
           </span>
           <span className="text-[10px] bg-rose-100 text-rose-700 font-bold px-1.5 py-0.5 rounded border border-rose-200">
             Exit
-          </span>
-        </button>
-
-        {/* Bottom Collapse Button */}
-        <button
-          onClick={toggleSidebar}
-          className="w-full flex items-center justify-between text-xs font-semibold text-slate-500 hover:text-slate-900 hover:bg-slate-100 px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-slate-200"
-          title="Close / Collapse Side Menu"
-        >
-          <span className="flex items-center gap-1.5">
-            <ChevronLeft className="w-4 h-4 text-slate-400" />
-            <span>Collapse Menu</span>
-          </span>
-          <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded border border-slate-200">
-            Close ◀
           </span>
         </button>
       </div>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shriya-clinic-v1';
+const CACHE_NAME = 'shriya-clinic-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -13,48 +13,56 @@ self.addEventListener('install', (event) => {
       return cache.addAll(ASSETS_TO_CACHE).catch(() => {});
     })
   );
-  self.skipWaiting();
+  event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      );
-    })
+    caches.keys().then(keys => Promise.all(
+      keys.filter(key => key.startsWith('shriya-clinic-') && key !== CACHE_NAME)
+        .map(key => caches.delete(key))
+    )).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  // Let API requests bypass cache
-  if (event.request.url.includes('/api/')) {
+  const request = event.request;
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== self.location.origin ||
+      url.pathname === '/api' || url.pathname.startsWith('/api/')) {
     return;
   }
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Return cached and refresh in background
-        fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, networkResponse);
-            });
-          }
-        }).catch(() => {});
-        return cachedResponse;
-      }
-      return fetch(event.request).catch(() => {
-        if (event.request.mode === 'navigate') {
-          return caches.match('/index.html');
+
+  if (request.mode === 'navigate') {
+    // Fetch the current HTML so it references the current hashed CSS and scripts.
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      try {
+        const response = await fetch(request, { cache: 'no-cache' });
+        if (response.ok) {
+          await cache.put('/index.html', response.clone());
+          return response;
         }
-      });
-    })
-  );
+        return await cache.match('/index.html') || response;
+      } catch {
+        return await cache.match('/index.html') || Response.error();
+      }
+    })());
+    return;
+  }
+
+  if (!url.pathname.startsWith('/assets/') && !ASSETS_TO_CACHE.includes(url.pathname)) return;
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    try {
+      const response = await fetch(request);
+      if (response.ok) await cache.put(request, response.clone());
+      return response;
+    } catch {
+      return Response.error();
+    }
+  })());
 });
 

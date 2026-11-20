@@ -40,6 +40,16 @@ button, a, input, select, textarea { touch-action: manipulation; }
 }
 .clinic-modal-layer > div > :where(.overflow-y-auto) { min-height: 0; }
 .clinic-modal-layer[data-compact="true"] > div:not(.absolute) { display: block; }
+.clinic-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #d7dfd7;
+}
+.clinic-dialog-actions .clinic-action:last-child { flex: 1 1 10rem; }
 
 @media screen and (min-width: 768px) {
   .responsive-records { min-width: 48rem; }
@@ -51,7 +61,7 @@ button, a, input, select, textarea { touch-action: manipulation; }
   :where(button, [role="button"], input:not([type="checkbox"]):not([type="radio"]), select) { min-height: 44px; }
   :where(button[aria-label], button[title]) { min-width: 44px; }
   :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { font-size: 16px; }
-  .clinic-action { font-size: 14px; }
+  .clinic-modal-layer > .clay-card { padding: var(--panel-padding); border-radius: var(--panel-radius); }
   .clinic-modal-layer { padding: .5rem; }
   .clinic-modal-layer > div:not(.absolute) { max-height: calc(var(--dialog-height, 100dvh) - 1rem); }
   .responsive-records, .responsive-records tbody { display: block; width: 100%; }

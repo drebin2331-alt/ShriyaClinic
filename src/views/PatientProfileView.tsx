@@ -1,3 +1,4 @@
+import { PrioritySelector } from '../components/common/PrioritySelector';
 import './patient-profile.css';
 import { SectionPicker } from '../components/common/WorkspaceControls';
 import { ModalLayer } from '../components/common/ModalLayer';
@@ -3696,38 +3697,7 @@ export const PatientProfileView: React.FC = () => {
                 </div>
 
                 {/* Priority Selection */}
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">
-                    Queue Priority *
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: 'Normal' as const, label: 'Normal', desc: 'Standard queue', color: 'border-slate-200 hover:border-slate-300' },
-                      { id: 'Urgent' as const, label: 'Urgent', desc: 'Higher priority', color: 'border-amber-300 hover:border-amber-400' },
-                      { id: 'Emergency' as const, label: 'Emergency', desc: 'Immediate attention', color: 'border-rose-300 hover:border-rose-400' }
-                    ].map((p) => {
-                      const isSelected = tokenPriority === p.id;
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => setTokenPriority(p.id)}
-                          className={`p-2 rounded-xl border text-center transition-colors cursor-pointer ${isSelected
-                              ? p.id === 'Emergency'
-                                ? 'bg-rose-50 border-rose-500 text-rose-900 font-bold ring-1 ring-rose-500'
-                                : p.id === 'Urgent'
-                                  ? 'bg-amber-50 border-amber-500 text-amber-900 font-bold ring-1 ring-amber-500'
-                                  : 'bg-teal-50 border-teal-600 text-teal-900 font-bold ring-1 ring-teal-600'
-                              : `bg-white text-slate-700 ${p.color}`
-                            }`}
-                        >
-                          <div className="font-bold text-xs">{p.label}</div>
-                          <div className="text-[10px] text-slate-500">{p.desc}</div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                <PrioritySelector value={tokenPriority} onChange={setTokenPriority} />
 
                 {/* Reason / Chief Complaint */}
                 <div>

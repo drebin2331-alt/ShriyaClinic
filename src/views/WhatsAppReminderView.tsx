@@ -121,7 +121,7 @@ export const WhatsAppReminderView: React.FC = () => {
 
           {/* WhatsApp Chat Preview Phone Mockup */}
           <div className="lg:col-span-5 flex justify-center">
-            <div className="w-full max-w-sm clay-card p-4 border-4 border-slate-800 rounded-[32px] bg-emerald-950/90 text-white shadow-2xl">
+            <div className="w-full max-w-sm clay-card p-4 border border-slate-200 rounded-xl bg-white text-slate-800 self-start">
               {/* Phone Header */}
               <div className="bg-emerald-900/90 p-3 rounded-2xl flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black text-lg">
@@ -147,8 +147,8 @@ export const WhatsAppReminderView: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="py-12 text-center text-xs text-emerald-300 font-bold">
-                  Select a reminder to preview WhatsApp message bubble.
+                <div className="py-4 text-sm text-slate-600">
+                  Select a reminder to preview its message.
                 </div>
               )}
 
