@@ -19,7 +19,7 @@
   .workspace .work-heading h1 {font-size:clamp(1.8rem,4vw,2.6rem);line-height:1.1}
   .work-heading p,.document-toolbar p {color:var(--muted);font-size:.875rem;margin-top:4px}
   .work-heading-actions,.bill-actions,.document-actions {display:flex;flex-wrap:wrap;gap:8px}
-  .work-action {display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:5px 12px;border:1px solid #cbd5e1;border-radius:8px;background:var(--sheet);color:#1e293b;font-size:.8125rem;font-weight:600;cursor:pointer;overflow-wrap:normal;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.04);transition:all .15s ease}
+  .work-action {display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:30px;height:30px;padding:4px 10px;border:1px solid #cbd5e1;border-radius:8px;background:var(--sheet);color:#1e293b;font-size:.78rem;font-weight:600;cursor:pointer;overflow-wrap:normal;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.04);transition:all .15s ease}
   .work-action:hover {border-color:#94a3b8;background:#f8fafc}
   .work-action svg {flex:none}
   .work-action.primary {background:var(--forest);color:white;border-color:var(--forest);box-shadow:0 1px 3px rgba(15,61,46,.25)}
@@ -105,7 +105,7 @@
   @media (max-width:767px) {
     .workspace :is(.truncate,.line-clamp-1,.line-clamp-2):not(select) {white-space:normal;overflow:visible;text-overflow:clip;-webkit-line-clamp:unset;overflow-wrap:anywhere}
     .workspace :is(button,a[title]) {min-height:46px}
-    .workspace :is(.work-action, .queue-filter-btn, .compact-action-btn, .segmented-control button) {min-height:unset !important;height:32px !important;line-height:1 !important;white-space:nowrap !important;flex-shrink:0 !important;font-size:.8125rem !important}
+    .workspace :is(.work-action, .queue-filter-btn, .compact-action-btn, .segmented-control button) {min-height:unset !important;height:28px !important;line-height:1 !important;white-space:nowrap !important;flex-shrink:0 !important;font-size:.75rem !important;padding:3px 8px !important}
     .workspace button {line-height:1.4}
     .workspace button:has(> svg):not(:has(span)) {min-width:44px;flex-shrink:0}
     .workspace :is(h2,h3,h4) {overflow-wrap:anywhere}
@@ -135,5 +135,39 @@
     .workspace :is(input:not([type=checkbox],[type=radio]),select,textarea),.clinic-modal-layer :is(input:not([type=checkbox],[type=radio]),select,textarea) {font-size:1rem}
     .clinical-actions {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,8.2rem),1fr));width:100%;overflow:visible;gap:6px}
     .clinical-actions button {white-space:normal;flex-wrap:wrap;justify-content:center;min-height:44px}
+    .workspace {padding:10px 12px}
+    .workspace > main {gap:12px}
+    .workspace main > div:first-child:has(h1) {padding:10px 12px;border-radius:12px}
+    .workspace .work-heading h1 {font-family:inherit;font-size:1.15rem;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+    .workspace .work-heading {gap:6px;padding-block:0}
+    .workspace .work-heading p {font-size:.75rem;margin-top:2px}
+    .work-heading-actions {display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+    .work-heading-actions .work-action {height:28px !important;min-height:28px !important;padding:3px 8px !important;font-size:.75rem !important;border-radius:7px !important;gap:4px !important;white-space:nowrap !important}
+    .work-heading-actions .work-action svg {width:13px !important;height:13px !important}
+    .patient-roster-card,.bill-card {padding:12px;border-radius:12px}
+    .patient-roster-card h3,.bill-card h3 {font-size:1rem}
+    .patient-record-actions {margin-top:10px}
+    .record-facts {padding-block:6px}
+    .record-facts dd {font-size:.8125rem}
+    .work-segments {padding:3px;border-radius:9px}
+    .work-segments button {min-height:40px;font-size:.8125rem}
+    .daybook {padding:16px}
+    .daybook h1 {font-family:inherit;font-size:1.5rem;font-weight:650;line-height:1.2}
+    .daybook-heading {margin-bottom:12px}
+    .desk-panel {padding:12px;border-radius:12px}
+    .desk-grid {gap:12px}
+    .desk-button {font-size:.8125rem;min-height:42px;padding:6px 10px}
+    .cabin-reading strong {font-size:2.25rem}
+    .consult-request {padding-block:12px}
+    .consult-request h1 {font-size:1.375rem}
+    .consult-request form h3 {font-size:.875rem;text-transform:none;letter-spacing:0}
+    .consult-request form > div {margin-top:16px}
+    .consult-request .concern-picker summary {padding:10px 12px;border:1px solid var(--rule);border-radius:9px;font-size:.875rem;cursor:pointer}
+    .consult-request .concern-picker button {display:block;width:100%;min-height:42px;text-align:left;padding:8px 12px;border-bottom:1px solid var(--rule);font-size:.875rem}
+    .consult-request .concern-picker button[aria-pressed=true] {background:var(--mint)}
+    .queue-public h1 {font-family:inherit;font-size:1.5rem;font-weight:650}
+    .queue-counts {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px;border:1px solid var(--rule);border-radius:12px;background:var(--sheet)}
+    .queue-counts dt {font-size:.8125rem;color:var(--muted)}
+    .queue-counts dd {font-size:1.5rem;font-weight:650}
   }
 }

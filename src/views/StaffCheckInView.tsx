@@ -315,9 +315,18 @@ export const StaffCheckInView: React.FC = () => {
 
       <main className="flex-1 min-w-0 flex flex-col gap-4">
         <div className="module-compact-heading"><WorkspaceHeading title="Reception desk">
-          <button className="work-action primary" onClick={() => { setRegisterInitialData(null); setShowNewPatientModal(true); }}><UserPlus size={14} /> Register patient</button>
-          <button className="work-action" onClick={() => setShowWalkInModal(true)}><Plus size={14} /> Walk-in token</button>
-          <button className="work-action" onClick={() => setActiveView('reception-tv')}><Tv2 size={14} /> Reception TV</button>
+          <button className="work-action primary" onClick={() => { setRegisterInitialData(null); setShowNewPatientModal(true); }}>
+            <UserPlus size={13} />
+            <span>Register<span className="hidden sm:inline"> patient</span></span>
+          </button>
+          <button className="work-action" onClick={() => setShowWalkInModal(true)}>
+            <Plus size={13} />
+            <span>Walk-in<span className="hidden sm:inline"> token</span></span>
+          </button>
+          <button className="work-action" onClick={() => setActiveView('reception-tv')}>
+            <Tv2 size={13} />
+            <span>Reception TV</span>
+          </button>
         </WorkspaceHeading></div>
         <SectionPicker label="Reception section" value={activeSubTab} onChange={setActiveSubTab} options={[
           { id: 'queue', label: 'Live queue', count: todayActiveTokens.length },
