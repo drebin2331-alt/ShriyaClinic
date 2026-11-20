@@ -1,5 +1,10 @@
 import { WhatsAppReminder, WhatsAppMessageType } from '../types';
 
+export const CLINIC_OFFICIAL_PHONE = '9400320890';
+export const CLINIC_OFFICIAL_PHONE_DISPLAY = '+91 94003 20890';
+export const CLINIC_EMERGENCY_PHONE = '7904221656';
+export const CLINIC_EMERGENCY_PHONE_DISPLAY = '+91 79042 21656';
+
 export const formatWhatsAppNumber = (rawPhone: string): string => {
   const digits = (rawPhone || '').replace(/\D/g, '');
   if (!digits) return '';
@@ -75,7 +80,7 @@ Dear {patientName},
 It's time for your periodic 6-month preventive dental check-up! Regular checkups protect your teeth from plaque, decay, and gum issues.
 
 📅 Contact us to reserve your preferred consultation slot this week.
-📞 Reception Desk: +91 96337 46591
+📞 Reception Desk: +91 94003 20890
 Protecting your smile every step of the way!`
   },
   {
@@ -90,7 +95,7 @@ We are pleased to inform you of our latest clinical enhancements:
 ✨ Advanced 3D Digital Intraoral Scanning & Painless Root Canal Treatments now available.
 🕒 Extended evening consultation hours: Monday - Saturday up to 8:30 PM.
 
-For consultations or appointments, please contact our reception desk. We are committed to world-class dental care for your whole family!`
+For consultations or appointments, please contact our reception desk (+91 94003 20890). We are committed to world-class dental care for your whole family!`
   },
   {
     id: 'holiday-closure',
@@ -103,7 +108,7 @@ Dear Patients,
 Please note that our clinic will remain *CLOSED* on *{date}* on account of {reason}.
 
 🏥 *Resuming Regular Consultations:* {resumeDate} at 9:00 AM.
-🚨 *Emergency Dental Line:* In case of severe dental emergencies or trauma, call +91 96337 46591.
+🚨 *Emergency Dental Line:* In case of severe dental emergencies or trauma, call +91 94003 20890 / +91 79042 21656.
 
 We wish you and your family a safe and happy holiday!`
   },
@@ -180,7 +185,7 @@ export const INITIAL_WHATSAPP_REMINDERS: WhatsAppReminder[] = [
     type: 'Confirmation',
     status: 'Pending',
     scheduledFor: 'Today, 09:00 AM',
-    messageText: `🦷 *Shriya Multispeciality Dental Clinic*\n\nDear Customer 1,\nYour dental appointment with *Dr. DOCTOR TEST* is confirmed for tomorrow (2026-11-22) at 10:30 AM.\n\nPlease arrive 10 minutes before your slot.\nContact: +91 96337 46591`,
+    messageText: `🦷 *Shriya Multispeciality Dental Clinic*\n\nDear Customer 1,\nYour dental appointment with *Dr. DOCTOR TEST* is confirmed for tomorrow (2026-11-22) at 10:30 AM.\n\nPlease arrive 10 minutes before your slot.\nContact: +91 94003 20890`,
     category: 'Individual'
   },
   {
@@ -193,7 +198,7 @@ export const INITIAL_WHATSAPP_REMINDERS: WhatsAppReminder[] = [
     type: 'Important Date',
     status: 'Scheduled',
     scheduledFor: '2026-11-22, 08:00 AM',
-    messageText: `🦷 *Shriya Multispeciality Dental Clinic*\n\nHello customer 2,\nGentle reminder: your regular 6-month preventive dental check-up and scaling session is due on 2026-11-23.\n\nProtecting your smile!`,
+    messageText: `🦷 *Shriya Multispeciality Dental Clinic*\n\nHello customer 2,\nGentle reminder: your regular 6-month preventive dental check-up and scaling session is due on 2026-11-23.\n\nProtecting your smile! Helpline: +91 94003 20890`,
     category: 'Individual'
   },
   {
@@ -206,7 +211,7 @@ export const INITIAL_WHATSAPP_REMINDERS: WhatsAppReminder[] = [
     type: 'Holiday Notice',
     status: 'Sent',
     scheduledFor: '2026-11-20, 11:00 AM',
-    messageText: `📢 *Holiday Notice - Shriya Multispeciality Dental Clinic*\n\nDear Patients,\nPlease note that our clinic will remain CLOSED on Wednesday, 25th Nov for scheduled sterilization and staff training.\n\nEmergency line: +91 96337 46591.\nWe resume regular hours on 26th Nov at 9:00 AM.`,
+    messageText: `📢 *Holiday Notice - Shriya Multispeciality Dental Clinic*\n\nDear Patients,\nPlease note that our clinic will remain CLOSED on Wednesday, 25th Nov for scheduled sterilization and staff training.\n\nEmergency line: +91 94003 20890 / +91 79042 21656.\nWe resume regular hours on 26th Nov at 9:00 AM.`,
     category: 'Broadcast',
     recipientCount: 3
   },

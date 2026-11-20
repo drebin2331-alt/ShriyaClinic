@@ -250,7 +250,7 @@ export const WhatsAppReminderView: React.FC = () => {
                   <h4 className="text-xs font-extrabold text-white truncate">Shriya Multispeciality Dental</h4>
                   <span className="text-[10px] font-bold text-emerald-300 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>
-                    Official Business Account ✓
+                    Official Business Account ✓ • +91 94003 20890
                   </span>
                 </div>
               </div>

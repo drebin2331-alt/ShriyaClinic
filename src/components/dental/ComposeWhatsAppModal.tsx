@@ -308,9 +308,22 @@ export const ComposeWhatsAppModal: React.FC<ComposeWhatsAppModalProps> = ({
             {/* Recipient Selection */}
             {mode === 'individual' ? (
               <div className="bg-slate-50/70 p-3.5 rounded-xl border border-slate-200">
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Select Target Patient
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Select Target Patient
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedPatientId('custom');
+                      setCustomName('Clinic Desk (Test)');
+                      setCustomPhone('9400320890');
+                    }}
+                    className="text-[10px] font-bold text-emerald-800 bg-emerald-100/80 hover:bg-emerald-200 px-2 py-0.5 rounded border border-emerald-300 transition-colors"
+                  >
+                    📱 Test Send to Clinic (94003 20890)
+                  </button>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
                   <select
                     value={selectedPatientId}
@@ -519,7 +532,7 @@ export const ComposeWhatsAppModal: React.FC<ComposeWhatsAppModalProps> = ({
                     </h4>
                     <span className="text-[10px] text-emerald-200 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
-                      Official Verified Account
+                      Official Verified Account • +91 94003 20890
                     </span>
                   </div>
                 </div>
