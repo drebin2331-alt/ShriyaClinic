@@ -9,7 +9,6 @@ import { ModalLayer, lockBodyScroll } from './ModalLayer';
 import { Sidebar } from './Sidebar';
 import { 
   Search,
-  Bell,
   Moon,
   ChevronDown,
   Menu,
@@ -26,7 +25,6 @@ import {
   Stethoscope,
   CheckCircle2,
   CreditCard,
-  Sparkles,
   Clock,
   ShieldCheck,
   Phone,
@@ -490,33 +488,6 @@ export const Header: React.FC<HeaderProps> = ({
             <Search className="w-4 h-4 text-slate-700" />
           </button>
 
-          {/* Notification Bell Button */}
-          <button
-            type="button"
-            onClick={() => handleNavClick('tokens')}
-            className="p-2 rounded-xl text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 shadow-2xs transition-colors cursor-pointer relative shrink-0 active:scale-95"
-            title="Live Token Alerts"
-            aria-label="Notifications"
-          >
-            <Bell className="w-4 h-4 text-slate-700" />
-            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          </button>
-
-          {/* Direct 1-Tap Sign Out Button (Hidden on mobile < md, visible on desktop) */}
-          <button
-            type="button"
-            onClick={async () => {
-              await logout();
-              addToast('Signed Out Successfully', 'You have been logged out of Clinic OS.', 'info');
-            }}
-            className="hidden md:inline-flex px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-700 border border-rose-200 text-xs font-black items-center gap-1.5 cursor-pointer transition-all shadow-2xs active:scale-95 shrink-0"
-            title="Sign Out from Clinic OS"
-            aria-label="Sign Out"
-          >
-            <LogOut className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-            <span className="text-[11px] font-black">Sign Out</span>
-          </button>
-
           {/* User Account Profile Pill / Avatar */}
           <div className="relative" ref={profileRef}>
             {/* Mobile View (< sm): Clean circular avatar button */}
@@ -577,16 +548,6 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     <ExternalLink className="w-4 h-4 text-slate-400" />
                     <span>View Patient Website</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setProfileDropdownOpen(false);
-                      setIsProfileSheetOpen(true);
-                    }}
-                    className="w-full text-left px-3.5 py-2 hover:bg-teal-50 text-teal-800 rounded-xl flex items-center gap-2 font-medium cursor-pointer transition-colors"
-                  >
-                    <Sparkles className="w-4 h-4 text-teal-600" />
-                    <span>Account & Shift Details</span>
                   </button>
                   <div className="pt-1 border-t border-slate-100">
                     <button

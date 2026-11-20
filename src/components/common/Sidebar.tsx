@@ -24,7 +24,6 @@ import {
   Settings, 
   UserPlus, 
   Search,
-  ChevronRight,
   Menu,
   Sparkles,
   ArrowRight,
@@ -178,21 +177,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobile = false, onNavigate }) 
   if (isSidebarCollapsed && !mobile) {
     return (
       <aside className="hidden lg:flex flex-col w-16 shrink-0 bg-white border-r border-slate-200 py-3.5 px-2 min-h-[calc(100vh-60px)] items-center transition-all duration-200 select-none">
-        {/* Top: Brand Icon + Open/Expand Toggle Button */}
-        <div className="flex flex-col items-center gap-2 pb-3 mb-2 border-b border-slate-100 w-full">
+        {/* Top: Brand Icon */}
+        <div className="flex flex-col items-center pb-3 mb-2 border-b border-slate-100 w-full">
           <div 
             onClick={() => setActiveView('landing')}
             className="w-8 h-8 rounded-lg bg-emerald-800 text-white font-bold text-sm flex items-center justify-center shadow-xs cursor-pointer hover:scale-105 transition-transform"
             title="Shriya Multispeciality Dental Clinic EMR"
           ><ClinicMark /></div>
-          <button
-            onClick={toggleSidebar}
-            className="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 flex items-center justify-center cursor-pointer transition-colors border border-emerald-300 shadow-2xs group"
-            title="Open / Expand Side Menu (Click to Open)"
-            aria-label="Expand Side Menu"
-          >
-            <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-          </button>
         </div>
 
         {/* Compact Icon Navigation */}
@@ -242,16 +233,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobile = false, onNavigate }) 
           ))}
         </div>
 
-        {/* Bottom Expand Button */}
-        <div className="pt-2 border-t border-slate-100 w-full flex flex-col items-center gap-1.5">
-          <button
-            onClick={toggleSidebar}
-            className="w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 flex items-center justify-center cursor-pointer transition-colors shadow-2xs"
-            title="Open / Expand Side Menu"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
       </aside>
     );
   }
