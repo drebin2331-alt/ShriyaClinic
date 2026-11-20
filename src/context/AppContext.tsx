@@ -462,7 +462,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } else {
         const sanitizedT = parsedT.map((item: any) => {
           if (item.id === 'tok-1794029736556' || item.tokenNumber === 'W-002' || (item.status === 'Waiting' && item.date && item.date < new Date().toISOString().split('T')[0])) {
-            return { ...item, status: 'Completed', completedAt: item.completedAt || '11:35 am' };
+            return { ...item, status: 'Completed', completedAt: item.completedAt || new Date().toISOString() };
           }
           return item;
         });
@@ -571,7 +571,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             .filter((t) => !isDemoPatientOrToken(t.patientName))
             .map((t) => {
               if (t.id === 'tok-1794029736556' || t.tokenNumber === 'W-002' || (t.status === 'Waiting' && t.date && t.date < new Date().toISOString().split('T')[0])) {
-                return { ...t, status: 'Completed' as TokenStatus, completedAt: t.completedAt || '11:35 am' };
+                return { ...t, status: 'Completed' as TokenStatus, completedAt: t.completedAt || new Date().toISOString() };
               }
               return t;
             });
@@ -871,7 +871,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             .filter((t) => !isDemoPatientOrToken(t.patientName))
             .map((t) => {
               if (t.id === 'tok-1794029736556' || t.tokenNumber === 'W-002' || (t.status === 'Waiting' && t.date && t.date < today)) {
-                return { ...t, status: 'Completed' as TokenStatus, completedAt: t.completedAt || '11:35 am' };
+                return { ...t, status: 'Completed' as TokenStatus, completedAt: t.completedAt || new Date().toISOString() };
               }
               return t;
             });
@@ -1037,7 +1037,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               .filter((t) => !isDemoPatientOrToken(t.patientName))
               .map((t) => {
                 if (t.id === 'tok-1794029736556' || t.tokenNumber === 'W-002' || (t.status === 'Waiting' && t.date && t.date < today)) {
-                  return { ...t, status: 'Completed' as TokenStatus, completedAt: t.completedAt || '11:35 am' };
+                  return { ...t, status: 'Completed' as TokenStatus, completedAt: t.completedAt || new Date().toISOString() };
                 }
                 return t;
               });

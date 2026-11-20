@@ -193,6 +193,50 @@ export const fetchPatientsFromDb = async (): Promise<PatientRecord[]> => {
   }));
 };
 
+export const toValidTimestampTz = (val: string | null | undefined, baseDate?: string): string | null => {
+  if (!val || typeof val !== 'string') return null;
+  const trimmed = val.trim();
+  if (!trimmed || trimmed === 'null' || trimmed === 'undefined') return null;
+
+  // If it's already an ISO or valid full date string (contains - or /)
+  if ((trimmed.includes('-') || trimmed.includes('/')) && !isNaN(Date.parse(trimmed))) {
+    try {
+      return new Date(trimmed).toISOString();
+    } catch {
+      return null;
+    }
+  }
+
+  // If it's a bare time string like "11:06 am", "04:17 pm", "11:35", "11:35:00"
+  const dateStr = (baseDate && baseDate.includes('-')) ? baseDate : new Date().toISOString().split('T')[0];
+  const timeMatch = trimmed.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?$/i);
+  if (timeMatch) {
+    let hours = parseInt(timeMatch[1], 10);
+    const minutes = parseInt(timeMatch[2], 10);
+    const seconds = timeMatch[3] ? parseInt(timeMatch[3], 10) : 0;
+    const meridian = timeMatch[4] ? timeMatch[4].toLowerCase() : null;
+
+    if (meridian === 'pm' && hours < 12) hours += 12;
+    if (meridian === 'am' && hours === 12) hours = 0;
+
+    const isoStr = `${dateStr}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.000Z`;
+    const dt = new Date(isoStr);
+    if (!isNaN(dt.getTime())) {
+      return dt.toISOString();
+    }
+  }
+
+  // Fallback combine with date
+  try {
+    const fallback = new Date(`${dateStr} ${trimmed}`);
+    if (!isNaN(fallback.getTime())) {
+      return fallback.toISOString();
+    }
+  } catch { }
+
+  return null;
+};
+
 export const savePatientToDb = async (patient: PatientRecord): Promise<void> => {
   if (!isSupabaseAvailable()) return;
   const payload = {
@@ -219,7 +263,7 @@ export const savePatientToDb = async (patient: PatientRecord): Promise<void> => 
     status: patient.status || 'New Patient',
     outstanding_balance: patient.outstandingBalance || 0,
     case_sheet_completed: Boolean(patient.caseSheetCompleted || patient.dentalHistory?.caseSheetCompleted),
-    case_sheet_completed_at: patient.caseSheetCompletedAt || patient.dentalHistory?.completedAt || null,
+    case_sheet_completed_at: toValidTimestampTz(patient.caseSheetCompletedAt || patient.dentalHistory?.completedAt) || null,
     medical_history: patient.medicalHistory || {},
     dental_history: patient.dentalHistory || {},
     dental_chart: Array.isArray(patient.dentalChart) ? patient.dentalChart : [],
@@ -363,9 +407,9 @@ export const saveTokenToDb = async (token: QueueToken): Promise<void> => {
     priority: token.priority || 'Normal',
     reason_for_visit: token.reasonForVisit || null,
     estimated_wait_minutes: token.estimatedWaitMinutes || 15,
-    called_at: token.calledAt || null,
-    started_at: token.startedAt || null,
-    completed_at: token.completedAt || null
+    called_at: toValidTimestampTz(token.calledAt, token.date),
+    started_at: toValidTimestampTz(token.startedAt || (token as any).consultationStartedAt, token.date),
+    completed_at: toValidTimestampTz(token.completedAt, token.date)
   };
 
   const { error } = await supabase.from('tokens').upsert(payload);

@@ -662,13 +662,13 @@ export const SEED_TOKENS: QueueToken[] = [
     "date": "2026-11-07",
     "status": "Completed",
     "priority": "Normal",
-    "createdAt": "11:05 am",
+    "createdAt": "2026-11-07T05:35:00.000Z",
     "estimatedWaitMinutes": 15,
-    "calledAt": "11:06 am",
+    "calledAt": "2026-11-07T05:36:00.000Z",
     "chairId": "chair-1",
     "chairName": "Dental Operatory 1 (Main Surgery)",
-    "consultationStartedAt": "11:07 am",
-    "completedAt": "04:17 pm"
+    "consultationStartedAt": "2026-11-07T05:37:00.000Z",
+    "completedAt": "2026-11-07T10:47:00.000Z"
   },
   {
     "id": "tok-1794029736556",
@@ -682,11 +682,11 @@ export const SEED_TOKENS: QueueToken[] = [
     "date": "2026-11-07",
     "status": "Completed",
     "priority": "Normal",
-    "createdAt": "11:05 am",
+    "createdAt": "2026-11-07T05:35:00.000Z",
     "estimatedWaitMinutes": 15,
-    "calledAt": "11:10 am",
-    "consultationStartedAt": "11:12 am",
-    "completedAt": "11:35 am"
+    "calledAt": "2026-11-07T05:40:00.000Z",
+    "consultationStartedAt": "2026-11-07T05:42:00.000Z",
+    "completedAt": "2026-11-07T06:05:00.000Z"
   },
   {
     "id": "tok-1794203767035",
@@ -700,13 +700,13 @@ export const SEED_TOKENS: QueueToken[] = [
     "date": "2026-11-09",
     "status": "Completed",
     "priority": "Normal",
-    "createdAt": "11:26 am",
+    "createdAt": "2026-11-09T05:56:00.000Z",
     "estimatedWaitMinutes": 15,
-    "calledAt": "11:26 am",
+    "calledAt": "2026-11-09T05:56:00.000Z",
     "chairId": "chair-1",
     "chairName": "Dental Operatory 1 (Main Surgery)",
-    "consultationStartedAt": "11:26 am",
-    "completedAt": "01:24 pm"
+    "consultationStartedAt": "2026-11-09T05:56:00.000Z",
+    "completedAt": "2026-11-09T07:54:00.000Z"
   }
 ];
 
