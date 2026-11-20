@@ -1,7 +1,6 @@
 import { ModalLayer } from '../common/ModalLayer';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { useAuth } from '../../context/AuthContext';
 import { PatientRecord } from '../../types';
 import { ClayButton } from '../common/ClayButton';
 import { 
@@ -39,7 +38,6 @@ export const NewPatientRegistrationModal: React.FC<NewPatientRegistrationModalPr
   initialData = null
 }) => {
   const { patients, doctors, registerNewPatient, checkInPatient, setSelectedPatientForDetail, setActiveView, setShouldOpenCaseSheetOnProfile, addToast } = useApp();
-  const { currentUser } = useAuth();
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -325,15 +323,7 @@ export const NewPatientRegistrationModal: React.FC<NewPatientRegistrationModalPr
             {/* Header */}
             <div className="flex items-start justify-between pb-4 border-b border-slate-200">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-black uppercase tracking-widest text-sky-700 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200">
-                    Reception Desk Workflow
-                  </span>
-                  <span className="text-xs text-slate-400 font-bold">
-                    Staff: {currentUser.name}
-                  </span>
-                </div>
-                <h3 className="text-xl font-black text-slate-900 mt-1">
+                <h3 className="text-xl font-black text-slate-900">
                   New Outpatient Registration
                 </h3>
               </div>
@@ -376,17 +366,6 @@ export const NewPatientRegistrationModal: React.FC<NewPatientRegistrationModalPr
                 </div>
               </div>
             )}
-
-            {/* Workflow Notice Banner (Clean Front Desk Badge) */}
-            <div className="flex items-center gap-2.5 p-3 my-3 bg-sky-50 rounded-2xl border border-sky-200 text-sky-900 text-xs">
-              <span className="text-lg shrink-0">⚡</span>
-              <div>
-                <span className="font-black text-sky-950 block">Quick Front-Desk Registration</span>
-                <span className="text-[11px] text-sky-800">
-                  Fill patient personal details here. Medical history, dental history, and clinical case sheet will be recorded by the doctor during consultation.
-                </span>
-              </div>
-            </div>
 
             <form onSubmit={(e) => { e.preventDefault(); handleRegister(false); }}>
               {/* PATIENT PERSONAL & CONTACT DETAILS */}
