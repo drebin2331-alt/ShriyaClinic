@@ -53,6 +53,7 @@ import {
   SEED_DOCTORS
 } from '../seed/seedClinicData';
 import { createFullDefaultDentalChart } from '../utils/dentalChartHelper';
+import { openWhatsAppChat } from '../utils/whatsapp';
 import { apiClient } from '../utils/apiClient';
 import {
   supabase,
@@ -304,7 +305,10 @@ interface AppContextType {
   holdCurrentPatient: () => void;
   completeCurrentPatient: () => void;
 
-  sendWhatsApp: (reminderId: string) => void;
+  sendWhatsApp: (reminderId: string, openExternal?: boolean) => void;
+  addWhatsAppReminder: (data: Omit<WhatsAppReminder, 'id'>) => string;
+  deleteWhatsAppReminder: (reminderId: string) => void;
+  dispatchAllPendingWhatsApp: () => void;
   selectedPatientForDetail: PatientRecord | null;
   setSelectedPatientForDetail: (patient: PatientRecord | null) => void;
   updatePatient: (patient: PatientRecord) => Promise<void>;
@@ -711,7 +715,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [userRole, setUserRole] = useState<UserRole>('admin');
-  const [reminders, setReminders] = useState<WhatsAppReminder[]>(MOCK_WHATSAPP_REMINDERS);
+  const [reminders, setReminders] = useState<WhatsAppReminder[]>(() => {
+    try {
+      const saved = localStorage.getItem('smilecare_whatsapp_reminders');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch { }
+    return MOCK_WHATSAPP_REMINDERS;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('smilecare_whatsapp_reminders', JSON.stringify(reminders));
+    } catch { }
+  }, [reminders]);
   const [enquiries, setEnquiries] = useState<PatientEnquiry[]>(() => {
     try {
       const saved = localStorage.getItem('smilecare_enquiries_list');
@@ -2238,14 +2257,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addToast('Dental Chart Updated', `Tooth #${toothNumber} marked as ${condition}.`, 'info');
   };
 
-  const sendWhatsApp = (reminderId: string) => {
-    setReminders((prev) =>
-      prev.map((r) => (r.id === reminderId ? { ...r, status: 'Sent' } : r))
-    );
+  const sendWhatsApp = (reminderId: string, openExternal: boolean = true) => {
     const target = reminders.find((r) => r.id === reminderId);
     if (target) {
-      addToast('WhatsApp Sent 💬', `Reminder sent successfully to ${target.patientName} (${target.phone}).`, 'success');
+      if (openExternal && target.phone && target.phone !== 'Multiple (Broadcast)') {
+        openWhatsAppChat(target.phone, target.messageText);
+      }
+      setReminders((prev) =>
+        prev.map((r) => (r.id === reminderId ? { ...r, status: 'Sent' } : r))
+      );
+      addToast('WhatsApp Sent 💬', `Dispatched WhatsApp to ${target.patientName} (${target.phone}).`, 'success');
+      notifyCrossTabSync();
     }
+  };
+
+  const addWhatsAppReminder = (data: Omit<WhatsAppReminder, 'id'>): string => {
+    const id = `wa-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const newReminder: WhatsAppReminder = {
+      ...data,
+      id
+    };
+    setReminders((prev) => [newReminder, ...prev]);
+    notifyCrossTabSync();
+    return id;
+  };
+
+  const deleteWhatsAppReminder = (reminderId: string) => {
+    setReminders((prev) => prev.filter((r) => r.id !== reminderId));
+    notifyCrossTabSync();
+    addToast('Reminder Removed', 'WhatsApp message removed from queue.', 'info');
+  };
+
+  const dispatchAllPendingWhatsApp = () => {
+    const pendingList = reminders.filter((r) => r.status === 'Pending' || r.status === 'Scheduled');
+    if (pendingList.length === 0) {
+      addToast('Queue Empty', 'No pending WhatsApp messages to dispatch.', 'info');
+      return;
+    }
+    setReminders((prev) =>
+      prev.map((r) => (r.status === 'Pending' || r.status === 'Scheduled' ? { ...r, status: 'Sent' } : r))
+    );
+    if (pendingList.length === 1 && pendingList[0].phone && pendingList[0].phone !== 'Multiple (Broadcast)') {
+      openWhatsAppChat(pendingList[0].phone, pendingList[0].messageText);
+    }
+    addToast('Dispatched Queue 💬', `Marked ${pendingList.length} reminders as sent.`, 'success');
+    notifyCrossTabSync();
   };
 
   // RECORD PAYMENT
@@ -2656,6 +2712,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       messageText: message
     };
 
+    openWhatsAppChat(targetPat.phone, message);
     setReminders((prev) => [reminderItem, ...prev]);
     await updateFollowUpStatus(followUpId, 'Contacted');
     addToast('WhatsApp Reminder Sent 💬', `Dispatched follow-up alert to ${targetPat.name} (${targetPat.phone}).`, 'success');
@@ -2688,6 +2745,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         userRole,
         setUserRole,
         reminders,
+        addWhatsAppReminder,
+        deleteWhatsAppReminder,
+        dispatchAllPendingWhatsApp,
         enquiries,
         addEnquiry,
         updateEnquiryStatus,

@@ -720,17 +720,30 @@ export interface PatientRecord {
   auditLog?: AuditEvent[];
 }
 
+export type WhatsAppMessageType = 
+  | 'Confirmation' 
+  | '24h Reminder' 
+  | 'Token Update' 
+  | 'Post Visit Care' 
+  | 'Clinic News' 
+  | 'Holiday Notice' 
+  | 'Important Date' 
+  | 'General Matter'
+  | 'Custom Notice';
+
 export interface WhatsAppReminder {
   id: string;
   patientName: string;
   phone: string;
-  appointmentDate: string;
-  appointmentTime: string;
-  doctorName: string;
-  type: 'Confirmation' | '24h Reminder' | 'Token Update' | 'Post Visit Care';
+  appointmentDate?: string;
+  appointmentTime?: string;
+  doctorName?: string;
+  type: WhatsAppMessageType;
   status: 'Scheduled' | 'Sent' | 'Failed' | 'Pending';
   scheduledFor: string;
   messageText: string;
+  category?: 'Individual' | 'Broadcast';
+  recipientCount?: number;
 }
 
 export interface Testimonial {

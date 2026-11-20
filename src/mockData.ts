@@ -148,11 +148,13 @@ export const MOCK_CHAIRS: DentalChair[] = [
 // REAL CLINIC DATA - PRE-LOADED FROM AUTHORITATIVE CLINIC DATASET
 // Pre-loads Customer 1, customer 2, customer 3 and their clinical charts
 // ============================================================================
+import { INITIAL_WHATSAPP_REMINDERS } from './utils/whatsapp';
+
 export const MOCK_PATIENTS: PatientRecord[] = SEED_PATIENTS;
 export const INITIAL_APPOINTMENTS: Appointment[] = [];
 export const INITIAL_VISITS: ClinicVisit[] = SEED_VISITS;
 export const INITIAL_TOKENS: QueueToken[] = SEED_TOKENS;
 export const INITIAL_INVOICES: Invoice[] = SEED_INVOICES;
 export const INITIAL_PAYMENTS: PaymentRecord[] = SEED_PAYMENTS;
-export const MOCK_WHATSAPP_REMINDERS: WhatsAppReminder[] = [];
+export const MOCK_WHATSAPP_REMINDERS: WhatsAppReminder[] = INITIAL_WHATSAPP_REMINDERS;
 export const MOCK_INVENTORY: InventoryItem[] = [];
