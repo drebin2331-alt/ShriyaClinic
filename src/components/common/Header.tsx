@@ -1,9 +1,12 @@
+import { ClinicMark } from './ClinicMark';
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { ViewMode } from '../../types';
 import { GlobalSearchModal } from '../dental/GlobalSearchModal';
 import { PatientEnquiryModal } from './PatientEnquiryModal';
+import { ModalLayer, lockBodyScroll } from './ModalLayer';
+import { Sidebar } from './Sidebar';
 import { 
   Search,
   Bell,
@@ -66,6 +69,26 @@ export const Header: React.FC<HeaderProps> = ({
   const [showEnquiryModal, setShowEnquiryModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setQuickActionOpen(false);
+    setProfileDropdownOpen(false);
+  }, [activeView]);
+  useEffect(() => {
+    if (!mobileMenuOpen || isAdminRoute) return;
+    const releaseScroll = lockBodyScroll();
+    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setMobileMenuOpen(false); };
+    document.addEventListener('keydown', close);
+    return () => { releaseScroll(); document.removeEventListener('keydown', close); };
+  }, [mobileMenuOpen, isAdminRoute]);
+
+  useEffect(() => {
+    const resize = () => {
+      if (window.innerWidth >= (isAdminRoute ? 1024 : 1280)) setMobileMenuOpen(false);
+    };
+    window.addEventListener('resize', resize);
+    return () => window.removeEventListener('resize', resize);
+  }, [isAdminRoute]);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -189,9 +212,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={handleHomeRoute}
             className="flex items-center gap-2 sm:gap-2.5 cursor-pointer group select-none min-w-0"
           >
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-teal-700 to-emerald-600 text-white flex items-center justify-center font-bold text-base sm:text-lg shadow-sm group-hover:scale-105 transition-transform shrink-0">
-              🦷
-            </div>
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-teal-700 text-white flex items-center justify-center font-bold text-base sm:text-lg shadow-sm group-hover:scale-105 transition-transform shrink-0"><ClinicMark /></div>
             <div className="min-w-0">
               <span className="text-sm sm:text-base md:text-lg font-black text-slate-900 tracking-tight block leading-tight truncate">
                 Shriya
@@ -203,7 +224,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Customer Navigation Links (Desktop) */}
-          <nav className="hidden md:flex items-center gap-1 lg:gap-2 text-xs font-bold text-slate-600">
+          <nav className="hidden xl:flex items-center gap-1 lg:gap-2 text-xs font-bold text-slate-600">
             <button 
               onClick={handleHomeRoute}
               className={`px-3 py-2 rounded-xl transition-colors cursor-pointer ${
@@ -256,7 +277,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Book Appointment / Consultation Enquiry CTA */}
             <button
               onClick={() => setShowEnquiryModal(true)}
-              className="px-2.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-teal-700 to-emerald-600 hover:from-teal-600 hover:to-emerald-500 text-white font-extrabold text-[11px] sm:text-xs shadow-sm transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+              className="px-2.5 sm:px-4 py-2 rounded-xl bg-teal-700 hover:from-teal-600 hover:to-emerald-500 text-white font-extrabold text-[11px] sm:text-xs shadow-sm transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
             >
               <Calendar className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden xs:inline">Book Consultation</span>
@@ -297,15 +318,15 @@ export const Header: React.FC<HeaderProps> = ({
                 title="Clinic Staff & Administration Login"
               >
                 <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                <span>Staff Portal</span>
+                <span className="hidden sm:inline">Staff Portal</span>
               </button>
             )}
 
             {/* Mobile Hamburger */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 md:hidden cursor-pointer"
-              aria-label="Toggle Navigation Menu"
+              className="p-2 rounded-xl text-slate-600 hover:bg-slate-100 xl:hidden cursor-pointer"
+              aria-label="Toggle Navigation Menu" aria-expanded={mobileMenuOpen} aria-controls="public-mobile-menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -314,7 +335,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-3 pt-3 border-t border-slate-100 flex flex-col gap-1 animate-in fade-in slide-in-from-top-2 duration-150">
+          <div id="public-mobile-menu" className="xl:hidden max-h-[calc(100dvh-5rem)] overflow-y-auto mt-3 pt-3 border-t border-slate-100 flex flex-col gap-1 animate-in fade-in slide-in-from-top-2 duration-150">
             <button 
               onClick={handleHomeRoute} 
               className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold transition-colors ${
@@ -349,7 +370,7 @@ export const Header: React.FC<HeaderProps> = ({
                   setShowEnquiryModal(true);
                   setMobileMenuOpen(false);
                 }}
-                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-teal-700 to-emerald-600 text-white font-extrabold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
+                className="w-full py-2.5 px-3 rounded-xl bg-teal-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
               >
                 <Calendar className="w-3.5 h-3.5" />
                 <span>Book Consultation / Enquire</span>
@@ -422,9 +443,9 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="sticky top-0 z-40 w-full max-w-full bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-2.5 sm:px-4 py-2 select-none shadow-xs">
       <div className="max-w-[1650px] mx-auto flex items-center justify-between gap-2 sm:gap-4">
         {/* Left: Menu Toggle, Brand & Breadcrumb */}
-        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1 lg:flex-none">
           <button
-            onClick={toggleSidebar}
+            onClick={() => window.matchMedia('(min-width: 1024px)').matches ? toggleSidebar() : setMobileMenuOpen(true)}
             className="p-2 rounded-xl text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 shadow-2xs cursor-pointer transition-all active:scale-95 flex items-center justify-center shrink-0"
             title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-label="Toggle Side Menu"
@@ -434,15 +455,13 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div 
             onClick={() => handleNavClick('admin-dashboard')}
-            className="flex items-center gap-2 cursor-pointer group min-w-0 select-none"
+            className="flex items-center gap-2 cursor-pointer group min-w-0 select-none ml-auto md:ml-0"
             title="Return to Clinic Dashboard"
           >
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-teal-700 to-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0 group-hover:scale-105 transition-transform">
-              🦷
-            </div>
+            <div className="w-8 h-8 rounded-xl bg-teal-700 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0 group-hover:scale-105 transition-transform"><ClinicMark /></div>
 
             <div className="min-w-0">
-              <span className="text-xs sm:text-sm font-black text-slate-900 tracking-tight block leading-tight truncate">
+              <span className="block text-xs sm:text-sm font-black text-slate-900 tracking-tight leading-tight truncate">
                 Shriya Dental
               </span>
               <span className="text-[10px] font-bold text-teal-700 hidden sm:block uppercase tracking-wider leading-tight truncate">
@@ -455,7 +474,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Center: Global Search Bar */}
         <div 
           onClick={() => setSearchModalOpen(true)}
-          className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-50 hover:bg-white text-slate-400 hover:text-slate-600 cursor-pointer border border-slate-200 transition-colors w-72 lg:w-[420px]"
+          className="hidden lg:flex min-w-0 flex-1 max-w-[420px] items-center gap-2 px-3 py-1.5 rounded-md bg-slate-50 hover:bg-white text-slate-400 hover:text-slate-600 cursor-pointer border border-slate-200 transition-colors w-72 lg:w-[420px]"
         >
           <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <span className="text-xs text-slate-500 truncate flex-1">
@@ -466,13 +485,13 @@ export const Header: React.FC<HeaderProps> = ({
           </kbd>
         </div>
 
-        {/* Right Section: Actions & Profile */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+        {/* Right Section: Actions & Profile (Desktop only; hidden on mobile for clean decluttered header) */}
+        <div className="hidden md:flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {/* Mobile Search Icon Button */}
           <button
             type="button"
             onClick={() => setSearchModalOpen(true)}
-            className="md:hidden p-2 rounded-xl text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 shadow-2xs transition-colors cursor-pointer active:scale-95 shrink-0"
+            className="lg:hidden p-2 rounded-xl text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 shadow-2xs transition-colors cursor-pointer active:scale-95 shrink-0"
             title="Search patients, appointments, tokens"
             aria-label="Search"
           >
@@ -565,7 +584,7 @@ export const Header: React.FC<HeaderProps> = ({
               title="Staff Profile & Settings (Tap to open)"
               aria-label="Staff Profile"
             >
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-800 to-teal-700 text-white font-black text-xs flex items-center justify-center shadow-xs">
+              <div className="w-8 h-8 rounded-lg bg-emerald-800 text-white font-black text-xs flex items-center justify-center shadow-xs">
                 {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'A'}
               </div>
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
@@ -647,6 +666,14 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Global Search Modal */}
+      {mobileMenuOpen && (
+        <ModalLayer onDismiss={() => setMobileMenuOpen(false)} aria-label="Clinic navigation" className="fixed inset-0 z-50 bg-slate-950/60 p-2 lg:hidden" onClick={() => setMobileMenuOpen(false)}>
+          <div className="w-full max-w-sm bg-white rounded-2xl" onClick={event => event.stopPropagation()}>
+            <button aria-label="Close navigation" className="flex items-center gap-2 px-4 py-3" onClick={() => setMobileMenuOpen(false)}><X className="w-5 h-5" />Close menu</button>
+            <Sidebar mobile onNavigate={() => setMobileMenuOpen(false)} />
+          </div>
+        </ModalLayer>
+      )}
       <GlobalSearchModal
         isOpen={searchModalOpen}
         onClose={() => setSearchModalOpen(false)}

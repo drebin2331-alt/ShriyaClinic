@@ -1,3 +1,6 @@
+import './clinic-modules.css';
+import { SectionPicker, WorkspaceHeading } from '../components/common/WorkspaceControls';
+import { ModalLayer } from '../components/common/ModalLayer';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -147,146 +150,47 @@ export const PatientPortal: React.FC<PatientPortalProps> = ({ initialTab = 'dash
   const estimatedWaitMinutes = myActiveToken ? Math.max(5, (patientsAhead + 1) * 10) : 0;
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden mx-auto px-2.5 sm:px-4 lg:px-6 py-3 sm:py-5 flex flex-col lg:flex-row gap-4 lg:gap-6">
+    <div className="workspace w-full max-w-full mx-auto px-2.5 sm:px-4 lg:px-6 py-3 sm:py-5 flex flex-col lg:flex-row gap-4 lg:gap-6">
       <Sidebar />
 
       <main className="flex-1 min-w-0 flex flex-col gap-4">
-        {/* Patient Welcome Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-800 text-white flex items-center justify-center text-lg shrink-0 font-bold">
-              👨‍💼
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-                  Welcome, {patientRecord?.name || currentUser.name || 'Patient'}
-                </h1>
-                <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold uppercase">
-                  Verified
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Patient ID: <span className="font-mono font-semibold text-slate-700">{patientRecord?.id || 'Pending Link'}</span> • Phone: {patientRecord?.phone || currentUser.phone || 'N/A'}
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setActiveView('booking')}
-            className="px-3.5 py-1.5 rounded-md bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Book Appointment</span>
-          </button>
-        </div>
+        <WorkspaceHeading title={patientRecord?.name || currentUser.name || 'Patient portal'}
+          detail={[patientRecord?.id, patientRecord?.phone || currentUser.phone].filter(Boolean).join(' · ')}>
+          <button className="work-action primary" onClick={() => setActiveView('booking')}><Plus size={16} /> Book appointment</button>
+        </WorkspaceHeading>
 
         {/* Informative banner if no patient record is linked */}
         {!patientRecord && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 flex items-center justify-between gap-3">
             <span>
-              <strong>Note:</strong> Your online profile is not yet linked to an in-clinic OP record. Please contact reception at <strong>+91 9400320890</strong> to link your medical files, treatment history, and bills.
+              Contact reception at <a className="font-semibold underline" href="tel:+919400320890">+91 9400320890</a> to link your clinic records.
             </span>
           </div>
         )}
 
-        {/* Modern Mobile-First Segmented Pill Tab Bar */}
-        <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80 scrollbar-none">
-          {[
-            { id: 'dashboard', label: 'Dashboard', icon: <Calendar className="w-3.5 h-3.5" /> },
-            { id: 'appointments', label: 'Appointments', icon: <Clock className="w-3.5 h-3.5" /> },
-            { id: 'token', label: 'Live Token', icon: <Tv className="w-3.5 h-3.5" /> },
-            { id: 'treatment', label: 'Treatment Plan', icon: <Activity className="w-3.5 h-3.5" /> },
-            { id: 'billing', label: 'Bills & UPI Pay', icon: <CreditCard className="w-3.5 h-3.5" /> },
-            { id: 'records', label: 'Records & Scans', icon: <FileText className="w-3.5 h-3.5" /> },
-            { id: 'profile', label: 'Profile', icon: <User className="w-3.5 h-3.5" /> }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-3 py-2 text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap rounded-xl ${
-                activeTab === tab.id
-                  ? 'bg-white text-emerald-900 font-black shadow-xs border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 font-semibold'
-              }`}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </div>
+        <SectionPicker label="Patient portal section" value={activeTab} onChange={setActiveTab} options={[
+          { id: 'dashboard', label: 'Overview' }, { id: 'appointments', label: 'Appointments' },
+          { id: 'token', label: 'Live token' }, { id: 'treatment', label: 'Treatment plan' },
+          { id: 'billing', label: 'Bills & UPI Pay' }, { id: 'records', label: 'Records & scans' }, { id: 'profile', label: 'Profile' }
+        ]} />
 
         {/* TAB 1: DASHBOARD */}
         {activeTab === 'dashboard' && (
           <div className="flex flex-col gap-6">
-            {/* Quick Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <ClayCard variant="accent" className="p-4">
-                <span className="text-[11px] font-bold text-sky-800 uppercase">Upcoming Visit</span>
-                <div className="text-xl font-black text-sky-950 mt-1 truncate">
-                  {upcomingApt ? upcomingApt.timeSlot : 'None Scheduled'}
-                </div>
-                <span className="text-[11px] text-slate-600 block mt-0.5 truncate">
-                  {upcomingApt ? `${upcomingApt.date} • ${upcomingApt.doctorName}` : 'Book your next dental checkup'}
-                </span>
-              </ClayCard>
-
-              <ClayCard variant="flat" className="p-4">
-                <span className="text-[11px] font-bold text-slate-500 uppercase">Active Token</span>
-                <div className="text-xl font-black text-slate-800 mt-1 font-mono">
-                  {myActiveToken ? myActiveToken.tokenNumber : 'Not Assigned'}
-                </div>
-                <span className="text-[11px] text-slate-500 block mt-0.5">
-                  {myActiveToken ? `Status: ${myActiveToken.status}` : 'Assigned upon clinic check-in'}
-                </span>
-              </ClayCard>
-
-              <ClayCard variant="flat" className="p-4">
-                <span className="text-[11px] font-bold text-slate-500 uppercase">Current Treatment</span>
-                <div className="text-xl font-black text-slate-800 mt-1 truncate">
-                  {patientRecord?.currentTreatment || 'Routine Care'}
-                </div>
-                <span className="text-[11px] text-emerald-600 font-bold block mt-0.5">
-                  {patientRecord?.assignedDoctorName || 'Attending Doctor'}
-                </span>
-              </ClayCard>
-
-              <ClayCard 
-                variant="flat" 
-                className="p-4 cursor-pointer hover:border-emerald-300 transition-colors"
-                onClick={() => setActiveTab('billing')}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase">Outstanding Balance</span>
-                  <CreditCard className="w-3.5 h-3.5 text-slate-400" />
-                </div>
-                <div className="text-xl font-black text-rose-700 mt-1">
-                  ₹{patientRecord?.outstandingBalance || totalMyBalance || 0}
-                </div>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-[11px] text-slate-500">
-                    {patientRecord?.outstandingBalance || totalMyBalance ? 'Payment pending' : 'All accounts settled'}
-                  </span>
-                  {(patientRecord?.outstandingBalance || totalMyBalance > 0) && (
-                    <span className="text-[10px] font-bold text-emerald-700 hover:underline">
-                      Pay Now →
-                    </span>
-                  )}
-                </div>
-              </ClayCard>
-            </div>
+            <dl className="module-summary">
+              <div><dt>Next appointment</dt><dd>{upcomingApt?.timeSlot || 'None booked'}</dd>
+                {upcomingApt && <small>{upcomingApt.date} · {upcomingApt.doctorName}</small>}</div>
+              <div><dt>Queue token</dt><dd>{myActiveToken?.tokenNumber || 'No token'}</dd>{myActiveToken && <small>{myActiveToken.status}</small>}</div>
+              <div><dt>Current treatment</dt><dd>{patientRecord?.currentTreatment || 'Routine care'}</dd>{patientRecord?.assignedDoctorName && <small>{patientRecord.assignedDoctorName}</small>}</div>
+              <div><dt>Outstanding balance</dt><dd><button className="module-balance-link" onClick={() => setActiveTab('billing')} aria-label="View bills and outstanding balance">
+                ₹{patientRecord?.outstandingBalance || totalMyBalance || 0}<ArrowRight size={14} />
+              </button></dd></div>
+            </dl>
 
             {/* 4-Step Guided Patient Journey (Clear, intuitive, non-repetitive) */}
             <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                  Your Clinic Visit Flow (Step-by-Step)
-                </span>
-                <span className="text-[11px] text-emerald-700 font-semibold">
-                  Guided Patient Journey
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <h2 className="text-base font-semibold mb-3">Your clinic visit</h2>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                 <div className={`p-3 rounded-xl border ${upcomingApt ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase tracking-wider">Step 1</span>
@@ -329,7 +233,7 @@ export const PatientPortal: React.FC<PatientPortalProps> = ({ initialTab = 'dash
             </div>
 
             {/* Live Queue / Arrival Status Banner */}
-            <div className="clay-card p-6 bg-gradient-to-r from-sky-50 via-teal-50 to-indigo-50 border border-white">
+            <div className="clay-card p-6 bg-sky-50 border border-white">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                   <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-sky-200 text-sky-800 tracking-wider">
@@ -390,9 +294,9 @@ export const PatientPortal: React.FC<PatientPortalProps> = ({ initialTab = 'dash
         {/* TAB 2: APPOINTMENTS */}
         {activeTab === 'appointments' && (
           <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between">
+            <div className="module-section-heading">
               <div>
-                <h2 className="text-lg font-black text-slate-800">My Appointments</h2>
+                <h2 className="text-lg font-black text-slate-800">My appointments</h2>
                 <p className="text-xs text-slate-500">View upcoming bookings and past clinical visit history.</p>
               </div>
               <ClayButton
@@ -476,7 +380,7 @@ export const PatientPortal: React.FC<PatientPortalProps> = ({ initialTab = 'dash
               <div className="space-y-6">
                 {/* CALLED ALERT BANNER */}
                 {myActiveToken.status === 'Called' && (
-                  <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-500 via-teal-600 to-sky-600 text-white shadow-2xl flex flex-col items-center text-center animate-in zoom-in-95">
+                  <div className="p-6 rounded-3xl bg-emerald-500 text-white shadow-2xl flex flex-col items-center text-center animate-in zoom-in-95">
                     <span className="text-xs font-black uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full mb-2">
                       Now Calling You 🔔
                     </span>
@@ -494,7 +398,7 @@ export const PatientPortal: React.FC<PatientPortalProps> = ({ initialTab = 'dash
 
                 {/* IN CONSULTATION BANNER */}
                 {myActiveToken.status === 'In Consultation' && (
-                  <div className="p-6 rounded-3xl bg-gradient-to-r from-teal-500 to-indigo-600 text-white shadow-2xl flex flex-col items-center text-center">
+                  <div className="p-6 rounded-3xl bg-teal-500 text-white shadow-2xl flex flex-col items-center text-center">
                     <span className="text-xs font-black uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full mb-2">
                       Live Consultation In Progress
                     </span>
@@ -760,7 +664,7 @@ export const PatientPortal: React.FC<PatientPortalProps> = ({ initialTab = 'dash
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-extrabold text-slate-900">
-                    My Payment Pay Records & Receipts
+                    Payments and receipts
                   </h3>
                   <p className="text-xs text-slate-500">
                     Official digital payment records and transaction receipts for all cleared settlements.
@@ -909,7 +813,7 @@ export const PatientPortal: React.FC<PatientPortalProps> = ({ initialTab = 'dash
       {/* PATIENT ONLINE PAYMENT MODAL                         */}
       {/* ==================================================== */}
       {isPayModalOpen && payingInvoice && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+        <ModalLayer onDismiss={() => setIsPayModalOpen(false)} className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
@@ -921,7 +825,7 @@ export const PatientPortal: React.FC<PatientPortalProps> = ({ initialTab = 'dash
                   <p className="text-[11px] text-slate-500">Secure 256-bit encrypted medical checkout</p>
                 </div>
               </div>
-              <button
+              <button aria-label="Close dialog"
                 onClick={() => setIsPayModalOpen(false)}
                 className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
@@ -1093,21 +997,21 @@ export const PatientPortal: React.FC<PatientPortalProps> = ({ initialTab = 'dash
               </button>
             </div>
           </div>
-        </div>
+        </ModalLayer>
       )}
 
       {/* ==================================================== */}
       {/* OFFICIAL DIGITAL RECEIPT MODAL                       */}
       {/* ==================================================== */}
       {activeReceiptModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+        <ModalLayer onDismiss={() => setActiveReceiptModal(null)} className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <span className="text-xs font-bold text-emerald-800 flex items-center gap-1">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 Payment Cleared & Confirmed
               </span>
-              <button
+              <button aria-label="Close dialog"
                 onClick={() => setActiveReceiptModal(null)}
                 className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
@@ -1198,7 +1102,7 @@ export const PatientPortal: React.FC<PatientPortalProps> = ({ initialTab = 'dash
               </button>
             </div>
           </div>
-        </div>
+        </ModalLayer>
       )}
     </div>
   );

@@ -1,37 +1,11 @@
+import { Sidebar } from '../components/common/Sidebar';
+import { ModalLayer } from '../components/common/ModalLayer';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { 
-  Activity, 
-  Users, 
-  CreditCard, 
-  Calendar, 
-  Stethoscope, 
-  UserPlus, 
-  FileText, 
-  BarChart3, 
-  Sparkles, 
-  Clock, 
-  ArrowRight, 
-  ChevronRight, 
-  ChevronDown, 
-  CheckCircle2, 
-  AlertCircle, 
-  X, 
-  Search, 
-  Bell, 
-  Plus, 
-  Phone, 
-  ExternalLink, 
-  ShieldCheck, 
-  LogOut, 
-  Layers, 
-  Tv,
-  Coins,
-  Receipt,
-  Download,
-  Flame,
-  Smartphone
+import {
+  Activity, ArrowRight, BarChart3, Calendar, ChevronRight, CreditCard, Download,
+  FileText, Layers, Smartphone, Stethoscope, UserPlus, Users, X
 } from 'lucide-react';
 
 export const MobileAppDashboard: React.FC = () => {
@@ -41,15 +15,14 @@ export const MobileAppDashboard: React.FC = () => {
     appointments = [], 
     invoices = [], 
     payments = [],
+    visits = [],
     setActiveView, 
     setSelectedPatientForDetail,
     callNextToken,
-    addToast,
-    isProfileSheetOpen,
-    setIsProfileSheetOpen
+    addToast
   } = useApp();
 
-  const { currentUser, logout, setIsDemoModalOpen } = useAuth();
+  const { currentUser } = useAuth();
 
   const [isModulesModalOpen, setIsModulesModalOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -118,323 +91,114 @@ export const MobileAppDashboard: React.FC = () => {
     }
   };
 
-  // 8 Quick Access Modules (Matching reference screenshot 1 & 2)
+  // Tools open the existing clinical workspaces.
   const modules = [
     {
       id: 'tokens',
       title: 'Queue',
-      subtitle: 'Live Tokens',
       icon: <Activity className="w-5 h-5 text-emerald-600" />,
-      bg: 'bg-emerald-50 border-emerald-200/80',
-      badge: waitingTokens.length > 0 ? `${waitingTokens.length}` : undefined,
-      badgeColor: 'bg-rose-500 text-white',
       view: 'tokens' as const
     },
     {
       id: 'patients',
       title: 'Patients',
-      subtitle: 'EMR Roster',
       icon: <Users className="w-5 h-5 text-sky-600" />,
-      bg: 'bg-sky-50 border-sky-200/80',
-      badge: `${patients.length}`,
-      badgeColor: 'bg-sky-600 text-white',
       view: 'admin-patients' as const
     },
     {
       id: 'chart',
       title: 'Odontogram',
-      subtitle: '3D Teeth Chart',
       icon: <Stethoscope className="w-5 h-5 text-teal-600" />,
-      bg: 'bg-teal-50 border-teal-200/80',
       view: 'patient-profile' as const
     },
     {
       id: 'billing',
       title: 'Billing',
-      subtitle: 'Invoices & POS',
       icon: <CreditCard className="w-5 h-5 text-amber-600" />,
-      bg: 'bg-amber-50 border-amber-200/80',
-      badge: outstandingBalance > 0 ? 'Due' : undefined,
-      badgeColor: 'bg-amber-500 text-white',
       view: 'billing' as const
     },
     {
       id: 'appointments',
-      title: 'Appts',
-      subtitle: 'Doctor Schedule',
+      title: 'Appointments',
       icon: <Calendar className="w-5 h-5 text-blue-600" />,
-      bg: 'bg-blue-50 border-blue-200/80',
-      badge: `${appointments.length}`,
-      badgeColor: 'bg-blue-600 text-white',
       view: 'appointment-mgmt' as const
     },
     {
       id: 'checkin',
       title: 'Check-In',
-      subtitle: 'Fast Reception',
       icon: <UserPlus className="w-5 h-5 text-purple-600" />,
-      bg: 'bg-purple-50 border-purple-200/80',
       view: 'staff-checkin' as const
     },
     {
       id: 'prescriptions',
-      title: 'Rx Write',
-      subtitle: 'Digital Medicine',
+      title: 'Prescriptions',
       icon: <FileText className="w-5 h-5 text-rose-600" />,
-      bg: 'bg-rose-50 border-rose-200/80',
       view: 'patient-profile' as const
     },
     {
       id: 'reports',
       title: 'Reports',
-      subtitle: 'Practice Ledger',
       icon: <BarChart3 className="w-5 h-5 text-indigo-600" />,
-      bg: 'bg-indigo-50 border-indigo-200/80',
       view: 'admin-reports' as const
     }
   ];
 
+  const dateLabel = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+  const money = (value: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(value);
+  const localDate = new Date();
+  const scheduleDate = [localDate.getFullYear(), String(localDate.getMonth() + 1).padStart(2, '0'), String(localDate.getDate()).padStart(2, '0')].join('-');
+  const dailyAppointments = appointments.filter(appointment => appointment.date === scheduleDate);
+  const collectedToday = payments.filter(payment => payment.date?.slice(0, 10) === scheduleDate)
+    .reduce((sum, payment) => sum + payment.amount, 0);
+  const upcoming = appointments.filter(appointment => appointment.date >= scheduleDate &&
+    ![appointment.status, appointment.appointmentStatus].some(status => ['CANCELLED', 'COMPLETED', 'NO_SHOW'].includes(String(status).toUpperCase())))
+    .sort((a, b) => a.date.localeCompare(b.date) || Date.parse(a.date + ' ' + a.timeSlot) - Date.parse(b.date + ' ' + b.timeSlot)).slice(0, 5);
+  const activity = [...visits].sort((a, b) => (b.visitDate || '').localeCompare(a.visitDate || '') ||
+    Date.parse(b.visitDate + ' ' + b.checkInTime) - Date.parse(a.visitDate + ' ' + a.checkInTime)).slice(0, 4);
+  const deskTitle = currentUser.role === 'doctor' ? 'Consultation desk' : currentUser.role === 'admin' ? 'Practice overview' :
+    currentUser.role === 'billing' ? 'Accounts desk' : 'Reception desk';
+
   return (
-    <div className="w-full max-w-lg mx-auto pb-6 px-3.5 sm:px-4 space-y-4 animate-in fade-in duration-200">
-      {/* 1. TOP APP BAR CONTEXT PILL */}
-      <div className="flex items-center justify-between gap-2 pt-1 pb-0.5">
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-xs font-bold text-slate-800 select-none">
-          <Stethoscope className="w-3.5 h-3.5 text-teal-700 shrink-0" />
-          <span>Doctor Consultation Suite</span>
-        </div>
-
-        <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 shrink-0">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Live Hub</span>
-        </div>
+    <div className="daybook-shell"><Sidebar /><main className="daybook">
+      <header className="daybook-heading">
+        <div><p className="daybook-date">{dateLabel}</p><h1>{deskTitle}</h1></div>
+        <div className="desk-heading-actions"><button className="desk-button secondary" onClick={() => setIsModulesModalOpen(true)}>All tools <Layers size={16}/></button>
+        <button className="desk-button" onClick={() => setActiveView(currentUser.role === 'doctor' ? 'doctor-patients' : currentUser.role === 'billing' ? 'billing' : 'staff-checkin')}>
+          {currentUser.role === 'doctor' ? 'Patient records' : currentUser.role === 'billing' ? 'Open billing' : 'Open reception'} <ArrowRight size={16}/>
+        </button></div>
+      </header>
+      <div className="desk-grid">
+        <section className="desk-panel cabin">
+          <div className="desk-section-title"><h2>Consultation room</h2><Stethoscope size={22}/></div>
+          <div className="cabin-reading"><span>{activeToken ? activeToken.status : 'Current queue'}</span>
+            <strong>{activeToken ? activeToken.tokenNumber : 'Cabin ready'}</strong>
+            {activeToken && <p>{activeToken.patientName}</p>}
+          </div>
+          <button className="desk-button light" onClick={handleCallNext}>Call next token <ArrowRight size={16}/></button>
+        </section>
+        <section className="desk-panel daily"><h2>Practice at a glance</h2><dl className="desk-numbers">
+          {[[dailyAppointments.length, 'Appointments today'], [waitingTokens.length, 'Waiting now'], [patients.length, 'Registered patients'], [completedAppointments, 'Completed appointments · all time']].map(([value,label]) =>
+            <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+        </dl></section>
+        <section className="desk-panel desk-schedule"><div className="desk-section-title"><h2>Appointment book</h2><button onClick={() => setActiveView('appointment-mgmt')}>View schedule <ChevronRight size={15}/></button></div>
+          {upcoming.length ? <ol className="desk-list">{upcoming.map(a => <li key={a.id}><time>{a.date}<small>{a.timeSlot}</small></time><div><strong>{a.patientName}</strong><small>{a.doctorName}</small></div></li>)}</ol> :
+            <p className="desk-empty"><Calendar/>No upcoming appointments.</p>}
+        </section>
+        <section className="desk-panel accounts"><div className="desk-section-title"><h2>Collections</h2><button onClick={() => setActiveView('billing')}>Billing <ChevronRight size={15}/></button></div>
+          <dl className="desk-ledger">{[['Collected today', collectedToday], ['Outstanding balance', outstandingBalance], ['Total settled', totalRevenue]].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{money(Number(value))}</dd></div>)}</dl>
+        </section>
+        <section className="desk-panel desk-queue"><div className="desk-section-title"><h2>Waiting room</h2><button onClick={() => setActiveView('tokens')}>Open queue <ChevronRight size={15}/></button></div>
+          {waitingTokens.length ? <ol className="desk-list">{waitingTokens.slice(0,5).map(t => <li key={t.id}><b>{t.tokenNumber}</b><button onClick={() => handleOpenPatientDetail(t.patientId)}>{t.patientName}</button></li>)}</ol> :
+            <p className="desk-empty"><Activity/>No patients waiting.</p>}
+        </section>
+        <section className="desk-panel"><h2>Recent patient visits</h2>{activity.length ? <ol className="desk-list">{activity.map(v=><li key={v.id}><time>{v.visitDate}</time><div><button onClick={() => handleOpenPatientDetail(v.patientId)}>{v.patientName}</button><small>{v.status}</small></div></li>)}</ol> : <p className="desk-empty">No visits recorded.</p>}</section>
       </div>
+      <section className="desk-tools"><div className="desk-section-title"><h2>Clinical tools</h2></div>
+        <div className="tool-grid">{modules.map(m=><button key={m.id} onClick={()=>setActiveView(m.view)}>{m.icon}<span>{m.title}</span><ChevronRight size={14}/></button>)}</div>
+      </section>
 
-      {/* 2. HERO CLINICAL STATUS CARD (Dark Teal Gradient Card like Reference 1) */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-950 via-slate-900 to-emerald-950 p-5 sm:p-6 text-white shadow-xl border border-teal-800/40">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-36 h-36 bg-teal-500/15 rounded-full blur-2xl pointer-events-none" />
-
-        <div className="relative z-10 space-y-4">
-          <div className="flex items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-300 bg-emerald-900/60 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-              <span>Shift Active • OPD Open</span>
-            </span>
-
-            <span className="text-xs font-mono text-slate-300 flex items-center gap-1">
-              <Clock className="w-3 h-3 text-teal-400" />
-              <span>{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-            </span>
-          </div>
-
-          <div>
-            <span className="text-[11px] font-bold text-slate-300 block">Current Cabin Patient Status</span>
-            {activeToken ? (
-              <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-                  #{activeToken.tokenNumber}
-                </span>
-                <span className="text-sm sm:text-base font-bold text-emerald-300 truncate">
-                  {activeToken.patientName}
-                </span>
-              </div>
-            ) : (
-              <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  Cabin Ready
-                </span>
-                <span className="text-xs text-slate-300">
-                  Ready to examine next patient
-                </span>
-              </div>
-            )}
-            <p className="text-xs text-slate-300 mt-1 flex items-center gap-2">
-              <span className="text-emerald-400 font-bold">{waitingTokens.length} waiting</span> in reception lobby
-              <span>•</span>
-              <span className="text-slate-300">{completedAppointments} completed</span>
-            </p>
-          </div>
-
-          {/* Action Button (Styled after the "Request Loan" button in Reference Screenshot 1) */}
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={handleCallNext}
-              className="w-full py-3.5 px-4 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-98 border border-white/20 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-lg backdrop-blur-md transition-all cursor-pointer group"
-            >
-              <div className="w-7 h-7 rounded-full bg-amber-400/20 border border-amber-300/40 text-amber-300 flex items-center justify-center shrink-0">
-                <Flame className="w-4 h-4 fill-amber-300" />
-              </div>
-              <span>Call Next Token to Cabin</span>
-              <ArrowRight className="w-4 h-4 text-emerald-300 transition-transform group-hover:translate-x-1" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. CORE 8-MODULES QUICK ACCESS GRID (Exact Match to Reference Screenshot 1) */}
-      <div className="space-y-2.5 pt-1">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-amber-500 font-black text-sm">⚡</span>
-              <h2 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
-                Shriya Dental Modules
-              </h2>
-              <button 
-                onClick={() => setIsModulesModalOpen(true)}
-                className="ml-1 text-[10px] font-black uppercase text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 cursor-pointer hover:bg-emerald-100 transition-colors"
-              >
-                Quick Access
-              </button>
-            </div>
-            <p className="text-[11px] text-slate-500 mt-0.5">
-              Instant access to your clinical activities &amp; patient tools
-            </p>
-          </div>
-        </div>
-
-        {/* 4x2 Grid of Squircle Touch Cards */}
-        <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
-          {modules.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => setActiveView(m.view)}
-              className="bg-white hover:bg-slate-50 active:scale-92 rounded-2xl sm:rounded-3xl p-2 sm:p-2.5 border border-slate-200/90 shadow-2xs hover:shadow-md transition-all flex flex-col items-center justify-center text-center cursor-pointer relative group aspect-square"
-            >
-              {m.badge && (
-                <span className={`absolute -top-1.5 -right-1 min-w-4 h-4 px-1 rounded-full text-[9px] font-black flex items-center justify-center border-2 border-white shadow-xs ${m.badgeColor}`}>
-                  {m.badge}
-                </span>
-              )}
-
-              <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center border transition-transform duration-200 group-hover:scale-110 shadow-2xs ${m.bg}`}>
-                {m.icon}
-              </div>
-
-              <span className="text-[10px] sm:text-[11px] font-black text-slate-800 tracking-tight mt-1.5 truncate max-w-full leading-tight group-hover:text-teal-700">
-                {m.title}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 4. KEY METRICS 2-COLUMN CARDS (Matching Reference Screenshot 1 & 3) */}
-      <div className="grid grid-cols-2 gap-2.5 pt-1">
-        {/* Metric 1: Pending Balance */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-4 border border-slate-200/90 shadow-2xs space-y-1.5">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 flex items-center gap-1">
-              <span>💰</span>
-              <span>Pending Dues</span>
-            </span>
-            <div className="w-6 h-6 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center text-xs">
-              <Receipt className="w-3.5 h-3.5" />
-            </div>
-          </div>
-
-          <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            ₹{outstandingBalance.toLocaleString()}
-          </div>
-
-          <div className="text-[10px] font-bold text-emerald-700 flex items-center gap-1">
-            <span>↗</span>
-            <span className="truncate">Live verified balance</span>
-          </div>
-        </div>
-
-        {/* Metric 2: Revenue Collected */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-4 border border-slate-200/90 shadow-2xs space-y-1.5">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 flex items-center gap-1">
-              <span>📈</span>
-              <span>Total Settled</span>
-            </span>
-            <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs">
-              <Coins className="w-3.5 h-3.5" />
-            </div>
-          </div>
-
-          <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            ₹{totalRevenue.toLocaleString()}
-          </div>
-
-          <div className="text-[10px] font-bold text-slate-400 truncate">
-            Across verified invoices
-          </div>
-        </div>
-      </div>
-
-      {/* 5. LIVE RECEPTION WAITING QUEUE STRIP */}
-      <div className="bg-white rounded-3xl p-4 border border-slate-200/90 shadow-2xs space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-xl bg-teal-50 text-teal-800 flex items-center justify-center font-bold text-xs border border-teal-200">
-              👥
-            </div>
-            <div>
-              <h3 className="text-xs sm:text-sm font-black text-slate-900">
-                Lobby Waiting Queue ({waitingTokens.length})
-              </h3>
-              <p className="text-[10px] text-slate-400">Next patients queued for doctor consultation</p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setActiveView('tokens')}
-            className="text-xs font-bold text-teal-700 hover:text-teal-900 flex items-center gap-1 cursor-pointer"
-          >
-            <span>Full Desk</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {waitingTokens.length === 0 ? (
-          <div className="py-5 text-center text-xs text-slate-400 font-medium bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-            ✓ All waiting patients have been attended to.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {waitingTokens.slice(0, 3).map((t, idx) => (
-              <div
-                key={t.id || t.tokenNumber}
-                onClick={() => handleOpenPatientDetail(t.patientId)}
-                className="p-2.5 rounded-2xl bg-slate-50/80 hover:bg-teal-50/50 border border-slate-100 flex items-center justify-between gap-2 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="w-7 h-7 rounded-xl bg-teal-700 text-white font-black text-xs flex items-center justify-center shrink-0">
-                    {t.tokenNumber}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="font-extrabold text-xs text-slate-900 truncate">
-                      {t.patientName}
-                    </div>
-                    <div className="text-[10px] text-slate-400 truncate">
-                      {t.chiefComplaint || 'Dental Examination'}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-full border border-slate-200">
-                    #{idx + 1}
-                  </span>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ===================================================================== */}
-      {/* 6. MODULES BOTTOM SHEET MODAL (Exact Match to Reference Screenshot 2) */}
-      {/* ===================================================================== */}
       {isModulesModalOpen && (
-        <div 
+        <ModalLayer onDismiss={() => setIsModulesModalOpen(false)}
           className="fixed inset-0 z-50 flex flex-col justify-end bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150"
           onClick={() => setIsModulesModalOpen(false)}
         >
@@ -450,7 +214,7 @@ export const MobileAppDashboard: React.FC = () => {
               <h3 className="text-base font-black text-slate-900">
                 Shriya Dental Modules
               </h3>
-              <button
+              <button aria-label="Close dialog"
                 type="button"
                 onClick={() => setIsModulesModalOpen(false)}
                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
@@ -481,20 +245,20 @@ export const MobileAppDashboard: React.FC = () => {
                   className="p-3 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 text-left font-bold text-slate-800 flex items-center gap-2.5 transition-colors cursor-pointer shadow-2xs hover:border-teal-300 active:scale-95"
                 >
                   <span className="text-base">{item.icon}</span>
-                  <span className="truncate">{item.label}</span>
+                  <span className="break-words">{item.label}</span>
                 </button>
               ))}
             </div>
 
             {/* Bottom Mobile App Install Banner (Matching Reference Screenshot 2) */}
-            <div className="rounded-2xl bg-gradient-to-r from-teal-800 to-emerald-700 p-3.5 text-white flex items-center justify-between gap-3 shadow-md">
+            <div className="rounded-xl bg-teal-800 p-3 text-white flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
                   <Smartphone className="w-4 h-4 text-white" />
                 </div>
                 <div className="min-w-0">
                   <div className="font-extrabold text-xs truncate">Shriya Dental Mobile App</div>
-                  <div className="text-[10px] text-emerald-200 truncate">Android APK • Add to Home Screen</div>
+                  <div className="text-xs text-emerald-100">Android APK • Add to Home Screen</div>
                 </div>
               </div>
 
@@ -519,9 +283,9 @@ export const MobileAppDashboard: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </ModalLayer>
       )}
-    </div>
+    </main></div>
   );
 };
 

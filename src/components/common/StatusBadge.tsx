@@ -46,10 +46,10 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center justify-center tracking-wider uppercase transition-all duration-150 ${getStyle()} ${getSize()} ${className}`}
+      className={`clinic-status inline-flex items-center justify-center tracking-wider uppercase transition-all duration-150 ${getStyle()} ${getSize()} ${className}`}
     >
       {status === 'In Consultation' && (
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping mr-1.5" />
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mr-1.5" />
       )}
       {status}
     </span>

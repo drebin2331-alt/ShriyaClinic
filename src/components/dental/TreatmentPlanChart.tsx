@@ -1,3 +1,4 @@
+import { ModalLayer } from '../common/ModalLayer';
 import React, { useState } from 'react';
 import { ToothData, TreatmentPlanItem, TreatmentPlanStatus } from '../../types';
 import { DentalChart } from './DentalChart';
@@ -181,7 +182,7 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
   return (
     <div className="space-y-6">
       {/* Overview Metric Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+      <div className="plan-metrics">
         <div className="clay-card-flat p-4 bg-white/80 rounded-2xl border border-slate-200">
           <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
             Total Planned Procedures
@@ -225,7 +226,7 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
             }}
             className="w-full py-1.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black transition-colors cursor-pointer"
           >
-            {showTeethSelector ? '✕ Hide Teeth Chart' : '🦷 Open Chart Selector'}
+            {showTeethSelector ? 'Hide chart' : 'Open chart'}
           </button>
         </div>
       </div>
@@ -254,7 +255,7 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
 
       {/* Multi-Tooth Action Banner */}
       {isMultiSelectMode && selectedTeethMulti.length > 0 && (
-        <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-between animate-in fade-in">
+        <div className="clinical-section-heading p-4 rounded-2xl bg-indigo-50 border border-indigo-200">
           <div className="flex items-center gap-3">
             <span className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm">
               {selectedTeethMulti.length}
@@ -290,10 +291,10 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
 
       {/* Treatment Plan Procedures Table / Cards */}
       <div className="clay-card p-5 bg-white/95 rounded-3xl border border-white/80 shadow-md">
-        <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-200">
+        <div className="clinical-section-heading pb-3 mb-4 border-b border-slate-200">
           <div>
             <h4 className="text-sm font-black text-slate-800 uppercase tracking-wider">
-              Comprehensive Treatment Plan Items
+              Planned procedures
             </h4>
             <span className="text-xs text-slate-500">
               Assigned Doctor: <strong>{doctorName}</strong>
@@ -308,7 +309,7 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
                 onClick={onNavigateToBilling}
                 icon={<DollarSign className="w-4 h-4 text-emerald-600" />}
               >
-                Bill Planned Treatments
+                Bill treatments
               </ClayButton>
             )}
             <ClayButton
@@ -332,7 +333,7 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs responsive-records">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-400 font-extrabold uppercase tracking-wider text-[10px]">
                   <th className="py-2.5 px-3">Tooth / Teeth</th>
@@ -348,7 +349,7 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
                 {treatmentPlans.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                     {/* Tooth Badges */}
-                    <td className="py-3 px-3">
+                    <td data-label="Tooth / Teeth" className="py-3 px-3">
                       <div className="flex flex-wrap gap-1">
                         {item.toothNumbers.map((num) => (
                           <span
@@ -364,12 +365,12 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
                     </td>
 
                     {/* Diagnosis */}
-                    <td className="py-3 px-3 font-medium text-slate-700 max-w-[200px]">
+                    <td data-label="Diagnosis" className="py-3 px-3 font-medium text-slate-700 max-w-[200px]">
                       {item.diagnosis}
                     </td>
 
                     {/* Procedure */}
-                    <td className="py-3 px-3">
+                    <td data-label="Procedure & Prosthetic Specs" className="py-3 px-3">
                       <span className="font-extrabold text-slate-900 block">{item.procedure}</span>
                       {item.prostheticDesign && (
                         <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md inline-block mt-0.5">
@@ -379,7 +380,7 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
                     </td>
 
                     {/* Priority */}
-                    <td className="py-3 px-3">
+                    <td data-label="Priority" className="py-3 px-3">
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                           item.priority === 'High'
@@ -394,12 +395,12 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
                     </td>
 
                     {/* Cost */}
-                    <td className="py-3 px-3 font-mono font-black text-slate-800">
+                    <td data-label="Est. Cost" className="py-3 px-3 font-mono font-black text-slate-800">
                       ₹{item.estimatedCost.toLocaleString()}
                     </td>
 
                     {/* Status Dropdown */}
-                    <td className="py-3 px-3">
+                    <td data-label="Status" className="py-3 px-3">
                       <select
                         value={item.status}
                         onChange={(e) => onUpdateTreatmentStatus(item.id, e.target.value as TreatmentPlanStatus)}
@@ -415,7 +416,7 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
                     </td>
 
                     {/* Action buttons */}
-                    <td className="py-3 px-3 text-right">
+                    <td data-label="Actions" className="py-3 px-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleOpenEditModal(item)}
@@ -460,7 +461,7 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
 
       {/* Bulk Multi-Tooth Treatment Modal */}
       {showBulkModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+        <ModalLayer onDismiss={() => setShowBulkModal(false)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
           <div className="clay-card w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-white space-y-4">
             <h3 className="text-base font-black text-slate-800">
               Bulk Treatment for {selectedTeethMulti.length} Selected Teeth
@@ -540,12 +541,12 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
               </ClayButton>
             </div>
           </div>
-        </div>
+        </ModalLayer>
       )}
 
       {/* Edit Treatment Plan Modal */}
       {editingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+        <ModalLayer onDismiss={() => setEditingItem(null)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
           <div className="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-start justify-between pb-3 border-b border-slate-200">
               <div>
@@ -556,7 +557,7 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
                   Edit Planned Treatment Procedure
                 </h3>
               </div>
-              <button
+              <button aria-label="Close dialog"
                 onClick={() => setEditingItem(null)}
                 className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 cursor-pointer"
               >
@@ -668,7 +669,7 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
               </div>
             </form>
           </div>
-        </div>
+        </ModalLayer>
       )}
     </div>
   );

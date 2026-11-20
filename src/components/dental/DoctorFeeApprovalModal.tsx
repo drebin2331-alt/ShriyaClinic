@@ -1,3 +1,4 @@
+import { ModalLayer } from '../common/ModalLayer';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -240,7 +241,7 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+    <ModalLayer onDismiss={onClose} className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
       <div className="bg-white w-full max-w-2xl rounded-3xl p-4 sm:p-6 shadow-2xl border border-slate-200 max-h-[96vh] sm:max-h-[92vh] overflow-y-auto space-y-4">
         
         {/* Header */}
@@ -261,7 +262,7 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
               Patient: <strong className="text-slate-800">{resolvedPatient?.name || patientName || 'Patient'}</strong> ({resolvedPatient?.opNumber || resolvedPatient?.id || targetPatientId || 'N/A'}) • Token: <strong className="text-sky-800 font-mono">{resolvedVisit?.tokenId || (tokens.find(t => t.patientId === targetPatientId)?.tokenNumber) || 'Active'}</strong>
             </p>
           </div>
-          <button
+          <button aria-label="Close dialog"
             onClick={onClose}
             className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 cursor-pointer"
           >
@@ -389,9 +390,9 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
               <option value="Fluoride Application / Pit & Fissure Sealant" />
             </datalist>
 
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-800 uppercase tracking-wider text-[11px]">
-                Treatment & Procedure Items ({items.length})
+            <div className="clinical-section-heading">
+              <span className="font-bold text-slate-800">
+                Procedures ({items.length})
               </span>
               <button
                 type="button"
@@ -399,7 +400,7 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
                 className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold text-[11px] hover:bg-emerald-100 flex items-center gap-1 border border-emerald-200 cursor-pointer shadow-2xs"
               >
                 <Plus className="w-3 h-3" />
-                <span>+ Add Procedure</span>
+                <span>Add procedure</span>
               </button>
             </div>
 
@@ -427,6 +428,7 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
                           value={item.description}
                           onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
                           placeholder="Procedure description..."
+                          aria-label="Procedure description"
                           className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-300 font-medium text-xs focus:ring-1 focus:ring-emerald-500 bg-white"
                         />
                         <button
@@ -439,7 +441,7 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
                         </button>
                       </div>
 
-                      <div className="flex items-center justify-between gap-3 pl-6">
+                      <div className="fee-item-fields">
                         <div className="w-20">
                           <span className="text-[10px] font-bold text-slate-500 block mb-0.5">Qty</span>
                           <input
@@ -638,6 +640,6 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </ModalLayer>
   );
 };

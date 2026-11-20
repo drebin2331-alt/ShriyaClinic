@@ -1,5 +1,79 @@
 @import "tailwindcss";
 
+@theme {
+  --color-slate-50: #f4f6f0;
+  --color-slate-100: #eaf0e8;
+  --color-slate-200: #d7e0d6;
+  --color-slate-300: #c2cec5;
+  --color-slate-500: #576d64;
+  --color-slate-600: #465d53;
+  --color-slate-700: #374e45;
+  --color-slate-800: #293e36;
+  --color-slate-900: #1f332d;
+  --color-teal-600: #287767;
+  --color-teal-700: #205f53;
+  --color-emerald-600: #31735d;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.125rem;
+  --font-weight-black: 720;
+  --font-weight-extrabold: 680;
+}
+
+/* Shrink content inside flex/grid tracks rather than clipping the page. */
+*, *::before, *::after { box-sizing: border-box; }
+:where(.flex, .grid) > * { min-width: 0; }
+:where(p, dd, li, label, button, a) { overflow-wrap: anywhere; }
+input, select, textarea { min-width: 0; max-width: 100%; }
+:where(.overflow-x-auto) > button { flex-shrink: 0; }
+@layer base { img, video { height: auto; } }
+.overflow-x-auto > button { flex-shrink: 0; }
+button, a, input, select, textarea { touch-action: manipulation; }
+:where(button, a, input, select, textarea):focus-visible { outline: 3px solid #0d9488; outline-offset: 3px; }
+:where(section[id]) { scroll-margin-top: 6rem; }
+.clinic-modal-layer { top: var(--dialog-top, 0px); bottom: auto; height: var(--dialog-height, 100dvh); overflow-y: auto; overscroll-behavior: contain; }
+.clinic-modal-layer > div:not(.absolute) {
+  min-width: 0;
+  max-height: calc(var(--dialog-height, 100dvh) - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin-block: 0;
+}
+.clinic-modal-layer > div > :where(.overflow-y-auto) { min-height: 0; }
+.clinic-modal-layer[data-compact="true"] > div:not(.absolute) { display: block; }
+
+@media screen and (min-width: 768px) {
+  .responsive-records { min-width: 48rem; }
+  .responsive-records :where(th, td) { white-space: nowrap; }
+  .responsive-records button { white-space: nowrap; }
+}
+
+@media screen and (max-width: 767px) {
+  :where(button, [role="button"], input:not([type="checkbox"]):not([type="radio"]), select) { min-height: 44px; }
+  :where(button[aria-label], button[title]) { min-width: 44px; }
+  :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { font-size: 16px; }
+  .clinic-action { font-size: 14px; }
+  .clinic-modal-layer { padding: .5rem; }
+  .clinic-modal-layer > div:not(.absolute) { max-height: calc(var(--dialog-height, 100dvh) - 1rem); }
+  .responsive-records, .responsive-records tbody { display: block; width: 100%; }
+  .responsive-records thead { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
+  .responsive-records tbody > tr { display: block; padding: .75rem; border-bottom: 1px solid #e2e8f0; }
+  .responsive-records tbody > tr > td[data-label] {
+    display: block;
+    width: 100%;
+    padding: .5rem 0;
+    font-size: 14px;
+    text-align: left;
+    white-space: normal;
+  }
+  .responsive-records td[data-label]::before { display: block; margin-bottom: .375rem; content: attr(data-label); color: #475569; font: 600 12px/1.5 'Plus Jakarta Sans', sans-serif; }
+  .responsive-records td[data-label] > .flex { flex-wrap: wrap; }
+  .responsive-records td[colspan] { display: block; padding: 1rem 0; white-space: normal; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
 @layer utilities {
   /* Modern Professional Healthcare Cards */
   .clay-card,
@@ -164,8 +238,6 @@ html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
   width: 100%;
-  max-width: 100vw;
-  overflow-x: hidden;
 }
 
 body {
@@ -173,8 +245,6 @@ body {
   color: #0f172a;
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   width: 100%;
-  max-width: 100vw;
-  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
@@ -182,8 +252,6 @@ body {
 
 #root {
   width: 100%;
-  max-width: 100vw;
-  overflow-x: hidden;
   min-height: 100vh;
 }
 

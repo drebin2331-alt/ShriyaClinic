@@ -1,3 +1,4 @@
+import { ModalLayer } from '../common/ModalLayer';
 import React, { useState } from 'react';
 import { PatientRecord, Appointment, Invoice } from '../../types';
 import { Search, X, User, Calendar, FileText, Hash, ArrowRight } from 'lucide-react';
@@ -43,7 +44,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   ) : [];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+    <ModalLayer onDismiss={onClose} className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
       <div className="clay-card w-full max-w-2xl bg-white rounded-3xl p-6 shadow-2xl border border-white space-y-4">
         {/* Search input header */}
         <div className="flex items-center gap-3 pb-3 border-b border-slate-200">
@@ -64,7 +65,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
               Clear
             </button>
           )}
-          <button
+          <button aria-label="Close dialog"
             onClick={onClose}
             className="p-1 rounded-lg text-slate-400 hover:text-slate-700"
           >
@@ -187,6 +188,6 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </ModalLayer>
   );
 };

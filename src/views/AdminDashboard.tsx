@@ -89,7 +89,7 @@ export const AdminDashboard: React.FC = () => {
   });
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-6 py-5 flex gap-6">
+    <div className="workspace w-full max-w-[1600px] mx-auto px-4 lg:px-6 py-5 flex flex-col lg:flex-row gap-6">
       <Sidebar type="admin" />
 
       <main className="flex-1 min-w-0 flex flex-col gap-4">
@@ -423,7 +423,7 @@ export const AdminDashboard: React.FC = () => {
 
           {/* Queue Data Table */}
           <div className="overflow-x-auto border border-slate-200 rounded-lg">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs responsive-records">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold">
                 <tr>
                   <th className="py-2.5 px-3">Token</th>
@@ -441,13 +441,13 @@ export const AdminDashboard: React.FC = () => {
 
                     return (
                       <tr key={apt.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-3 px-3">
+                        <td data-label="Token" className="py-3 px-3">
                           <span className="font-mono font-bold text-xs text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                             {apt.tokenId}
                           </span>
                         </td>
 
-                        <td className="py-3 px-3">
+                        <td data-label="Patient" className="py-3 px-3">
                           <div className="flex items-center gap-1.5">
                             <span className="font-semibold text-slate-900">{apt.patientName}</span>
                             {existingPat && (
@@ -466,21 +466,21 @@ export const AdminDashboard: React.FC = () => {
                           <div className="text-[11px] text-slate-400">{apt.patientPhone}</div>
                         </td>
 
-                        <td className="py-3 px-3">
+                        <td data-label="Doctor" className="py-3 px-3">
                           <div className="font-medium text-slate-800">{apt.doctorName}</div>
                           <div className="text-[10px] text-slate-400">{apt.doctorSpecialty}</div>
                         </td>
 
-                        <td className="py-3 px-3">
+                        <td data-label="Time" className="py-3 px-3">
                           <div className="font-medium text-slate-800">{apt.timeSlot}</div>
                           <div className="text-[10px] text-slate-400">{apt.date}</div>
                         </td>
 
-                        <td className="py-3 px-3">
+                        <td data-label="Status" className="py-3 px-3">
                           <StatusBadge status={apt.status} />
                         </td>
 
-                        <td className="py-3 px-3 text-right">
+                        <td data-label="Actions" className="py-3 px-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             {existingPat && (
                               <button

@@ -38,7 +38,7 @@ export const ClayCard: React.FC<ClayCardProps> = ({
       whileHover={hoverEffect ? { y: -1 } : undefined}
       transition={{ duration: 0.15 }}
       onClick={onClick}
-      className={`${getVariantClass()} p-4 md:p-5 transition-all duration-150 ${
+      className={`min-w-0 max-w-full ${getVariantClass()} p-4 md:p-5 transition-all duration-150 ${
         onClick ? 'cursor-pointer' : ''
       } ${className}`}
       {...rest}

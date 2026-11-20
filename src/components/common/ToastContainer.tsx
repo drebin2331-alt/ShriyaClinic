@@ -7,7 +7,7 @@ export const ToastContainer: React.FC = () => {
   const { toasts, removeToast } = useApp();
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none px-4 md:px-0">
+    <div className="fixed bottom-28 left-3 right-3 lg:left-auto lg:bottom-5 lg:right-5 z-50 flex flex-col gap-3 lg:max-w-sm pointer-events-none" aria-live="polite">
       <AnimatePresence>
         {toasts.map((toast) => {
           const getIcon = () => {
@@ -39,7 +39,7 @@ export const ToastContainer: React.FC = () => {
                   <p className="text-xs text-slate-600 mt-0.5">{toast.description}</p>
                 )}
               </div>
-              <button
+              <button aria-label="Dismiss notification"
                 onClick={() => removeToast(toast.id)}
                 className="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors cursor-pointer"
               >

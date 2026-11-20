@@ -44,22 +44,22 @@ export const ReceptionTVView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-6 md:p-12 flex flex-col justify-between select-none">
+    <div className="reception-display min-h-screen bg-[#153c35] text-white p-4 md:p-12 flex flex-col justify-between select-none">
       {/* Top TV Bar */}
-      <div className="flex items-center justify-between pb-6 border-b border-slate-800">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-3xl bg-sky-500 text-white flex items-center justify-center font-black text-3xl shadow-xl shadow-sky-500/30">
+      <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-3 pb-3 sm:pb-6 border-b border-slate-800">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="w-14 h-14 shrink-0 rounded-3xl bg-sky-500 text-white flex items-center justify-center font-black text-3xl shadow-xl shadow-sky-500/30">
             🦷
           </div>
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-white">SHRIYA MULTISPECIALITY DENTAL CLINIC</h1>
+            <h1 className="text-xl md:text-3xl font-black tracking-tight text-white">SHRIYA MULTISPECIALITY DENTAL CLINIC</h1>
             <p className="text-xs font-bold text-sky-400 tracking-widest uppercase">
-              Clinic Queue & Token Display System
+              Waiting room
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-6">
           <div className="flex items-center gap-2 text-xl font-black font-mono text-slate-300">
             <Clock className="w-5 h-5 text-sky-400" />
             <span>{currentTime}</span>
@@ -72,7 +72,7 @@ export const ReceptionTVView: React.FC = () => {
 
           <button
             onClick={() => setActiveView('staff-token-control')}
-            className="px-4 py-2 rounded-2xl bg-slate-800 hover:bg-slate-700 text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors border border-slate-700"
+            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors border border-slate-700"
           >
             <ArrowLeft className="w-4 h-4" /> Exit TV Mode
           </button>
@@ -82,8 +82,8 @@ export const ReceptionTVView: React.FC = () => {
       {/* Main Grid for Distant Viewing */}
       <div className="my-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch flex-1">
         {/* NOW SERVING - GIANT PRIVACY-SAFE DISPLAY */}
-        <div className="lg:col-span-8 bg-gradient-to-br from-slate-900 via-slate-900 to-sky-950 p-8 md:p-12 rounded-[36px] border-4 border-sky-500/40 shadow-2xl flex flex-col justify-between relative overflow-hidden">
-          <div className="flex items-center justify-between">
+        <div className="lg:col-span-8 min-w-0 bg-[#1d4c44] p-4 sm:p-8 md:p-12 rounded-xl sm:rounded-[36px] border-4 border-teal-400/40 shadow-2xl flex flex-col justify-between relative">
+          <div className="flex flex-wrap gap-3 items-center justify-between">
             <span className="px-5 py-2 rounded-full bg-sky-500/20 border border-sky-400/30 text-sky-300 font-black text-sm tracking-widest uppercase flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
               NOW SERVING
@@ -101,7 +101,7 @@ export const ReceptionTVView: React.FC = () => {
               <div className="text-xs font-black tracking-widest text-sky-400 uppercase mb-2">
                 ACTIVE QUEUE TICKET
               </div>
-              <div className="text-9xl md:text-[160px] font-black text-sky-400 font-mono tracking-tight leading-none drop-shadow-2xl">
+              <div className="text-[clamp(3rem,14vw,10rem)] font-black text-sky-400 font-mono tracking-tight leading-none drop-shadow-2xl">
                 {nowServingToken.tokenNumber}
               </div>
 
@@ -115,12 +115,12 @@ export const ReceptionTVView: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="my-16 text-center text-slate-500 font-bold text-3xl">
-              Consultation Suites Ready • Next Patient Announcement Pending...
+            <div className="my-5 sm:my-16 text-center text-white font-semibold text-lg sm:text-3xl">
+              Waiting for the next patient call
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-6 border-t border-slate-800 text-xs font-bold text-slate-400">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between pt-6 border-t border-slate-800 text-xs font-bold text-slate-400">
             <span>Please watch for your token number on this screen</span>
             <button
               onClick={playChime}
@@ -132,9 +132,9 @@ export const ReceptionTVView: React.FC = () => {
         </div>
 
         {/* NEXT PATIENTS DISPLAY - TOKENS ONLY (NO SENSITIVE DATA) */}
-        <div className="lg:col-span-4 bg-slate-900/90 p-8 rounded-[36px] border border-slate-800 flex flex-col justify-between">
+        <div className="lg:col-span-4 bg-slate-900/90 p-4 sm:p-8 rounded-xl sm:rounded-[36px] border border-slate-800 flex flex-col justify-between">
           <div>
-            <div className="text-xs font-black tracking-widest text-slate-400 uppercase mb-6 flex items-center justify-between">
+            <div className="text-xs font-black tracking-widest text-slate-300 uppercase mb-3 sm:mb-6 flex flex-wrap gap-2 items-center justify-between">
               <span>NEXT IN LINE</span>
               <span className="text-sky-400 font-mono text-sm">{nextWaiting.length} In Queue</span>
             </div>

@@ -53,7 +53,7 @@ export const ClayButton: React.FC<ClayButtonProps> = ({
       transition={{ duration: 0.1 }}
       disabled={disabled}
       onClick={onClick}
-      className={`inline-flex items-center justify-center transition-all duration-150 whitespace-nowrap cursor-pointer select-none ${getVariantClass()} ${getSizeClass()} ${
+      className={`clinic-action inline-flex min-w-0 max-w-full items-center justify-center transition-all duration-150 whitespace-normal cursor-pointer select-none ${getVariantClass()} ${getSizeClass()} ${
         disabled ? 'opacity-50 cursor-not-allowed filter grayscale' : ''
       } ${className}`}
       {...rest}

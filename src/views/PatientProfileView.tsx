@@ -1,3 +1,6 @@
+import './patient-profile.css';
+import { SectionPicker } from '../components/common/WorkspaceControls';
+import { ModalLayer } from '../components/common/ModalLayer';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -42,6 +45,7 @@ import {
   Layers,
   CheckCircle2,
   ArrowLeft,
+  ArrowRight,
   DollarSign,
   Plus,
   Eye,
@@ -98,7 +102,7 @@ export const PatientProfileView: React.FC = () => {
 
   if (!selectedPatientForDetail && patients.length === 0) {
     return (
-      <div className="w-full max-w-[1650px] mx-auto px-4 lg:px-6 py-6 flex gap-6">
+      <div className="workspace w-full max-w-[1650px] mx-auto px-4 lg:px-6 py-6 flex flex-col lg:flex-row gap-6">
         <Sidebar type="doctor" />
         <main className="flex-1 min-w-0 p-12 text-center space-y-4 bg-white rounded-2xl border border-slate-200">
           <div className="w-16 h-16 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center mx-auto text-2xl font-bold border border-teal-200">
@@ -992,78 +996,47 @@ export const PatientProfileView: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden mx-auto px-2.5 sm:px-4 lg:px-6 py-3 sm:py-5 flex flex-col lg:flex-row gap-4 lg:gap-6">
+    <div className="workspace w-full max-w-full mx-auto px-2.5 sm:px-4 lg:px-6 py-3 sm:py-5 flex flex-col lg:flex-row gap-4 lg:gap-6">
       <Sidebar type="admin" />
 
-      <main className="flex-1 min-w-0 space-y-3">
-        {/* Unified Patient Header & Clinical Action Bar */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
-          {/* Row 1: Patient Identity, OP Number, Doctor, Balance & Queue Token */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-3 min-w-0">
-              <button
-                onClick={() => setActiveView('admin-patients')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200 transition-colors cursor-pointer shrink-0"
-                title="Return to Patients Directory Table"
-              >
-                <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
-                <span>Directory</span>
-              </button>
-
-              <div className="w-10 h-10 rounded-lg bg-teal-50 border border-teal-200 text-teal-800 font-bold text-sm flex items-center justify-center shrink-0">
-                {patient.name.charAt(0)}
-              </div>
-
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium text-slate-500">Patient:</span>
-                  <select
-                    value={patient.id}
-                    onChange={(e) => {
-                      const found = patients.find((p) => p.id === e.target.value);
-                      if (found) {
-                        setSelectedPatientForDetail(found);
-                        addToast('Patient Switched', `Viewing ${found.name}'s record.`, 'info');
-                      }
-                    }}
-                    className="max-w-[180px] sm:max-w-none px-2.5 py-1 rounded-md border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-900 cursor-pointer focus:outline-none focus:ring-1 focus:ring-teal-600 truncate"
-                  >
-                    {patients.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.id}) — {p.age}y / {p.gender}
-                      </option>
-                    ))}
-                  </select>
-
-                  <span className="px-2.5 py-0.5 rounded bg-slate-100 text-slate-800 tabular-nums font-semibold text-xs border border-slate-200 shrink-0">
-                    {patient.opNumber || patient.id}
-                  </span>
-
-                  <span className="text-xs text-slate-600 tabular-nums hidden sm:inline-flex items-center gap-1 shrink-0">
-                    <Phone className="w-3 h-3 text-slate-400" />
-                    {patient.phone}
-                  </span>
-
-                  {patient.medicalHistory?.allergies?.length > 0 && (
-                    <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-medium flex items-center gap-1 shrink-0">
-                      <AlertCircle className="w-3 h-3 text-rose-500" />
-                      Allergy: {patient.medicalHistory.allergies[0]}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-500 mt-1">
-                  <span>Doctor: <strong className="text-slate-800 font-medium">{patient.assignedDoctorName || 'Dr. DOCTOR TEST'}</strong></span>
-                  <span>•</span>
-                  <span>Treatment: <strong className="text-slate-800 font-medium">{patient.currentTreatment || 'General Dental Care'}</strong></span>
-                  <span>•</span>
-                  <span>Balance: <strong className={`tabular-nums ${actualOutstandingBalance > 0 ? 'text-rose-600 font-bold' : 'text-teal-700 font-bold'}`}>₹{actualOutstandingBalance.toLocaleString()}</strong></span>
-                </div>
+      <main className="patient-chart-workspace flex-1 min-w-0 space-y-3">
+        <section className="profile-masthead" aria-label="Patient chart">
+          <div className="profile-route-actions">
+            <button type="button" className="profile-compact-action" onClick={() => setActiveView('admin-patients')}>
+              <ArrowLeft size={15} aria-hidden="true" /> Directory
+            </button>
+            <label className="profile-switch-patient">
+              Switch patient <span aria-hidden="true">▾</span>
+              <select aria-label="Switch patient" value={patient.id} onChange={event => {
+                const found = patients.find(record => record.id === event.target.value);
+                if (found) {
+                  setSelectedPatientForDetail(found);
+                  addToast('Patient Switched', `Viewing ${found.name}'s record.`, 'info');
+                }
+              }}>
+                {patients.map(record => <option key={record.id} value={record.id}>
+                  {record.name} ({record.id}) — {record.age}y / {record.gender}
+                </option>)}
+              </select>
+            </label>
+          </div>
+          <div className="profile-masthead-body">
+            <div className="profile-person">
+              <span className="profile-monogram" aria-hidden="true">{patient.name.charAt(0)}</span>
+              <div>
+                <h1>{patient.name}</h1>
+                <p>{patient.opNumber || patient.id} · {patient.age} yrs · {patient.gender}</p>
               </div>
             </div>
-
-            {/* Live Queue Token Status */}
-            <div className="flex items-center gap-2 self-start lg:self-center shrink-0">
+            <dl className="profile-masthead-facts">
+              <div><dt>Doctor</dt><dd>{patient.assignedDoctorName || 'Unassigned'}</dd></div>
+              <div><dt>Ledger balance</dt><dd>₹{actualOutstandingBalance.toLocaleString()}</dd></div>
+              {activeTab !== 'overview' && <>
+                <div><dt>Procedure</dt><dd>{patient.currentTreatment || 'None recorded'}</dd></div>
+                <div><dt>Phone</dt><dd>{patient.phone || '—'}</dd></div>
+              </>}
+            </dl>
+            {activeTab !== 'overview' && <div className="flex items-center gap-2 self-start lg:self-center shrink-0">
               {activeToken ? (
                 <div className="flex items-center gap-1.5">
                   <span className={`px-2.5 py-1 rounded-md text-xs font-medium border flex items-center gap-1.5 ${
@@ -1097,19 +1070,11 @@ export const PatientProfileView: React.FC = () => {
                   <span>+ Issue Token</span>
                 </button>
               )}
-            </div>
+            </div>}
           </div>
 
-          {/* Row 2: Dedicated Clinical Action Toolbar (Swipeable on Mobile) */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2.5 border-t border-slate-100">
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs font-semibold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200 flex items-center gap-1.5 shrink-0">
-                <Stethoscope className="w-3.5 h-3.5 text-teal-600" />
-                <span>Clinical Actions</span>
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none flex-nowrap w-full sm:w-auto">
+          <div className="profile-command-bar" role="group" aria-label="Clinical actions">
+            <div className="profile-commands">
               {/* Clinical Case Sheet */}
               <button
                 onClick={() => setShowCaseSheetModal(true)}
@@ -1211,21 +1176,18 @@ export const PatientProfileView: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
+        </section>
 
         {/* PROMINENT MEDICAL & ALLERGY ALERT WARNING BANNER */}
         {(patient.medicalHistory?.allergies?.length > 0 || patient.medicalHistory?.hasDiabetes || patient.medicalHistory?.hasBloodPressure || patient.medicalHistory?.hasHeartConditions) && (
-          <div className="bg-rose-50/80 border border-rose-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-2 text-rose-900">
-              <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0" />
-              <span className="font-semibold text-rose-800">Clinical Safety Warning:</span>
-              <span className="font-medium text-rose-700">
-                {patient.medicalHistory.allergies?.length > 0 && `Allergies: ${patient.medicalHistory.allergies.join(', ')}`}
-                {patient.medicalHistory.hasDiabetes && ` • Type 2 Diabetes`}
-                {patient.medicalHistory.hasBloodPressure && ` • Hypertension`}
-                {patient.medicalHistory.hasHeartConditions && ` • Cardiovascular Alert`}
-              </span>
-            </div>
+          <div className="profile-safety-alert">
+            <div><ShieldAlert size={16} aria-hidden="true" /><strong>Medical alerts</strong></div>
+            <p>{[
+              patient.medicalHistory.allergies?.length && 'Allergies: ' + patient.medicalHistory.allergies.join(', '),
+              patient.medicalHistory.hasDiabetes && 'Type 2 Diabetes',
+              patient.medicalHistory.hasBloodPressure && 'Hypertension',
+              patient.medicalHistory.hasHeartConditions && 'Cardiovascular alert'
+            ].filter(Boolean).join(' · ')}</p>
             {patient.medicalHistory.currentMedications?.length > 0 && (
               <div className="text-xs text-rose-800 font-normal">
                 Current Medications: <strong>{patient.medicalHistory.currentMedications.join(', ')}</strong>
@@ -1266,212 +1228,68 @@ export const PatientProfileView: React.FC = () => {
           </div>
         )}
 
-        {/* Modern Mobile-First Segmented Navigation Pill Strip */}
-        <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80 scrollbar-none">
-          {[
-            { id: 'overview' as TabType, label: 'Overview & History', icon: <User className="w-3.5 h-3.5" /> },
-            { id: 'chart' as TabType, label: '3D Dental Chart', icon: <Stethoscope className="w-3.5 h-3.5" /> },
-            { id: 'prescriptions' as TabType, label: `Prescriptions (${patientPrescriptions.length})`, icon: <FileText className="w-3.5 h-3.5" /> },
-            { id: 'treatment-plan' as TabType, label: `Treatment Plans (${patient.treatmentPlans.length})`, icon: <Layers className="w-3.5 h-3.5" /> },
-            { id: 'visits-notes' as TabType, label: `Visits & Notes (${patient.clinicalNotes.length || patient.visits.length})`, icon: <FileText className="w-3.5 h-3.5" /> },
-            { id: 'lab-orders' as TabType, label: `Lab Orders (${patient.labOrders.length})`, icon: <FlaskConical className="w-3.5 h-3.5" /> },
-            { id: 'billing' as TabType, label: `Billing & Invoices (${patientInvoices.length + unbilledFeeApprovals.length})`, icon: <CreditCard className="w-3.5 h-3.5" /> },
-            { id: 'documents' as TabType, label: `Documents (${patient.documents.length})`, icon: <Download className="w-3.5 h-3.5" /> },
-          ].map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={`px-3 py-2 text-xs flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap rounded-xl ${
-                  isActive
-                    ? 'bg-white text-teal-900 font-black shadow-xs border border-slate-200'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 font-semibold'
-                }`}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        <SectionPicker label="Chart section" value={activeTab} onChange={handleTabChange} options={[
+          { id: 'overview', label: 'Overview & History' }, { id: 'chart', label: '3D Dental Chart' },
+          { id: 'prescriptions', label: 'Prescriptions', count: patientPrescriptions.length },
+          { id: 'treatment-plan', label: 'Treatment Plans', count: patient.treatmentPlans.length },
+          { id: 'visits-notes', label: 'Visits & Notes', count: patient.clinicalNotes.length || patient.visits.length },
+          { id: 'lab-orders', label: 'Lab Orders', count: patient.labOrders.length },
+          { id: 'billing', label: 'Billing & Invoices', count: patientInvoices.length + unbilledFeeApprovals.length },
+          { id: 'documents', label: 'Documents', count: patient.documents.length },
+        ]} />
 
         {/* ==================================================== */}
         {/* TAB 1: PATIENT OVERVIEW                              */}
         {/* ==================================================== */}
         {activeTab === 'overview' && (
           <div className="space-y-4">
-            {/* Full Patient Card for Overview Tab */}
-            <div className="bg-white border border-slate-200 rounded-xl p-5">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                <div className="flex items-start sm:items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-teal-50 text-teal-800 font-bold flex items-center justify-center text-2xl shrink-0 border border-teal-200">
-                    {patient.name.charAt(0)}
+            <section className="profile-overview-card" aria-label="Patient overview">
+              <div className="profile-overview-body">
+                <h2 className="profile-overview-title">Visit overview</h2>
+                <dl className="profile-visit-details">
+                  <div><dt>Patient ID</dt><dd>{patient.id}</dd></div>
+                  <div><dt>Phone</dt><dd>{patient.phone || '—'}</dd></div>
+                  <div><dt>Last visit</dt><dd>{patient.lastVisit || '—'}</dd></div>
+                </dl>
+                <dl className="profile-care-summary">
+                  <div><dt>Active procedure</dt><dd>{patient.currentTreatment || 'None recorded'}</dd></div>
+                  <div><dt>Outstanding fee</dt><dd className={patient.outstandingBalance > 0 ? 'balance-due' : ''}>₹{patient.outstandingBalance.toLocaleString()}</dd></div>
+                  <div className="profile-token-row">
+                    <dt>Queue token</dt>
+                    <dd>
+                      {activeToken ? (
+                        <button type="button" className="profile-token profile-compact-action" onClick={() => setActiveView('token-control')} title="View waiting queue">
+                          <strong>#{activeToken.tokenNumber}</strong> {activeToken.status} <ArrowRight size={14} aria-hidden="true" />
+                        </button>
+                      ) : (
+                        <button type="button" className="profile-compact-action" onClick={() => setShowTokenModal(true)}>
+                          <Plus size={15} aria-hidden="true" /> Issue token
+                        </button>
+                      )}
+                    </dd>
                   </div>
-
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="text-xs font-semibold text-slate-500">
-                        Patient Profile EMR
-                      </span>
-                      <span className="text-xs font-semibold tabular-nums bg-teal-50 text-teal-800 px-2 py-0.5 rounded border border-teal-200">
-                        {patient.id}
-                      </span>
-                      <span className="text-xs font-semibold text-slate-500">
-                        • {patient.age} yrs ({patient.gender})
-                      </span>
-                    </div>
-
-                    <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                      {patient.name}
-                    </h2>
-
-                    <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-600 mt-1.5">
-                      <span className="flex items-center gap-1">
-                        <Phone className="w-3.5 h-3.5 text-teal-700" />
-                        <span className="tabular-nums">{patient.phone}</span>
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                        First Visit: <strong className="text-slate-800">{patient.firstVisitDate}</strong>
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-teal-700" />
-                        Last Visit: <strong className="text-slate-800">{patient.lastVisit}</strong>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs">
-                  <div className="pr-3 border-r border-slate-200">
-                    <span className="text-[11px] font-semibold text-slate-500 block">
-                      Active Procedure
-                    </span>
-                    <span className="font-bold text-teal-800">
-                      {patient.currentTreatment || 'General Dental Scaling'}
-                    </span>
-                  </div>
-
-                  <div className="pr-3 border-r border-slate-200">
-                    <span className="text-[11px] font-semibold text-slate-500 block">
-                      Outstanding Fee
-                    </span>
-                    <span className={`font-bold tabular-nums ${patient.outstandingBalance > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
-                      ₹{patient.outstandingBalance.toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="text-[11px] font-semibold text-slate-500 block mb-0.5">
-                      Queue Token
-                    </span>
-                    {activeToken ? (
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold tabular-nums text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300 text-xs">
-                          #{activeToken.tokenNumber}
-                        </span>
-                        <span className="text-[11px] font-medium text-slate-500 capitalize">
-                          {activeToken.status}
-                        </span>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setShowTokenModal(true)}
-                        className="px-2.5 py-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[11px] flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
-                      >
-                        <Plus className="w-3 h-3 text-emerald-700" />
-                        <span>Issue Token</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
+                </dl>
               </div>
+            </section>
 
-              {/* Medical Alerts Row */}
-              {(patient.medicalHistory?.allergies?.length > 0 || patient.medicalHistory?.hasDiabetes || patient.medicalHistory?.hasBloodPressure) && (
-                <div className="mt-3 pt-3 border-t border-slate-200 flex flex-wrap items-center gap-2 text-xs">
-                  <span className="flex items-center gap-1 text-rose-700 font-bold text-xs">
-                    <AlertCircle className="w-3.5 h-3.5" /> Medical Alerts:
-                  </span>
-                  {patient.medicalHistory.allergies.map((all, i) => (
-                    <span key={i} className="px-2 py-0.5 rounded bg-rose-50 text-rose-800 border border-rose-200 text-xs font-medium">
-                      Allergy: {all}
-                    </span>
-                  ))}
-                  {patient.medicalHistory.hasDiabetes && (
-                    <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-xs font-medium">
-                      Diabetic (Type 2)
-                    </span>
-                  )}
-                  {patient.medicalHistory.hasBloodPressure && (
-                    <span className="px-2 py-0.5 rounded bg-sky-50 text-sky-800 border border-sky-200 text-xs font-medium">
-                      Hypertension
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-            {/* Key Metric Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="clay-card-flat p-4 bg-white/80 rounded-2xl border border-slate-200">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">
-                  First Visit Date
-                </span>
-                <span className="text-sm font-black text-slate-800">{patient.firstVisitDate}</span>
-                <span className="text-[11px] text-slate-500 block mt-0.5">Registration</span>
+            <dl className="profile-visit-stats" aria-label="Visit summary">
+              <div><dt>First visit</dt><dd>{patient.firstVisitDate || '—'}</dd></div>
+              <div><dt>Completed visits</dt><dd>{patient.totalVisits}</dd></div>
+              <div><dt>Active treatments</dt><dd>{patient.treatmentPlans.filter(t => t.status === 'In Progress' || t.status === 'Accepted').length}</dd></div>
+              <div><dt>Next follow-up</dt><dd>{patient.followUps[0]?.date || patient.upcomingAppointmentDate || 'Unscheduled'}</dd>
+                {patient.followUps[0]?.reason && <dd className="profile-follow-up-reason">{patient.followUps[0].reason}</dd>}
               </div>
+            </dl>
 
-              <div className="clay-card-flat p-4 bg-white/80 rounded-2xl border border-slate-200">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">
-                  Total Visits
-                </span>
-                <span className="text-2xl font-black text-sky-700">{patient.totalVisits}</span>
-                <span className="text-[11px] text-slate-500 block mt-0.5">Completed clinical visits</span>
-              </div>
-
-              <div className="clay-card-flat p-4 bg-white/80 rounded-2xl border border-slate-200">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">
-                  Active Treatments
-                </span>
-                <span className="text-2xl font-black text-amber-600">
-                  {patient.treatmentPlans.filter((t) => t.status === 'In Progress' || t.status === 'Accepted').length}
-                </span>
-                <span className="text-[11px] text-slate-500 block mt-0.5">In progress / accepted</span>
-              </div>
-
-              <div className="clay-card-flat p-4 bg-white/80 rounded-2xl border border-slate-200">
-                <span className="text-[11px] font-semibold text-slate-500 block mb-1">
-                  Next Follow-Up
-                </span>
-                <span className="text-sm font-bold text-teal-800">
-                  {patient.followUps[0]?.date || patient.upcomingAppointmentDate || '25 Sep 2026'}
-                </span>
-                <span className="text-[11px] text-slate-500 block mt-0.5 truncate">
-                  {patient.followUps[0]?.reason || 'Obturation & Crown Prep'}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Medical History Card */}
-              <div className="p-5 bg-white rounded-xl border border-slate-200 space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-                  <div className="flex items-center gap-2">
-                    <Heart className="w-4 h-4 text-rose-500" />
-                    <h4 className="text-sm font-bold text-slate-900">
-                      Medical Alerts & Systemic History
-                    </h4>
+            <div className="profile-histories">
+              <section className="profile-history-card">
+                <div className="profile-section-heading">
+                  <h3>Medical history &amp; alerts</h3>
+                  <div className="profile-heading-actions">
+                    <button type="button" className="profile-compact-action" onClick={() => setShowCaseSheetModal(true)}>
+                      <Edit3 size={15} aria-hidden="true" /> Edit medical &amp; Rx
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowCaseSheetModal(true)}
-                    className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 font-semibold text-xs flex items-center gap-1 cursor-pointer transition-colors"
-                    title="Edit Medical History & Systemic Conditions"
-                  >
-                    <Edit3 className="w-3 h-3 text-rose-700" />
-                    <span>Edit Medical & Rx</span>
-                  </button>
                 </div>
 
                 <div className="space-y-3 text-xs">
@@ -1513,31 +1331,17 @@ export const PatientProfileView: React.FC = () => {
                     </div>
                   )}
                 </div>
-              </div>
+              </section>
 
-              {/* Dental History & Complaint */}
-              <div className="p-5 bg-white rounded-xl border border-slate-200 space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-                  <div className="flex items-center gap-2">
-                    <Stethoscope className="w-4 h-4 text-teal-700" />
-                    <h4 className="text-sm font-bold text-slate-900">
-                      Chief Dental Complaint & History
-                    </h4>
-                    {hasCompletedIntake && (
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold">
-                        EMR Case Sheet Saved
-                      </span>
-                    )}
+              <section className="profile-history-card">
+                <div className="profile-section-heading">
+                  <h3>Chief dental complaint &amp; history</h3>
+                  <div className="profile-heading-actions">
+                    {hasCompletedIntake && <span className="profile-saved"><CheckCircle2 size={14} aria-hidden="true" />Case sheet saved</span>}
+                    <button type="button" className="profile-compact-action" onClick={() => setShowCaseSheetModal(true)}>
+                      <Edit3 size={15} aria-hidden="true" /> Edit case sheet
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowCaseSheetModal(true)}
-                    className="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 font-semibold text-xs flex items-center gap-1 cursor-pointer transition-colors"
-                    title="Edit Chief Complaint & Dental History"
-                  >
-                    <Edit3 className="w-3 h-3 text-teal-700" />
-                    <span>Edit Case Sheet</span>
-                  </button>
                 </div>
 
                 <div className="space-y-3 text-xs">
@@ -1614,7 +1418,7 @@ export const PatientProfileView: React.FC = () => {
                     </p>
                   </div>
                 </div>
-              </div>
+              </section>
             </div>
 
             {/* Dental Odontogram Condition Summary Card on Overview */}
@@ -1664,11 +1468,9 @@ export const PatientProfileView: React.FC = () => {
                       </span>
                       <div>
                         <h4 className="text-xs font-bold text-slate-800">
-                          Dental Odontogram Status & Condition Summary
+                          Tooth condition summary
                         </h4>
-                        <p className="text-[11px] text-slate-500">
-                          Quick tooth condition overview. Click below to launch the dedicated 3D Odontogram.
-                        </p>
+
                       </div>
                     </div>
                     <button
@@ -1681,7 +1483,7 @@ export const PatientProfileView: React.FC = () => {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2">
+                  <div className="profile-tooth-counts">
                     <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-center">
                       <span className="text-[10px] font-bold text-slate-500 uppercase block">Healthy</span>
                       <span className="text-base font-bold tabular-nums text-slate-700">
@@ -2452,10 +2254,10 @@ export const PatientProfileView: React.FC = () => {
         {/* ==================================================== */}
         {activeTab === 'documents' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="profile-detail-heading">
               <div>
                 <h3 className="text-base font-black text-slate-900">
-                  Patient Documents & Dental Radiographs
+                  Documents & radiographs
                 </h3>
                 <p className="text-xs text-slate-500 font-medium">
                   X-rays, RVG digital radiographs, consent forms, and medical reports.
@@ -2533,10 +2335,10 @@ export const PatientProfileView: React.FC = () => {
         {/* ==================================================== */}
         {activeTab === 'lab-orders' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="profile-detail-heading">
               <div>
                 <h3 className="text-base font-bold text-slate-900">
-                  Dental Lab Orders & Prosthetic Fabrication
+                  Dental lab orders
                 </h3>
                 <p className="text-xs text-slate-500 font-medium">
                   Crowns, bridges, veneers, aligners, and implant abutments sent to dental milling labs.
@@ -2713,7 +2515,7 @@ export const PatientProfileView: React.FC = () => {
 
                     {/* Fee item details */}
                     <div className="overflow-x-auto bg-white rounded-lg p-3 border border-rose-200 text-xs">
-                      <table className="w-full text-left">
+                      <table className="w-full text-left responsive-records">
                         <thead>
                           <tr className="text-slate-500 font-semibold text-xs border-b border-slate-100">
                             <th className="py-1.5">Procedure / Service Description</th>
@@ -2725,25 +2527,25 @@ export const PatientProfileView: React.FC = () => {
                         <tbody className="divide-y divide-slate-100 text-slate-700">
                           {fa.consultationFee > 0 && (
                             <tr>
-                              <td className="py-2 font-semibold">Specialist Doctor Consultation</td>
-                              <td className="py-2 text-center">1</td>
-                              <td className="py-2 text-right tabular-nums">₹{fa.consultationFee.toLocaleString()}</td>
-                              <td className="py-2 text-right tabular-nums font-bold">₹{fa.consultationFee.toLocaleString()}</td>
+                              <td data-label="Procedure / Service Description" className="py-2 font-semibold">Specialist Doctor Consultation</td>
+                              <td data-label="Qty" className="py-2 text-center">1</td>
+                              <td data-label="Price" className="py-2 text-right tabular-nums">₹{fa.consultationFee.toLocaleString()}</td>
+                              <td data-label="Amount" className="py-2 text-right tabular-nums font-bold">₹{fa.consultationFee.toLocaleString()}</td>
                             </tr>
                           )}
                           {fa.items.map((it) => (
                             <tr key={it.id}>
-                              <td className="py-2 font-semibold">{it.description}</td>
-                              <td className="py-2 text-center">{it.quantity}</td>
-                              <td className="py-2 text-right tabular-nums">₹{it.unitPrice.toLocaleString()}</td>
-                              <td className="py-2 text-right tabular-nums font-bold">₹{it.total.toLocaleString()}</td>
+                              <td data-label="Procedure / Service Description" className="py-2 font-semibold">{it.description}</td>
+                              <td data-label="Qty" className="py-2 text-center">{it.quantity}</td>
+                              <td data-label="Price" className="py-2 text-right tabular-nums">₹{it.unitPrice.toLocaleString()}</td>
+                              <td data-label="Amount" className="py-2 text-right tabular-nums font-bold">₹{it.total.toLocaleString()}</td>
                             </tr>
                           ))}
                         </tbody>
                         <tfoot>
                           <tr className="border-t border-rose-200 font-bold text-slate-900">
                             <td colSpan={3} className="py-2 text-right">Net Payable Amount:</td>
-                            <td className="py-2 text-right tabular-nums text-sm text-rose-800 font-bold">₹{fa.finalPayable.toLocaleString()}</td>
+                            <td data-label="Qty" className="py-2 text-right tabular-nums text-sm text-rose-800 font-bold">₹{fa.finalPayable.toLocaleString()}</td>
                           </tr>
                         </tfoot>
                       </table>
@@ -2807,7 +2609,7 @@ export const PatientProfileView: React.FC = () => {
 
                     {/* Fee item details */}
                     <div className="overflow-x-auto bg-white/90 rounded-2xl p-3 border border-amber-200 text-xs">
-                      <table className="w-full text-left">
+                      <table className="w-full text-left responsive-records">
                         <thead>
                           <tr className="text-slate-400 font-extrabold uppercase text-[10px] border-b border-slate-100">
                             <th className="py-1.5">Procedure / Service Description</th>
@@ -2819,17 +2621,17 @@ export const PatientProfileView: React.FC = () => {
                         <tbody className="divide-y divide-slate-100 text-slate-700">
                           {item.items.map((it, idx) => (
                             <tr key={it.id || idx}>
-                              <td className="py-2 font-semibold">{it.description}</td>
-                              <td className="py-2 text-center">{it.quantity}</td>
-                              <td className="py-2 text-right tabular-nums">₹{it.unitPrice.toLocaleString()}</td>
-                              <td className="py-2 text-right tabular-nums font-bold">₹{(it.quantity * it.unitPrice).toLocaleString()}</td>
+                              <td data-label="Procedure / Service Description" className="py-2 font-semibold">{it.description}</td>
+                              <td data-label="Qty" className="py-2 text-center">{it.quantity}</td>
+                              <td data-label="Price" className="py-2 text-right tabular-nums">₹{it.unitPrice.toLocaleString()}</td>
+                              <td data-label="Amount" className="py-2 text-right tabular-nums font-bold">₹{(it.quantity * it.unitPrice).toLocaleString()}</td>
                             </tr>
                           ))}
                         </tbody>
                         <tfoot>
                           <tr className="border-t border-amber-200 font-bold text-slate-900">
                             <td colSpan={3} className="py-2 text-right">Total Net Payable:</td>
-                            <td className="py-2 text-right tabular-nums text-sm text-rose-800 font-bold">₹{item.amount.toLocaleString()}</td>
+                            <td data-label="Qty" className="py-2 text-right tabular-nums text-sm text-rose-800 font-bold">₹{item.amount.toLocaleString()}</td>
                           </tr>
                         </tfoot>
                       </table>
@@ -2940,7 +2742,7 @@ export const PatientProfileView: React.FC = () => {
 
                   {/* Line items table */}
                   <div className="overflow-x-auto">
-                    <table className="w-full text-xs text-left">
+                    <table className="w-full text-xs text-left responsive-records">
                       <thead>
                         <tr className="text-slate-500 font-semibold text-xs border-b border-slate-100">
                           <th className="py-2">Description</th>
@@ -2952,10 +2754,10 @@ export const PatientProfileView: React.FC = () => {
                       <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                         {inv.items.map((item) => (
                           <tr key={item.id}>
-                            <td className="py-2.5 font-bold text-slate-800">{item.description}</td>
-                            <td className="py-2.5 text-center">{item.quantity}</td>
-                            <td className="py-2.5 text-right tabular-nums">₹{item.unitPrice.toLocaleString()}</td>
-                            <td className="py-2.5 text-right tabular-nums font-bold">₹{item.total.toLocaleString()}</td>
+                            <td data-label="Description" className="py-2.5 font-bold text-slate-800">{item.description}</td>
+                            <td data-label="Qty" className="py-2.5 text-center">{item.quantity}</td>
+                            <td data-label="Unit Price" className="py-2.5 text-right tabular-nums">₹{item.unitPrice.toLocaleString()}</td>
+                            <td data-label="Amount" className="py-2.5 text-right tabular-nums font-bold">₹{item.total.toLocaleString()}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -3084,7 +2886,7 @@ export const PatientProfileView: React.FC = () => {
 
                 return (
                   <div className="p-4 bg-white rounded-xl border border-slate-200 overflow-x-auto">
-                    <table className="w-full text-xs text-left">
+                    <table className="w-full text-xs text-left responsive-records">
                       <thead>
                         <tr className="text-slate-500 font-semibold text-xs border-b border-slate-100">
                           <th className="py-2.5">Receipt #</th>
@@ -3099,29 +2901,29 @@ export const PatientProfileView: React.FC = () => {
                       <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                         {patientReceipts.map((rec) => (
                           <tr key={rec.id} className="hover:bg-slate-50/50">
-                            <td className="py-3 tabular-nums font-bold text-slate-900">
+                            <td data-label="Receipt #" className="py-3 tabular-nums font-bold text-slate-900">
                               {rec.receiptNumber}
                             </td>
-                            <td className="py-3 text-slate-600">
+                            <td data-label="Date & Time" className="py-3 text-slate-600">
                               {rec.date} <span className="text-xs text-slate-400">{rec.time}</span>
                             </td>
-                            <td className="py-3 tabular-nums text-slate-600">
+                            <td data-label="Invoice" className="py-3 tabular-nums text-slate-600">
                               {rec.invoiceId}
                             </td>
-                            <td className="py-3">
+                            <td data-label="Method" className="py-3">
                               <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200">
                                 {rec.paymentMethod}
                               </span>
                             </td>
-                            <td className="py-3 text-right tabular-nums font-bold text-emerald-700">
+                            <td data-label="Amount Paid" className="py-3 text-right tabular-nums font-bold text-emerald-700">
                               ₹{rec.amount.toLocaleString()}
                             </td>
-                            <td className="py-3 text-center">
+                            <td data-label="Status" className="py-3 text-center">
                               <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
                                 Settled
                               </span>
                             </td>
-                            <td className="py-3 text-right">
+                            <td data-label="Action" className="py-3 text-right">
                               <ClayButton
                                 variant="secondary"
                                 size="sm"
@@ -3194,7 +2996,7 @@ export const PatientProfileView: React.FC = () => {
 
         {/* MODAL: Record New Clinical Visit Note */}
         {showAddNoteModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 animate-in fade-in overflow-y-auto" data-ui="modal">
+          <ModalLayer onDismiss={() => setShowAddNoteModal(false)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 animate-in fade-in overflow-y-auto" data-ui="modal">
             <div className="w-full max-w-xl my-6 bg-white rounded-2xl p-6 border border-slate-200 space-y-4">
               <h3 className="text-base font-bold text-slate-900">
                 Record Clinical Encounter for {patient.name}
@@ -3342,12 +3144,12 @@ export const PatientProfileView: React.FC = () => {
                 </div>
               </form>
             </div>
-          </div>
+          </ModalLayer>
         )}
 
         {/* MODAL: Dispatch New Lab Order */}
         {showAddLabModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 animate-in fade-in" data-ui="modal">
+          <ModalLayer onDismiss={() => setShowAddLabModal(false)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 animate-in fade-in" data-ui="modal">
             <div className="w-full max-w-lg bg-white rounded-2xl p-6 border border-slate-200 space-y-4">
               <h3 className="text-base font-bold text-slate-800">
                 New Dental Lab Work Order
@@ -3420,12 +3222,12 @@ export const PatientProfileView: React.FC = () => {
                 </div>
               </form>
             </div>
-          </div>
+          </ModalLayer>
         )}
 
         {/* COMPLETE CONSULTATION MODAL */}
         {showCompleteModal && activeVisit && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 animate-in fade-in" data-ui="modal">
+          <ModalLayer onDismiss={() => setShowCompleteModal(false)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 animate-in fade-in" data-ui="modal">
             <div className="w-full max-w-lg bg-white rounded-2xl p-6 border border-slate-200 space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
@@ -3436,7 +3238,7 @@ export const PatientProfileView: React.FC = () => {
                     Complete Consultation ({activeVisit.tokenId} • {patient.name})
                   </h3>
                 </div>
-                <button
+                <button aria-label="Close dialog"
                   onClick={() => setShowCompleteModal(false)}
                   className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 cursor-pointer"
                 >
@@ -3507,12 +3309,12 @@ export const PatientProfileView: React.FC = () => {
                 </ClayButton>
               </div>
             </div>
-          </div>
+          </ModalLayer>
         )}
 
         {/* Printable Digital Receipt Modal */}
         {showProfileReceiptModal && activeProfileReceipt && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 animate-in fade-in" data-ui="modal">
+          <ModalLayer onDismiss={() => setShowProfileReceiptModal(false)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 animate-in fade-in" data-ui="modal">
             <div className="bg-white rounded-2xl p-6 md:p-8 max-w-lg w-full border border-slate-200 space-y-5">
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
@@ -3524,7 +3326,7 @@ export const PatientProfileView: React.FC = () => {
                     <span className="text-[11px] text-slate-400 font-semibold">Official Clinical Payment Receipt</span>
                   </div>
                 </div>
-                <button
+                <button aria-label="Close dialog"
                   onClick={() => setShowProfileReceiptModal(false)}
                   className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 cursor-pointer"
                 >
@@ -3596,7 +3398,7 @@ export const PatientProfileView: React.FC = () => {
                 </ClayButton>
               </div>
             </div>
-          </div>
+          </ModalLayer>
         )}
 
         {/* CLINICAL CASE SHEET MODAL (Doctor Intake: Chief Complaint, HOPI, Medical & Dental History, Allergies, Medications) */}
@@ -3623,7 +3425,7 @@ export const PatientProfileView: React.FC = () => {
 
         {/* EDIT CLINICAL NOTE MODAL */}
         {editingClinicalNote && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 animate-in fade-in" data-ui="modal">
+          <ModalLayer onDismiss={() => setEditingClinicalNote(null)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 animate-in fade-in" data-ui="modal">
             <div className="bg-white w-full max-w-2xl rounded-2xl p-6 border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
               <div className="flex items-start justify-between pb-3 border-b border-slate-200">
                 <div>
@@ -3638,7 +3440,7 @@ export const PatientProfileView: React.FC = () => {
                     Date: {editingClinicalNote.date} • Doctor: {editingClinicalNote.doctorName || patient.assignedDoctorName}
                   </p>
                 </div>
-                <button
+                <button aria-label="Close dialog"
                   onClick={() => setEditingClinicalNote(null)}
                   className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 cursor-pointer"
                 >
@@ -3744,7 +3546,7 @@ export const PatientProfileView: React.FC = () => {
                 </div>
               </form>
             </div>
-          </div>
+          </ModalLayer>
         )}
 
         {/* DOCTOR FEE APPROVAL MODAL */}
@@ -3836,7 +3638,7 @@ export const PatientProfileView: React.FC = () => {
 
         {/* QUICK QUEUE TOKEN GENERATION MODAL */}
         {showTokenModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 animate-in fade-in" data-ui="modal">
+          <ModalLayer onDismiss={() => setShowTokenModal(false)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 animate-in fade-in" data-ui="modal">
             <div className="bg-white w-full max-w-lg rounded-2xl p-6 border border-slate-200 space-y-4">
               {/* Header */}
               <div className="flex items-start justify-between pb-3 border-b border-slate-200">
@@ -3852,7 +3654,7 @@ export const PatientProfileView: React.FC = () => {
                     Check in patient and assign a live waiting token for today's clinical consultation.
                   </p>
                 </div>
-                <button
+                <button aria-label="Close dialog"
                   onClick={() => setShowTokenModal(false)}
                   className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 cursor-pointer"
                 >
@@ -3993,7 +3795,7 @@ export const PatientProfileView: React.FC = () => {
                 </div>
               </form>
             </div>
-          </div>
+          </ModalLayer>
         )}
       </main>
     </div>

@@ -323,7 +323,7 @@ export const ClinicPrescriptionSheet: React.FC<ClinicPrescriptionSheetProps> = (
             lineHeight: 1.2
           }}
         >
-          SHRIYA MULTISPECIALITY DENTAL CLINIC
+          Shriya Multispeciality Dental Clinic
         </h1>
         <p 
           className="shriya-clinic-address"
@@ -546,17 +546,17 @@ export const ClinicPrescriptionSheet: React.FC<ClinicPrescriptionSheetProps> = (
                 {data.items && data.items.length > 0 ? (
                   data.items.map((item, idx) => (
                     <tr key={item.id || idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                      <td style={{ padding: '7px 6px', fontFamily: 'monospace', fontWeight: 700, color: '#64748b' }}>{idx + 1}</td>
-                      <td style={{ padding: '7px 6px' }}>
+                      <td data-label="Item" style={{ padding: '7px 6px', fontFamily: 'monospace', fontWeight: 700, color: '#64748b' }}>{idx + 1}</td>
+                      <td data-label="Medicine" style={{ padding: '7px 6px' }}>
                         <p style={{ fontWeight: 800, color: '#0f172a', fontSize: '12px', margin: 0 }}>{item.medicine}</p>
                         {item.route && item.route !== 'Oral' && (
                           <span style={{ fontSize: '10px', color: '#64748b', fontStyle: 'italic', fontWeight: 600 }}>({item.route})</span>
                         )}
                       </td>
-                      <td style={{ padding: '7px 6px', fontWeight: 600, color: '#1e293b' }}>{item.dosage || '-'}</td>
-                      <td style={{ padding: '7px 6px', fontWeight: 700, color: '#1e3a8a', fontFamily: 'monospace' }}>{item.frequency}</td>
-                      <td style={{ padding: '7px 6px', fontWeight: 600, color: '#1e293b' }}>{item.duration}</td>
-                      <td style={{ padding: '7px 6px', color: '#334155', fontStyle: 'italic' }}>{item.instructions || 'After food'}</td>
+                      <td data-label="Dosage" style={{ padding: '7px 6px', fontWeight: 600, color: '#1e293b' }}>{item.dosage || '-'}</td>
+                      <td data-label="Frequency" style={{ padding: '7px 6px', fontWeight: 700, color: '#1e3a8a', fontFamily: 'monospace' }}>{item.frequency}</td>
+                      <td data-label="Duration" style={{ padding: '7px 6px', fontWeight: 600, color: '#1e293b' }}>{item.duration}</td>
+                      <td data-label="Instructions" style={{ padding: '7px 6px', color: '#334155', fontStyle: 'italic' }}>{item.instructions || 'After food'}</td>
                     </tr>
                   ))
                 ) : (

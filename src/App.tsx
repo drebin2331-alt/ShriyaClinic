@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/common/Header';
@@ -7,27 +7,30 @@ import { MobileNavigation } from './components/common/MobileNavigation';
 import { MobileProfileSheet } from './components/common/MobileProfileSheet';
 import { DemoLoginModal } from './components/common/DemoLoginModal';
 
-import { LandingPage } from './views/LandingPage';
-import { BookingWizard } from './views/BookingWizard';
-import { LiveQueueView } from './views/LiveQueueView';
-import { PatientPortal } from './views/PatientPortal';
-import { AdminDashboard } from './views/AdminDashboard';
-import { MobileAppDashboard } from './views/MobileAppDashboard';
-import { AppointmentManagement } from './views/AppointmentManagement';
-import { TokenControlView } from './views/TokenControlView';
-import { ReceptionTVView } from './views/ReceptionTVView';
-import { PatientManagementView } from './views/PatientManagementView';
-import { PatientProfileView } from './views/PatientProfileView';
-import { StaffCheckInView } from './views/StaffCheckInView';
-import { WhatsAppReminderView } from './views/WhatsAppReminderView';
-import { ReportsView } from './views/ReportsView';
-import { BillingPaymentView } from './views/BillingPaymentView';
-import { StaffUserManagementView } from './views/StaffUserManagementView';
-import { AdminSignInPage } from './views/AdminSignInPage';
+const LandingPage = lazy(() => import('./views/LandingPage').then(module => ({ default: module.LandingPage })));
+const BookingWizard = lazy(() => import('./views/BookingWizard').then(module => ({ default: module.BookingWizard })));
+const LiveQueueView = lazy(() => import('./views/LiveQueueView').then(module => ({ default: module.LiveQueueView })));
+const PatientPortal = lazy(() => import('./views/PatientPortal').then(module => ({ default: module.PatientPortal })));
+const MobileAppDashboard = lazy(() => import('./views/MobileAppDashboard').then(module => ({ default: module.MobileAppDashboard })));
+const AppointmentManagement = lazy(() => import('./views/AppointmentManagement').then(module => ({ default: module.AppointmentManagement })));
+const TokenControlView = lazy(() => import('./views/TokenControlView').then(module => ({ default: module.TokenControlView })));
+const ReceptionTVView = lazy(() => import('./views/ReceptionTVView').then(module => ({ default: module.ReceptionTVView })));
+const PatientManagementView = lazy(() => import('./views/PatientManagementView').then(module => ({ default: module.PatientManagementView })));
+const PatientProfileView = lazy(() => import('./views/PatientProfileView').then(module => ({ default: module.PatientProfileView })));
+const StaffCheckInView = lazy(() => import('./views/StaffCheckInView').then(module => ({ default: module.StaffCheckInView })));
+const WhatsAppReminderView = lazy(() => import('./views/WhatsAppReminderView').then(module => ({ default: module.WhatsAppReminderView })));
+const ReportsView = lazy(() => import('./views/ReportsView').then(module => ({ default: module.ReportsView })));
+const BillingPaymentView = lazy(() => import('./views/BillingPaymentView').then(module => ({ default: module.BillingPaymentView })));
+const StaffUserManagementView = lazy(() => import('./views/StaffUserManagementView').then(module => ({ default: module.StaffUserManagementView })));
+const AdminSignInPage = lazy(() => import('./views/AdminSignInPage').then(module => ({ default: module.AdminSignInPage })));
 
 const MainContent: React.FC = () => {
   const { activeView, setActiveView } = useApp();
   const { currentUser, isStaff } = useAuth();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [activeView]);
 
   const [currentPath, setCurrentPath] = useState<string>(() => {
     return window.location.pathname || '/';
@@ -98,7 +101,7 @@ const MainContent: React.FC = () => {
   ].includes(activeView);
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col bg-[#f8fafc] text-slate-900 pb-28 lg:pb-8">
+    <div className="clinic-shell min-h-screen w-full max-w-full flex flex-col text-slate-900 pb-28 lg:pb-8">
       <Header 
         isAdminRoute={isStaffMode} 
         onNavigateToAdmin={() => {
@@ -117,7 +120,7 @@ const MainContent: React.FC = () => {
         }}
       />
 
-      <div className="flex-1 w-full max-w-full overflow-x-hidden">
+      <div className="flex-1 w-full max-w-full">
         {/* If user is authenticated as staff or on /admin route: show full Clinic EMR views */}
         {isStaffMode && isStaff ? (
           <>
@@ -192,7 +195,9 @@ export default function App() {
   return (
     <AuthProvider>
       <AppProvider>
-        <MainContent />
+        <Suspense fallback={<div role="status" className="desk-loading"><span>Loading Shriya Clinic…</span><i aria-hidden="true"/><i aria-hidden="true"/></div>}>
+          <MainContent />
+        </Suspense>
       </AppProvider>
     </AuthProvider>
   );

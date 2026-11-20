@@ -1,3 +1,4 @@
+import { ModalLayer } from '../common/ModalLayer';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -305,7 +306,7 @@ export const ReceptionCheckoutModal: React.FC<ReceptionCheckoutModalProps> = ({
   const cashChange = payMethod === 'Cash' && cashTendered > payAmount ? cashTendered - payAmount : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+    <ModalLayer onDismiss={onClose} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
       <div className="bg-white w-full max-w-3xl rounded-3xl p-5 sm:p-7 shadow-2xl border border-slate-200 max-h-[94vh] overflow-y-auto space-y-5">
         
         {/* ========================================================= */}
@@ -344,7 +345,7 @@ export const ReceptionCheckoutModal: React.FC<ReceptionCheckoutModalProps> = ({
               <CreditCard className="w-3.5 h-3.5 text-sky-700" />
               <span>Billing Hub ↗</span>
             </button>
-            <button
+            <button aria-label="Close dialog"
               onClick={onClose}
               className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 cursor-pointer"
             >
@@ -392,7 +393,7 @@ export const ReceptionCheckoutModal: React.FC<ReceptionCheckoutModalProps> = ({
           {/* Line items for this fee / invoice */}
           {((currentVisit.feeApproval?.items && currentVisit.feeApproval.items.length > 0) || (linkedInvoice?.items && linkedInvoice.items.length > 0)) && (
             <div className="overflow-x-auto bg-slate-50/90 rounded-xl p-3 border border-slate-200 text-xs">
-              <table className="w-full text-left">
+              <table className="w-full text-left responsive-records">
                 <thead>
                   <tr className="text-slate-500 font-bold border-b border-slate-200">
                     <th className="pb-1.5">Procedure / Service</th>
@@ -404,18 +405,18 @@ export const ReceptionCheckoutModal: React.FC<ReceptionCheckoutModalProps> = ({
                 <tbody className="divide-y divide-slate-100 text-slate-700">
                   {(currentVisit.feeApproval?.consultationFee || 0) > 0 && (
                     <tr>
-                      <td className="py-1.5 font-semibold">Specialist Doctor Consultation</td>
-                      <td className="py-1.5 text-center">1</td>
-                      <td className="py-1.5 text-right tabular-nums">₹{currentVisit.feeApproval!.consultationFee.toLocaleString()}</td>
-                      <td className="py-1.5 text-right tabular-nums font-bold">₹{currentVisit.feeApproval!.consultationFee.toLocaleString()}</td>
+                      <td data-label="Procedure / Service" className="py-1.5 font-semibold">Specialist Doctor Consultation</td>
+                      <td data-label="Qty" className="py-1.5 text-center">1</td>
+                      <td data-label="Rate" className="py-1.5 text-right tabular-nums">₹{currentVisit.feeApproval!.consultationFee.toLocaleString()}</td>
+                      <td data-label="Amount" className="py-1.5 text-right tabular-nums font-bold">₹{currentVisit.feeApproval!.consultationFee.toLocaleString()}</td>
                     </tr>
                   )}
                   {(currentVisit.feeApproval?.items || linkedInvoice?.items || []).map((it: any, idx: number) => (
                     <tr key={it.id || idx}>
-                      <td className="py-1.5 font-semibold text-slate-800">{it.description}</td>
-                      <td className="py-1.5 text-center">{it.quantity || 1}</td>
-                      <td className="py-1.5 text-right tabular-nums">₹{Number(it.unitPrice || (it.total / (it.quantity || 1)) || 0).toLocaleString()}</td>
-                      <td className="py-1.5 text-right tabular-nums font-bold">₹{Number(it.total || ((it.quantity || 1) * (it.unitPrice || 0)) || 0).toLocaleString()}</td>
+                      <td data-label="Procedure / Service" className="py-1.5 font-semibold text-slate-800">{it.description}</td>
+                      <td data-label="Qty" className="py-1.5 text-center">{it.quantity || 1}</td>
+                      <td data-label="Rate" className="py-1.5 text-right tabular-nums">₹{Number(it.unitPrice || (it.total / (it.quantity || 1)) || 0).toLocaleString()}</td>
+                      <td data-label="Amount" className="py-1.5 text-right tabular-nums font-bold">₹{Number(it.total || ((it.quantity || 1) * (it.unitPrice || 0)) || 0).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -851,6 +852,6 @@ export const ReceptionCheckoutModal: React.FC<ReceptionCheckoutModalProps> = ({
           invoiceBalance={remainingBalance}
         />
       )}
-    </div>
+    </ModalLayer>
   );
 };

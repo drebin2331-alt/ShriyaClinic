@@ -1,3 +1,4 @@
+import { ClinicMark } from './ClinicMark';
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -28,11 +29,14 @@ import {
   Menu,
   Sparkles,
   ArrowRight,
-  CalendarCheck2
+  CalendarCheck2,
+  LogOut
 } from 'lucide-react';
 
 export interface SidebarProps {
   type?: 'admin' | 'patient' | string;
+  mobile?: boolean;
+  onNavigate?: () => void;
 }
 
 interface NavItem {
@@ -47,10 +51,10 @@ interface NavSection {
   items: NavItem[];
 }
 
-export const Sidebar: React.FC<SidebarProps> = () => {
+export const Sidebar: React.FC<SidebarProps> = ({ mobile = false, onNavigate }) => {
   const { 
     activeView, 
-    setActiveView, 
+    setActiveView: changeView,
     appointments, 
     tokens,
     patients, 
@@ -59,7 +63,8 @@ export const Sidebar: React.FC<SidebarProps> = () => {
     toggleSidebar,
     enquiries = []
   } = useApp();
-  const { currentUser, setIsDemoModalOpen } = useAuth();
+  const { currentUser, setIsDemoModalOpen, logout } = useAuth();
+  const setActiveView = (view: ViewMode) => { changeView(view); onNavigate?.(); };
 
   const today = new Date().toISOString().split('T')[0];
   const activeTokensCount = tokens.filter(
@@ -171,7 +176,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
   const sections = getNavSections();
 
   // Collapsed Sidebar View (Compact Icon Rail with Hover Tooltips)
-  if (isSidebarCollapsed) {
+  if (isSidebarCollapsed && !mobile) {
     return (
       <aside className="hidden lg:flex flex-col w-16 shrink-0 bg-white border-r border-slate-200 py-3.5 px-2 min-h-[calc(100vh-60px)] items-center transition-all duration-200 select-none">
         {/* Top: Brand Icon + Open/Expand Toggle Button */}
@@ -180,9 +185,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
             onClick={() => setActiveView('landing')}
             className="w-8 h-8 rounded-lg bg-emerald-800 text-white font-bold text-sm flex items-center justify-center shadow-xs cursor-pointer hover:scale-105 transition-transform"
             title="Shriya Multispeciality Dental Clinic EMR"
-          >
-            🦷
-          </div>
+          ><ClinicMark /></div>
           <button
             onClick={toggleSidebar}
             className="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 flex items-center justify-center cursor-pointer transition-colors border border-emerald-300 shadow-2xs group"
@@ -256,7 +259,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
 
   // Expanded Sidebar View (Full Navigation with Clear Close Option)
   return (
-    <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-white border-r border-slate-200 py-4 px-3 min-h-[calc(100vh-60px)] transition-all duration-200 select-none">
+    <aside className={`${mobile ? 'flex w-full' : 'hidden lg:flex w-64'} flex-col shrink-0 bg-white border-r border-slate-200 py-4 px-3 min-h-[calc(100dvh-60px)] transition-all duration-200 select-none`}>
       {/* Brand Header with Close/Collapse Option */}
       <div className="flex items-center justify-between px-2 pb-3 mb-2 border-b border-slate-100">
         <div 
@@ -264,9 +267,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
           className="flex items-center gap-2 cursor-pointer group"
           title="Shriya Multispeciality Dental Clinic EMR"
         >
-          <div className="w-7 h-7 rounded-md bg-emerald-800 text-white font-bold text-xs flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
-            🦷
-          </div>
+          <div className="w-7 h-7 rounded-md bg-emerald-800 text-white font-bold text-xs flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform"><ClinicMark /></div>
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-slate-900 tracking-tight">Shriya Dental</span>
@@ -316,11 +317,11 @@ export const Sidebar: React.FC<SidebarProps> = () => {
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 truncate">
+                  <div className={`flex items-center gap-2.5 ${mobile ? 'min-w-0' : 'truncate'}`}>
                     <span className={`shrink-0 ${isActive ? 'text-emerald-700' : 'text-slate-400'}`}>
                       {item.icon}
                     </span>
-                    <span className="truncate">{item.label}</span>
+                    <span className={mobile ? 'whitespace-normal text-left' : 'truncate'}>{item.label}</span>
                   </div>
 
                   {item.badge !== undefined && (
@@ -371,6 +372,24 @@ export const Sidebar: React.FC<SidebarProps> = () => {
             Switch
           </span>
         </div>
+
+        {/* Quick Sign Out from Sidebar (Especially handy on mobile) */}
+        <button
+          onClick={async () => {
+            onNavigate?.();
+            await logout();
+          }}
+          className="w-full flex items-center justify-between text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer border border-rose-200/80 shadow-2xs"
+          title="Sign Out from Clinic OS"
+        >
+          <span className="flex items-center gap-1.5">
+            <LogOut className="w-3.5 h-3.5 text-rose-500" />
+            <span>Sign Out</span>
+          </span>
+          <span className="text-[10px] bg-rose-100 text-rose-700 font-bold px-1.5 py-0.5 rounded border border-rose-200">
+            Exit
+          </span>
+        </button>
 
         {/* Bottom Collapse Button */}
         <button

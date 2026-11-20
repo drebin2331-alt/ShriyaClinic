@@ -1,3 +1,5 @@
+import './clinic-modules.css';
+import { SectionPicker, WorkspaceHeading } from '../components/common/WorkspaceControls';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ClayCard } from '../components/common/ClayCard';
@@ -32,78 +34,27 @@ export const WhatsAppReminderView: React.FC = () => {
   );
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-6 py-5 flex gap-6">
+    <div className="workspace w-full max-w-[1600px] mx-auto px-4 lg:px-6 py-5 flex flex-col lg:flex-row gap-6">
       <Sidebar type="admin" />
 
       <main className="flex-1 min-w-0 flex flex-col gap-4">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              WhatsApp Appointment Reminders
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Automated 24h reminders, instant booking confirmations, and live queue updates via WhatsApp.
-            </p>
-          </div>
-
-          <button
-            onClick={() => {
-              addToast('Bulk Queue Sent 💬', '4 pending WhatsApp reminders dispatched.', 'success');
-            }}
-            className="px-3.5 py-1.5 rounded-md bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>Dispatch Pending Alerts</span>
+        <WorkspaceHeading title="WhatsApp reminders">
+          <button className="work-action primary" onClick={() => addToast('Bulk Queue Sent 💬', '4 pending WhatsApp reminders dispatched.', 'success')}>
+            <Send size={16} /> Dispatch pending alerts
           </button>
-        </div>
-
-        {/* 4 Stat Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <ClayCard variant="flat" className="p-4">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Reminders</span>
-            <div className="text-2xl font-black text-slate-800 mt-1">{totalCount}</div>
-            <div className="text-[10px] font-bold text-sky-600 mt-0.5">Today's Batch</div>
-          </ClayCard>
-
-          <ClayCard variant="mint" className="p-4">
-            <span className="text-[10px] font-bold text-teal-800 uppercase tracking-wider block">Sent</span>
-            <div className="text-2xl font-black text-teal-950 mt-1">{sentCount}</div>
-            <div className="text-[10px] font-bold text-teal-700 mt-0.5">Delivered ✓</div>
-          </ClayCard>
-
-          <ClayCard variant="accent" className="p-4">
-            <span className="text-[10px] font-bold text-sky-800 uppercase tracking-wider block">Scheduled</span>
-            <div className="text-2xl font-black text-sky-950 mt-1">{scheduledCount}</div>
-            <div className="text-[10px] font-bold text-sky-700 mt-0.5">Automated</div>
-          </ClayCard>
-
-          <ClayCard variant="flat" className="p-4">
-            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Pending</span>
-            <div className="text-2xl font-black text-amber-800 mt-1">{pendingCount}</div>
-            <div className="text-[10px] font-bold text-amber-600 mt-0.5">Action Needed</div>
-          </ClayCard>
-        </div>
+        </WorkspaceHeading>
+        <dl className="module-summary">
+          <div><dt>Total reminders</dt><dd>{totalCount}</dd></div><div><dt>Sent</dt><dd>{sentCount}</dd></div>
+          <div><dt>Scheduled</dt><dd>{scheduledCount}</dd></div><div><dt>Pending</dt><dd>{pendingCount}</dd></div>
+        </dl>
 
         {/* Main Grid: Reminders List + WhatsApp Phone Chat Simulator */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Reminders List */}
           <div className="lg:col-span-7 flex flex-col gap-4">
-            {/* Filter Tabs */}
-            <div className="flex items-center gap-2 border-b border-slate-200/80 pb-2">
-              {['ALL', 'Scheduled', 'Sent', 'Pending'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab as any)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    activeTab === tab ? 'clay-btn-primary' : 'clay-card-flat text-slate-600'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
+            <SectionPicker label="Reminder status" value={activeTab} onChange={setActiveTab} options={[
+              { id: 'ALL', label: 'All' }, { id: 'Scheduled', label: 'Scheduled' }, { id: 'Sent', label: 'Sent' }, { id: 'Pending', label: 'Pending' }
+            ]} />
             {/* Reminder Cards */}
             <div className="flex flex-col gap-3">
               {filteredReminders.map((rem) => (
@@ -115,8 +66,8 @@ export const WhatsAppReminderView: React.FC = () => {
                     previewReminder?.id === rem.id ? 'border-emerald-500 clay-card-mint' : 'border-transparent'
                   }`}
                 >
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-200/80">
-                    <div className="flex items-center gap-2">
+                  <div className="module-section-heading pb-2 border-b border-slate-200/80">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[10px]">
                         {rem.type}
                       </span>
@@ -136,7 +87,7 @@ export const WhatsAppReminderView: React.FC = () => {
                   </div>
 
                   {/* Actions */}
-                  <div className="mt-3 pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                  <div className="module-section-heading mt-3 pt-2 border-t border-slate-200/60">
                     <span className="text-[10px] text-slate-400 font-bold">Scheduled for: {rem.scheduledFor}</span>
 
                     <div className="flex items-center gap-2">

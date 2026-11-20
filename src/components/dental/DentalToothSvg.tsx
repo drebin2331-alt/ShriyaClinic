@@ -105,7 +105,11 @@ export const DentalToothSvg: React.FC<DentalToothSvgProps> = ({
   const lingualColor = s.lingual && s.lingual !== 'Healthy' ? getConditionColor(s.lingual) : '#f8fafc';
 
   return (
-    <div
+    <button
+      type="button"
+      disabled={!onClick}
+      aria-label={`Tooth ${toothNum}, ${condition}${tooth.treatmentCode ? ', ' + tooth.treatmentCode : ''}`}
+      aria-pressed={isSelected || isMultiSelected}
       onClick={onClick}
       className={`relative flex flex-col items-center cursor-pointer transition-all duration-200 select-none group ${
         isSelected
@@ -366,6 +370,6 @@ export const DentalToothSvg: React.FC<DentalToothSvgProps> = ({
           title={`Treatment Status: ${tooth.treatmentStatus}`}
         />
       )}
-    </div>
+    </button>
   );
 };

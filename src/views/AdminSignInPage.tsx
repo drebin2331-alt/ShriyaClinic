@@ -56,16 +56,14 @@ export const AdminSignInPage: React.FC<AdminSignInPageProps> = ({
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col justify-between bg-gradient-to-br from-slate-950 via-slate-900 to-teal-950 text-slate-100 p-4 sm:p-6 lg:p-8 relative overflow-hidden">
+    <div className="min-h-screen w-full flex flex-col justify-between bg-[#edf2e8] text-slate-900 p-4 sm:p-6 lg:p-8 relative overflow-hidden">
       {/* Background Ambient Glows */}
-      <div className="absolute top-0 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 -right-40 w-96 h-96 bg-teal-500/15 rounded-full blur-3xl pointer-events-none" />
 
       {/* Top Navigation Bar */}
       <header className="w-full max-w-5xl mx-auto flex items-center justify-between py-2 relative z-10 gap-2">
         <button
           onClick={handleReturnHome}
-          className="inline-flex items-center gap-1.5 sm:gap-2 text-xs font-bold text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-800 px-3 sm:px-3.5 py-2 rounded-xl border border-slate-700/60 transition-all cursor-pointer backdrop-blur-xs shrink-0"
+          className="inline-flex items-center gap-1.5 sm:gap-2 text-xs font-bold text-slate-600 hover:text-teal-900 bg-white hover:bg-teal-50 px-3 sm:px-3.5 py-2 rounded-xl border border-slate-200 transition-all cursor-pointer backdrop-blur-xs shrink-0"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span className="hidden xs:inline">Return to Website</span>
@@ -74,7 +72,7 @@ export const AdminSignInPage: React.FC<AdminSignInPageProps> = ({
 
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <Database className={`w-3.5 h-3.5 ${isSupabaseOnline ? 'text-emerald-400' : 'text-teal-400'}`} />
-          <span className="text-[10px] sm:text-[11px] font-semibold text-slate-300">
+          <span className="text-[10px] sm:text-[11px] font-semibold text-slate-700">
             {isSupabaseOnline ? 'DB Online' : 'Local DB'}
           </span>
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -83,21 +81,19 @@ export const AdminSignInPage: React.FC<AdminSignInPageProps> = ({
 
       {/* Center Sign In Container */}
       <main className="w-full max-w-md mx-auto my-auto relative z-10 py-8">
-        <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800/90 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/60 space-y-6">
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
           {/* Brand Header */}
           <div className="text-center space-y-2">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-teal-700 to-emerald-500 text-white flex items-center justify-center mx-auto shadow-lg shadow-teal-900/40 border border-teal-400/20">
+            <div className="w-14 h-14 rounded-2xl bg-teal-700 text-white flex items-center justify-center mx-auto shadow-lg shadow-teal-900/40 border border-teal-400/20">
               <ShieldCheck className="w-7 h-7" />
             </div>
             <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-teal-400 bg-teal-950/60 border border-teal-800/40 px-2.5 py-0.5 rounded-full">
-                Clinical Administration
-              </span>
-              <h1 className="text-2xl font-black text-white tracking-tight mt-2">
+
+              <h1 className="section-title text-3xl text-slate-900 tracking-tight mt-2">
                 Sign In to Shriya Dental
               </h1>
-              <p className="text-xs text-slate-400 mt-1 font-medium leading-relaxed max-w-xs mx-auto">
-                Shriya Multispeciality Dental Clinic • Authorized personnel & management EMR portal.
+              <p className="text-xs text-slate-600 mt-1 font-medium leading-relaxed max-w-xs mx-auto">
+                Sign in with your clinic account.
               </p>
             </div>
           </div>
@@ -113,7 +109,7 @@ export const AdminSignInPage: React.FC<AdminSignInPageProps> = ({
           {/* Credentials Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-xs font-bold text-slate-300 block mb-1.5">
+              <label htmlFor="clinic-username" className="text-xs font-bold text-slate-700 block mb-1.5">
                 Username / Registered Email *
               </label>
               <div className="relative">
@@ -124,14 +120,14 @@ export const AdminSignInPage: React.FC<AdminSignInPageProps> = ({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="e.g. admin@clinic.com"
-                  autoComplete="username"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl text-xs font-medium bg-slate-950/70 border border-slate-700/80 text-white placeholder-slate-500 focus:bg-slate-950 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-hidden"
+                  id="clinic-username" autoComplete="username"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl text-xs font-medium bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-500 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-hidden"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-300 block mb-1.5">
+              <label htmlFor="clinic-password" className="text-xs font-bold text-slate-700 block mb-1.5">
                 Password *
               </label>
               <div className="relative">
@@ -142,13 +138,13 @@ export const AdminSignInPage: React.FC<AdminSignInPageProps> = ({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your clinic password"
-                  autoComplete="current-password"
-                  className="w-full pl-10 pr-10 py-3 rounded-xl text-xs font-medium bg-slate-950/70 border border-slate-700/80 text-white placeholder-slate-500 focus:bg-slate-950 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-hidden"
+                  id="clinic-password" autoComplete="current-password"
+                  className="w-full pl-10 pr-10 py-3 rounded-xl text-xs font-medium bg-slate-50 border border-slate-300 text-slate-900 placeholder-slate-500 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-hidden"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-900 cursor-pointer"
                   title={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -159,7 +155,7 @@ export const AdminSignInPage: React.FC<AdminSignInPageProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-500 hover:from-teal-500 hover:to-emerald-400 text-white font-black text-xs shadow-lg shadow-teal-950/50 hover:shadow-teal-600/30 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
+              className="w-full py-3.5 rounded-xl bg-teal-600 hover:from-teal-500 hover:to-emerald-400 text-white font-black text-xs shadow-lg shadow-teal-950/50 hover:shadow-teal-600/30 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
             >
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
@@ -174,13 +170,6 @@ export const AdminSignInPage: React.FC<AdminSignInPageProps> = ({
               )}
             </button>
           </form>
-
-          {/* Secure Access Footer Note */}
-          <div className="pt-3 border-t border-slate-800/80 text-center">
-            <p className="text-[11px] text-slate-500 font-medium">
-              Shriya Multispeciality Dental Clinic OS • End-to-End Encrypted
-            </p>
-          </div>
         </div>
       </main>
 

@@ -1,3 +1,5 @@
+import { SectionPicker, WorkspaceHeading } from '../components/common/WorkspaceControls';
+import { ModalLayer } from '../components/common/ModalLayer';
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -315,212 +317,26 @@ export const StaffUserManagementView: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-[1650px] mx-auto px-4 lg:px-6 py-6 flex gap-6">
+    <div className="workspace w-full max-w-[1650px] mx-auto px-4 lg:px-6 py-6 flex flex-col lg:flex-row gap-6">
       <Sidebar type="admin" />
 
       <main className="flex-1 min-w-0 space-y-6 animate-in fade-in">
-        {/* Top Header Banner */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 p-6 md:p-8 text-white shadow-xl border border-teal-800/30">
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2 max-w-2xl">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <span className="text-[10px] font-black uppercase tracking-widest text-teal-300 bg-teal-500/20 px-3 py-1 rounded-full border border-teal-400/30 backdrop-blur-xs">
-                  Admin Master Control
-                </span>
-                <span className="text-xs font-mono font-medium text-slate-300 flex items-center gap-1.5 bg-slate-800/60 px-3 py-1 rounded-full border border-slate-700/50">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  {staffMembers.length} Active Accounts
-                </span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                User Accounts & Credentials Management
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-300 font-normal leading-relaxed">
-                Admin-exclusive account provisioning. Public self-registration is disabled. Create and issue login credentials for <strong>Doctors</strong>, <strong>Front Desk Receptionists</strong>, and <strong>Patients (Customers)</strong>.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2.5 shrink-0">
-              <button
-                onClick={() => handleOpenAddModal('doctor')}
-                className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer transform hover:-translate-y-0.5"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>+ Create Account</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <WorkspaceHeading title="Staff and patient accounts" detail={staffMembers.length + ' accounts'}>
+          <button className="work-action primary" onClick={() => handleOpenAddModal('doctor')}><UserPlus size={16} /> Create account</button>
+        </WorkspaceHeading>
+        <div className="work-search"><Search size={18} aria-hidden="true" />
+          <input type="search" placeholder="Find an account" aria-label="Find accounts by name, email, phone, cabin or patient ID"
+            value={searchTerm} onChange={event => setSearchTerm(event.target.value)} />
         </div>
-
-        {/* 4 Metric Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* 1. Doctors */}
-          <div 
-            onClick={() => setRoleFilter('doctor')}
-            className="clinic-glass rounded-2xl p-5 border border-sky-200/80 shadow-xs hover:shadow-md transition-all group bg-gradient-to-br from-white via-sky-50/30 to-sky-100/30 cursor-pointer"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-sky-800">
-                  Clinical Doctors
-                </span>
-                <div className="text-3xl font-black text-slate-900 mt-1 flex items-baseline gap-1.5">
-                  <span>{doctorCount}</span>
-                  <span className="text-xs font-bold text-sky-600">Surgeons</span>
-                </div>
-                <p className="text-[11px] font-medium text-slate-500 mt-1">Dentists & Specialists</p>
-              </div>
-              <div className="w-12 h-12 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center text-xl shadow-xs border border-sky-200 group-hover:scale-105 transition-transform">
-                🩺
-              </div>
-            </div>
-            <div className="mt-3 pt-3 border-t border-sky-100 flex items-center justify-between text-[11px] text-sky-800 font-semibold">
-              <span>Full EMR & OPD Queue</span>
-              <span className="bg-sky-100 px-2 py-0.5 rounded-full text-[10px] font-black">Active</span>
-            </div>
-          </div>
-
-          {/* 2. Reception */}
-          <div 
-            onClick={() => setRoleFilter('receptionist')}
-            className="clinic-glass rounded-2xl p-5 border border-teal-200/80 shadow-xs hover:shadow-md transition-all group bg-gradient-to-br from-white via-teal-50/30 to-teal-100/30 cursor-pointer"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-teal-800">
-                  Front Desk & Reception
-                </span>
-                <div className="text-3xl font-black text-slate-900 mt-1 flex items-baseline gap-1.5">
-                  <span>{receptionistCount}</span>
-                  <span className="text-xs font-bold text-teal-600">Officers</span>
-                </div>
-                <p className="text-[11px] font-medium text-slate-500 mt-1">Tokens, Check-In & Billing</p>
-              </div>
-              <div className="w-12 h-12 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center text-xl shadow-xs border border-teal-200 group-hover:scale-105 transition-transform">
-                👩‍💼
-              </div>
-            </div>
-            <div className="mt-3 pt-3 border-t border-teal-100 flex items-center justify-between text-[11px] text-teal-800 font-semibold">
-              <span>Desk Check-In & Bills</span>
-              <span className="bg-teal-100 px-2 py-0.5 rounded-full text-[10px] font-black">Active</span>
-            </div>
-          </div>
-
-          {/* 3. Customers / Patients */}
-          <div 
-            onClick={() => setRoleFilter('customer')}
-            className="clinic-glass rounded-2xl p-5 border border-emerald-200/80 shadow-xs hover:shadow-md transition-all group bg-gradient-to-br from-white via-emerald-50/30 to-emerald-100/30 cursor-pointer"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800">
-                  Patients / Customers
-                </span>
-                <div className="text-3xl font-black text-slate-900 mt-1 flex items-baseline gap-1.5">
-                  <span>{customerCount}</span>
-                  <span className="text-xs font-bold text-emerald-600">Portals</span>
-                </div>
-                <p className="text-[11px] font-medium text-slate-500 mt-1">EMR Linked User Accounts</p>
-              </div>
-              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl shadow-xs border border-emerald-200 group-hover:scale-105 transition-transform">
-                👤
-              </div>
-            </div>
-            <div className="mt-3 pt-3 border-t border-emerald-100 flex items-center justify-between text-[11px] text-emerald-800 font-semibold">
-              <span>Patient Portal Access</span>
-              <span className="bg-emerald-100 px-2 py-0.5 rounded-full text-[10px] font-black">Online</span>
-            </div>
-          </div>
-
-          {/* 4. Administrators */}
-          <div 
-            onClick={() => setRoleFilter('admin')}
-            className="clinic-glass rounded-2xl p-5 border border-purple-200/80 shadow-xs hover:shadow-md transition-all group bg-gradient-to-br from-white via-purple-50/30 to-purple-100/30 cursor-pointer"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-purple-800">
-                  Clinic Administrators
-                </span>
-                <div className="text-3xl font-black text-slate-900 mt-1 flex items-baseline gap-1.5">
-                  <span>{adminCount}</span>
-                  <span className="text-xs font-bold text-purple-600">Admins</span>
-                </div>
-                <p className="text-[11px] font-medium text-slate-500 mt-1">Full Governance & Controls</p>
-              </div>
-              <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl shadow-xs border border-purple-200 group-hover:scale-105 transition-transform">
-                🛡️
-              </div>
-            </div>
-            <div className="mt-3 pt-3 border-t border-purple-100 flex items-center justify-between text-[11px] text-purple-800 font-semibold">
-              <span>Root Governance</span>
-              <span className="bg-purple-100 px-2 py-0.5 rounded-full text-[10px] font-black">Super Admin</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Search and Role Filter Chips */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search accounts by name, username, email, phone, cabin, or patient ID..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-50/80 border border-slate-200 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all outline-hidden text-slate-800 placeholder:text-slate-400"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {[
-              { id: 'ALL', label: `All Accounts (${staffMembers.length})` },
-              { id: 'doctor', label: `Doctors (${doctorCount})` },
-              { id: 'receptionist', label: `Front Desk (${receptionistCount})` },
-              { id: 'customer', label: `Patients / Customers (${customerCount})` },
-              { id: 'admin', label: `Admins (${adminCount})` }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setRoleFilter(tab.id as any)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                  roleFilter === tab.id
-                    ? 'bg-teal-700 text-white shadow-md shadow-teal-700/20'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <SectionPicker label="Account role" value={roleFilter} onChange={setRoleFilter} options={[
+          { id: 'ALL', label: 'All accounts', count: staffMembers.length },
+          { id: 'doctor', label: 'Doctors', count: doctorCount }, { id: 'receptionist', label: 'Front desk', count: receptionistCount },
+          { id: 'customer', label: 'Patients', count: customerCount }, { id: 'admin', label: 'Admins', count: adminCount }
+        ]} />
 
         {/* Accounts Table Roster */}
         <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                Issued Account Credentials Roster
-              </span>
-              <span className="text-[11px] font-bold text-slate-500 bg-slate-200/70 px-2 py-0.5 rounded-full">
-                {filteredStaff.length} shown
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 text-[11px] text-teal-800 font-semibold bg-teal-50 px-3 py-1 rounded-full border border-teal-200/60">
-              <Sparkles className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-              <span>Click "Copy" on any account to immediately copy login details.</span>
-            </div>
-          </div>
+          <h2 className="px-4 py-3 text-base font-semibold border-b border-slate-100">Accounts ({filteredStaff.length})</h2>
 
           {filteredStaff.length === 0 ? (
             <div className="py-16 text-center text-slate-400">
@@ -543,7 +359,7 @@ export const StaffUserManagementView: React.FC = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full text-left text-xs responsive-records">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-400 font-black uppercase tracking-wider text-[10px]">
                     <th className="py-4 px-5">User / Member</th>
@@ -568,7 +384,7 @@ export const StaffUserManagementView: React.FC = () => {
                     return (
                       <tr key={staff.id} className="hover:bg-teal-50/30 transition-colors group">
                         {/* 1. Member Profile */}
-                        <td className="py-4 px-5">
+                        <td data-label="User / Member" className="py-4 px-5">
                           <div className="flex items-center gap-3">
                             {staff.avatar && (staff.avatar.startsWith('data:') || staff.avatar.startsWith('http')) && !staff.avatar.includes('photo-1559839734') ? (
                               <img
@@ -580,12 +396,12 @@ export const StaffUserManagementView: React.FC = () => {
                               <div
                                 className={`w-10 h-10 rounded-2xl text-white font-black text-xs flex items-center justify-center shrink-0 shadow-xs ${
                                   isDoctor
-                                    ? 'bg-gradient-to-tr from-sky-600 to-teal-500'
+                                    ? 'bg-sky-600'
                                     : isReception
-                                      ? 'bg-gradient-to-tr from-teal-700 to-emerald-500'
+                                      ? 'bg-teal-700'
                                       : isCustomer
-                                        ? 'bg-gradient-to-tr from-emerald-600 to-teal-500'
-                                        : 'bg-gradient-to-tr from-purple-700 to-indigo-600'
+                                        ? 'bg-emerald-600'
+                                        : 'bg-purple-700'
                                 }`}
                               >
                                 {staff.name.charAt(0)}
@@ -612,7 +428,7 @@ export const StaffUserManagementView: React.FC = () => {
                         </td>
 
                         {/* 2. Role */}
-                        <td className="py-4 px-3">
+                        <td data-label="Role & Access" className="py-4 px-3">
                           <span
                             className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black tracking-wide border ${
                               isDoctor
@@ -636,7 +452,7 @@ export const StaffUserManagementView: React.FC = () => {
                         </td>
 
                         {/* 3. Username / Email */}
-                        <td className="py-4 px-3 font-mono text-[11px] text-slate-800">
+                        <td data-label="Username / Email" className="py-4 px-3 font-mono text-[11px] text-slate-800">
                           <div className="flex items-center gap-1.5 font-semibold">
                             <Mail className="w-3.5 h-3.5 text-slate-400" />
                             <span>{staff.email}</span>
@@ -644,7 +460,7 @@ export const StaffUserManagementView: React.FC = () => {
                         </td>
 
                         {/* 4. Password with Eye & Copy */}
-                        <td className="py-4 px-3 font-mono text-xs">
+                        <td data-label="Password" className="py-4 px-3 font-mono text-xs">
                           <div className="flex items-center gap-2 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200/90 w-fit">
                             <KeyRound className="w-3.5 h-3.5 text-slate-400" />
                             <span className="font-bold text-slate-800">
@@ -662,7 +478,7 @@ export const StaffUserManagementView: React.FC = () => {
                         </td>
 
                         {/* 5. Cabin / Desk / Patient ID */}
-                        <td className="py-4 px-3 font-semibold text-slate-700 text-[11px]">
+                        <td data-label="Cabin / Station / ID" className="py-4 px-3 font-semibold text-slate-700 text-[11px]">
                           <div className="flex items-center gap-1.5">
                             <Building2 className="w-3.5 h-3.5 text-slate-400" />
                             <span className="bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 text-slate-800 font-mono text-[11px]">
@@ -672,7 +488,7 @@ export const StaffUserManagementView: React.FC = () => {
                         </td>
 
                         {/* 6. Phone */}
-                        <td className="py-4 px-3 text-slate-600 font-mono text-[11px]">
+                        <td data-label="Contact" className="py-4 px-3 text-slate-600 font-mono text-[11px]">
                           <div className="flex items-center gap-1">
                             <Phone className="w-3 h-3 text-slate-400" />
                             <span>{staff.phone || '+91 98765 00000'}</span>
@@ -680,7 +496,7 @@ export const StaffUserManagementView: React.FC = () => {
                         </td>
 
                         {/* 7. Status */}
-                        <td className="py-4 px-3">
+                        <td data-label="Status" className="py-4 px-3">
                           <span
                             className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                               isActive
@@ -696,7 +512,7 @@ export const StaffUserManagementView: React.FC = () => {
                         </td>
 
                         {/* 8. Actions */}
-                        <td className="py-4 px-5 text-right">
+                        <td data-label="Actions" className="py-4 px-5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => handleCopyCredentials(staff)}
@@ -748,7 +564,7 @@ export const StaffUserManagementView: React.FC = () => {
 
         {/* ADD / EDIT USER ACCOUNT MODAL */}
         {isAddModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <ModalLayer onDismiss={() => setIsAddModalOpen(false)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
             <div className="clay-card w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-white space-y-4 max-h-[92vh] overflow-y-auto">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div className="flex items-center gap-2">
@@ -764,7 +580,7 @@ export const StaffUserManagementView: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <button
+                <button aria-label="Close dialog"
                   onClick={() => setIsAddModalOpen(false)}
                   className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 cursor-pointer"
                 >
@@ -1059,12 +875,12 @@ export const StaffUserManagementView: React.FC = () => {
                 </div>
               </form>
             </div>
-          </div>
+          </ModalLayer>
         )}
 
         {/* DELETE CONFIRMATION MODAL */}
         {deletingStaff && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <ModalLayer onDismiss={() => setDeletingStaff(null)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
             <div className="clay-card w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-white space-y-4">
               <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center mx-auto text-xl">
                 ⚠️
@@ -1093,7 +909,7 @@ export const StaffUserManagementView: React.FC = () => {
                 </button>
               </div>
             </div>
-          </div>
+          </ModalLayer>
         )}
       </main>
     </div>

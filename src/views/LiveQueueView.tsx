@@ -113,19 +113,16 @@ export const LiveQueueView: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-28 flex flex-col gap-6 sm:gap-8">
+    <div className="queue-public max-w-7xl mx-auto px-4 py-4 sm:py-6 flex flex-col gap-6 sm:gap-8">
       {/* Top Title & Quick Action */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full clay-card-accent text-sky-700 text-xs font-black mb-1">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-            <span>Clinic Live Queue Server Online</span>
-          </div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-            Today's Patient Queue & Live Tokens
+
+          <h1 className="section-title text-4xl text-slate-900">
+            Today's patient queue
           </h1>
           <p className="text-xs text-slate-500">
-            Real-time queue tracking for Shriya Multispeciality Dental Clinic reception and patient display.
+            See who is being called or look up your token.
           </p>
         </div>
 
@@ -147,53 +144,17 @@ export const LiveQueueView: React.FC = () => {
             onClick={() => setActiveView('reception-tv')}
             icon={<Tv2 className="w-4 h-4" />}
           >
-            Open Reception TV Mode
+            Reception TV
           </ClayButton>
         </div>
       </div>
 
-      {/* Queue Stats Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <ClayCard variant="flat" className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-            <Clock className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-800">{waitingCount}</div>
-            <div className="text-[11px] font-bold text-slate-500">Waiting Patients</div>
-          </div>
-        </ClayCard>
-
-        <ClayCard variant="accent" className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-sky-500 text-white flex items-center justify-center shrink-0 shadow-md">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-sky-900">{inConsultCount}</div>
-            <div className="text-[11px] font-bold text-sky-700">In Consultation</div>
-          </div>
-        </ClayCard>
-
-        <ClayCard variant="mint" className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-teal-500 text-white flex items-center justify-center shrink-0 shadow-md">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-teal-900">{completedCount}</div>
-            <div className="text-[11px] font-bold text-teal-700">Completed Today</div>
-          </div>
-        </ClayCard>
-
-        <ClayCard variant="flat" className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
-            <XCircle className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-800">{cancelledCount}</div>
-            <div className="text-[11px] font-bold text-slate-500">Cancelled</div>
-          </div>
-        </ClayCard>
-      </div>
+      <dl className="queue-counts" aria-label="Queue summary">
+        <div><dt>Waiting</dt><dd>{waitingCount}</dd></div>
+        <div><dt>In consultation</dt><dd>{inConsultCount}</dd></div>
+        <div><dt>Completed today</dt><dd>{completedCount}</dd></div>
+        <div><dt>Cancelled</dt><dd>{cancelledCount}</dd></div>
+      </dl>
 
       {/* Main Grid: Current Token Highlight + Next Queue + Your Token Lookup */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -204,7 +165,7 @@ export const LiveQueueView: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-sky-200">
               <span className="text-xs font-black uppercase tracking-widest text-sky-800 flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                Current Token Now Serving
+                Now serving
               </span>
               {currentConsultation && <StatusBadge status={currentConsultation.status} size="lg" />}
             </div>
@@ -226,16 +187,10 @@ export const LiveQueueView: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="clay-card-flat p-4 rounded-3xl flex flex-col items-center gap-2 border border-white shrink-0 min-w-[160px]">
-                  <div className="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center text-xl font-black shadow-md">
-                    👨‍⚕️
-                  </div>
-                  <span className="text-[11px] font-extrabold text-slate-500">Active Room</span>
-                  <span className="text-xs font-black text-sky-800">In Consultation</span>
-                </div>
+                <p className="text-sm font-semibold text-sky-800">Active room · In consultation</p>
               </div>
             ) : (
-              <div className="py-12 text-center text-slate-500 text-sm font-bold">
+              <div className="py-4 text-sm text-slate-600">
                 No active token currently in consultation.
               </div>
             )}
@@ -290,13 +245,13 @@ export const LiveQueueView: React.FC = () => {
 
             {/* Token Input Search */}
             <div className="mb-5">
-              <label className="text-[11px] font-black text-teal-800 uppercase tracking-wider block mb-1">
+              <label htmlFor="queue-token-lookup" className="text-[11px] font-black text-teal-800 uppercase tracking-wider block mb-1">
                 Enter Your Token Number
               </label>
               <div className="relative flex items-center">
                 <input
                   type="text"
-                  value={searchTokenInput}
+                  id="queue-token-lookup" value={searchTokenInput}
                   onChange={(e) => setSearchTokenInput(e.target.value)}
                   placeholder="e.g. A-028"
                   className="clay-input w-full p-3 font-mono text-base font-black tracking-wider uppercase text-slate-800 pr-10"
@@ -343,7 +298,7 @@ export const LiveQueueView: React.FC = () => {
                   </div>
                   <div className="w-full h-3 rounded-full bg-slate-200 overflow-hidden p-0.5">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-teal-400 to-sky-500 transition-all duration-500"
+                      className="h-full rounded-full bg-teal-400 transition-all duration-500"
                       style={{
                         width: `${Math.min(100, Math.max(15, 100 - patientsAhead * 18))}%`
                       }}

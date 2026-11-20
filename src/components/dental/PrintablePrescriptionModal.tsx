@@ -1,3 +1,4 @@
+import { ModalLayer } from '../common/ModalLayer';
 import React, { useState } from 'react';
 import { PrescriptionRecord } from '../../types';
 import { useApp } from '../../context/AppContext';
@@ -68,31 +69,15 @@ export const PrintablePrescriptionModal: React.FC<PrintablePrescriptionModalProp
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+    <ModalLayer onDismiss={onClose} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
       <div className="bg-white w-full max-w-4xl rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-200 max-h-[96vh] overflow-y-auto space-y-4">
         
-        {/* Top Action Bar (Hidden in print) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 print:hidden">
-          <div className="flex items-center gap-2.5">
-            <span className="p-2 bg-blue-50 text-blue-900 rounded-xl border border-blue-200 shrink-0">
-              <Stethoscope className="w-5 h-5 text-blue-900" />
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-wider text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                  Official Clinic Pad
-                </span>
-                <span className="text-xs font-mono font-bold text-slate-500">
-                  Rx #{prescription.id}
-                </span>
-              </div>
-              <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                Shriya Multispeciality Dental Clinic — Prescription
-              </h3>
-            </div>
+        <div className="rx-controls print:hidden">
+          <div className="document-toolbar">
+            <div><h2>Prescription</h2><p>{prescription.id}</p></div>
+            <button type="button" className="work-action document-close" aria-label="Close prescription" onClick={onClose}><X size={20} /></button>
           </div>
-
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <div className="bill-actions">
             {onEdit && (
               <button
                 onClick={() => onEdit(prescription)}
@@ -100,7 +85,7 @@ export const PrintablePrescriptionModal: React.FC<PrintablePrescriptionModalProp
                 title="Edit this prescription"
               >
                 <Edit3 className="w-4 h-4 text-slate-600" />
-                <span>Edit Rx ✏️</span>
+                <span>Edit Rx</span>
               </button>
             )}
 
@@ -121,7 +106,7 @@ export const PrintablePrescriptionModal: React.FC<PrintablePrescriptionModalProp
               title="Print on paper or physical letterhead"
             >
               <Printer className="w-4 h-4" />
-              <span>Print 🖨️</span>
+              <span>Print</span>
             </button>
             <button
               onClick={handleDownloadPdf}
@@ -129,13 +114,7 @@ export const PrintablePrescriptionModal: React.FC<PrintablePrescriptionModalProp
               title="Download as PDF file"
             >
               <Download className="w-4 h-4" />
-              <span>Download PDF 📥</span>
-            </button>
-            <button
-              onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 cursor-pointer ml-1"
-            >
-              <X className="w-5 h-5" />
+              <span>Save PDF</span>
             </button>
           </div>
         </div>
@@ -184,6 +163,6 @@ export const PrintablePrescriptionModal: React.FC<PrintablePrescriptionModalProp
           />
         </div>
       </div>
-    </div>
+    </ModalLayer>
   );
 };

@@ -1,3 +1,4 @@
+import { ModalLayer } from '../common/ModalLayer';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -230,7 +231,7 @@ export const NewPatientRegistrationModal: React.FC<NewPatientRegistrationModalPr
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+    <ModalLayer onDismiss={onClose} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
       <div className="clay-card w-full max-w-2xl my-6 bg-white rounded-3xl p-6 shadow-2xl border border-white max-h-[92vh] overflow-y-auto">
         
         {/* SUCCESS DIALOG WHEN REGISTERED */}
@@ -336,7 +337,7 @@ export const NewPatientRegistrationModal: React.FC<NewPatientRegistrationModalPr
                   New Outpatient Registration
                 </h3>
               </div>
-              <button
+              <button aria-label="Close dialog"
                 onClick={onClose}
                 className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               >
@@ -606,6 +607,6 @@ export const NewPatientRegistrationModal: React.FC<NewPatientRegistrationModalPr
           </>
         )}
       </div>
-    </div>
+    </ModalLayer>
   );
 };

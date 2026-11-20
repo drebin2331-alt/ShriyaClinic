@@ -1,3 +1,4 @@
+import { ModalLayer } from '../common/ModalLayer';
 import React, { useState } from 'react';
 import { ToothCondition, ToothData, ToothSurface, ToothSurfaceState, TreatmentPlanItem, TreatmentPlanStatus } from '../../types';
 import { getToothName, getConditionColor } from '../../utils/dentalChartHelper';
@@ -267,7 +268,7 @@ export const ToothDetailModal: React.FC<ToothDetailModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+    <ModalLayer onDismiss={onClose} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
       <div className="clay-card w-full max-w-3xl my-8 bg-white/95 rounded-3xl p-6 shadow-2xl border border-white/80 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-start justify-between pb-4 border-b border-slate-200">
@@ -284,7 +285,7 @@ export const ToothDetailModal: React.FC<ToothDetailModalProps> = ({
               </p>
             </div>
           </div>
-          <button
+          <button aria-label="Close dialog"
             onClick={onClose}
             className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
           >
@@ -728,6 +729,6 @@ export const ToothDetailModal: React.FC<ToothDetailModalProps> = ({
           </ClayButton>
         </div>
       </div>
-    </div>
+    </ModalLayer>
   );
 };

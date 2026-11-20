@@ -1,3 +1,4 @@
+import { ModalLayer } from '../components/common/ModalLayer';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ClayCard } from '../components/common/ClayCard';
@@ -182,7 +183,7 @@ const GOOGLE_PATIENT_REVIEWS: GooglePatientReview[] = [
     treatment: 'Wisdom Tooth Surgeries',
     treatmentColor: 'bg-teal-50 text-teal-800 border-teal-200',
     rating: 5,
-    avatarBg: 'bg-gradient-to-tr from-teal-600 to-emerald-600 text-white',
+    avatarBg: 'bg-teal-600 text-white',
     avatarText: 'IL',
     reviewText:
       "I've had two wisdom tooth surgeries here, and honestly, both times I felt at ease knowing I was in good hands. The doctors and surgeons are incredibly skilled, but what I love most is how kind and warm everyone is — from the staff to the surgeons themselves. I've been going to this dental hospital for all my dental needs. This dental hospital truly feels like being cared for by people who genuinely want the best for you.\n\nEven something as small as a regular appointment feels comfortable here.\n\nHighly recommend this place if you want a dental hospital that truly looks after you!"
@@ -295,44 +296,28 @@ export const LandingPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-14 sm:gap-20 pb-28 sm:pb-20">
+    <div className="public-site flex flex-col gap-14 sm:gap-20 pb-28 sm:pb-20">
       {/* ===================================================================== */}
       {/* 1. HERO SECTION                                                      */}
       {/* ===================================================================== */}
-      <section className="relative px-4 pt-6 md:pt-14 overflow-hidden">
-        {/* Ambient Subtle Background Blobs */}
-        <div className="absolute top-10 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-tr from-teal-100/40 via-emerald-50/30 to-sky-100/30 blur-3xl pointer-events-none -z-10" />
+      <section className="public-hero">
 
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
           {/* Left Text Column */}
           <div className="lg:col-span-7 flex flex-col items-start gap-5 sm:gap-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 border border-teal-200/80 text-teal-800 text-xs font-extrabold shadow-2xs">
-              <Sparkles className="w-4 h-4 text-teal-600" />
-              <span>Center for Advanced Dentistry & Implantology</span>
-            </div>
-
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.12]">
-              World-Class Dental Care, <br />
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-teal-700 via-emerald-600 to-teal-800">
-                Painless & Gentle.
-              </span>
-            </h1>
-
-            <p className="text-sm sm:text-base md:text-lg font-medium text-slate-600 max-w-2xl leading-relaxed">
-              Welcome to <strong>Shriya Multispeciality Dental Clinic</strong>. From painless single-sitting root canals and laser whitening to 3D computer-guided implants and invisible aligners — experience gentle, state-of-the-art dental solutions delivered by certified specialists.
-            </p>
-
+            <h1>Shriya Dental Clinic</h1>
+            <p className="text-base sm:text-lg text-slate-700 max-w-xl">Specialist dental care in Kozhinjampara, Palakkad. Book a consultation for preventive care, root canals, implants or aligners.</p>
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-4 w-full sm:w-auto pt-1">
+            <div className="flex flex-wrap items-center gap-3 w-full pt-1">
               <button
                 onClick={() => {
                   setSelectedConcern('Routine Dental Checkup & Consultation');
                   setShowEnquiryModal(true);
                 }}
-                className="w-full sm:w-auto px-5 sm:px-6 py-3.5 rounded-xl bg-gradient-to-r from-teal-700 to-emerald-600 hover:from-teal-800 hover:to-emerald-700 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-teal-900/15 hover:shadow-teal-900/25 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95"
+                className="w-full sm:w-auto px-5 sm:px-6 py-3.5 rounded-xl bg-teal-700 hover:from-teal-800 hover:to-emerald-700 text-white font-extrabold text-xs sm:text-sm shadow-md shadow-teal-900/15 hover:shadow-teal-900/25 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95"
               >
                 <Calendar className="w-4 h-4" />
-                <span>Book Consultation / Enquire</span>
+                <span>Book Consultation</span>
               </button>
 
               <button
@@ -343,7 +328,7 @@ export const LandingPage: React.FC = () => {
                 <span>Explore Specialities</span>
               </button>
 
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 py-1 text-xs font-bold">
+              <div className="flex basis-full flex-wrap items-center gap-2 text-xs font-semibold">
                 <a
                   href="tel:+919400320890"
                   className="inline-flex items-center gap-1.5 text-teal-800 hover:text-teal-950 bg-teal-50 hover:bg-teal-100/80 px-3 py-2 rounded-xl border border-teal-200 transition-colors"
@@ -385,26 +370,7 @@ export const LandingPage: React.FC = () => {
           </div>
 
           {/* Right Visual Area: Real Clinic Photo */}
-          <div className="lg:col-span-5 relative flex justify-center w-full">
-            <div className="relative w-full max-w-md lg:max-w-lg aspect-[4/3] sm:aspect-[5/4] bg-white rounded-3xl p-2.5 sm:p-3 shadow-xl border-4 border-white overflow-hidden group mx-auto">
-              <img
-                src="/images/clinic-lounge.jpg"
-                alt="Shriya Multispeciality Dental Clinic Patient Lounge"
-                className="w-full h-full object-cover rounded-2xl transition-transform duration-700 group-hover:scale-105"
-              />
-
-              {/* Floating Badge: Google Rating */}
-              <div className="absolute bottom-3 right-3 sm:bottom-6 sm:right-6 bg-white/95 backdrop-blur-md rounded-2xl p-2 sm:p-3 shadow-lg border border-slate-100 flex items-center gap-2 sm:gap-3 max-w-[85%]">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
-                  <Star className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] sm:text-xs font-black text-slate-900 truncate">4.9 / 5.0 Rating</div>
-                  <div className="text-[9px] sm:text-[10px] font-bold text-slate-500 truncate">5,000+ Happy Smiles</div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <figure className="lg:col-span-5"><img src="/images/clinic-lounge.jpg" alt="Patient lounge at Shriya Dental Clinic" fetchPriority="high" /><figcaption>Shriya Dental · Patient lounge</figcaption></figure>
         </div>
       </section>
 
@@ -412,13 +378,13 @@ export const LandingPage: React.FC = () => {
       {/* 2. EMERGENCY & SAME-DAY APPOINTMENT RIBBON                            */}
       {/* ===================================================================== */}
       <section className="px-4">
-        <div className="max-w-7xl mx-auto rounded-2xl bg-gradient-to-r from-teal-900 via-emerald-900 to-slate-900 text-white p-4 sm:p-5 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto rounded-2xl bg-teal-900 text-white p-4 sm:p-5 shadow-lg flex flex-col xl:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
               <Zap className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs sm:text-sm font-black tracking-tight text-white flex items-center gap-2">
+              <div className="text-xs sm:text-sm font-black tracking-tight text-white flex flex-wrap items-center gap-2">
                 <span>Suffering from Severe Toothache or Broken Tooth?</span>
                 <span className="bg-emerald-500 text-slate-950 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
                   Emergency Priority
@@ -430,7 +396,7 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0 w-full md:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0 w-full xl:w-auto">
             <a
               href="tel:+917904221656"
               className="flex-1 md:flex-none text-center px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black transition-all shadow-sm flex items-center justify-center gap-1.5"
@@ -553,7 +519,7 @@ export const LandingPage: React.FC = () => {
       {/* 5. WHY CHOOSE SHRIYA MULTISPECIALITY DENTAL CLINIC                   */}
       {/* ===================================================================== */}
       <section id="why-choose" className="px-4 scroll-mt-20">
-        <div className="max-w-7xl mx-auto bg-gradient-to-b from-slate-50 to-white rounded-3xl p-6 sm:p-10 md:p-12 border border-slate-200 shadow-sm">
+        <div className="max-w-7xl mx-auto bg-slate-50 rounded-3xl p-6 sm:p-10 md:p-12 border border-slate-200 shadow-sm">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             {/* Left Content */}
             <div className="lg:col-span-6 space-y-5">
@@ -743,7 +709,7 @@ export const LandingPage: React.FC = () => {
                     onClick={() => setSelectedTransformationCategory(cat)}
                     className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer shrink-0 border ${
                       isSelected
-                        ? 'bg-gradient-to-r from-teal-700 to-emerald-700 text-white border-teal-800 shadow-md shadow-teal-900/20 scale-102'
+                        ? 'bg-teal-700 text-white border-teal-800 shadow-md shadow-teal-900/20 scale-102'
                         : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200'
                     }`}
                   >
@@ -869,8 +835,8 @@ export const LandingPage: React.FC = () => {
           </div>
 
           {/* Social Proof Trust Banner */}
-          <div className="rounded-3xl bg-gradient-to-r from-teal-900 via-slate-900 to-teal-950 p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="space-y-1.5 text-center md:text-left">
+          <div className="rounded-3xl bg-teal-900 p-6 sm:p-8 text-white shadow-xl flex flex-col lg:flex-row items-center justify-between gap-6">
+            <div className="space-y-1.5 text-center lg:text-left">
               <span className="text-[10px] font-black uppercase tracking-wider text-teal-300 bg-teal-500/20 px-3 py-1 rounded-full border border-teal-400/30">
                 Personalized Smile Consultation
               </span>
@@ -882,14 +848,14 @@ export const LandingPage: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto shrink-0">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full lg:w-auto shrink-0">
               <button
                 type="button"
                 onClick={() => {
                   setSelectedConcern('Full Smile Makeover / Aesthetic Consultation');
                   setShowEnquiryModal(true);
                 }}
-                className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg hover:shadow-emerald-500/25 hover:scale-102 transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-emerald-500 text-slate-950 font-black text-xs sm:text-sm shadow-lg hover:shadow-emerald-500/25 hover:scale-102 transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 <Calendar className="w-4 h-4" />
                 <span>Schedule Smile Analysis</span>
@@ -931,7 +897,7 @@ export const LandingPage: React.FC = () => {
                 key={doc.id}
                 className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs hover:shadow-md hover:border-teal-200 transition-all flex flex-col items-center text-center group"
               >
-                <div className="w-24 h-24 rounded-2xl overflow-hidden mb-3 border-2 border-slate-100 shadow-xs group-hover:scale-105 transition-transform relative flex items-center justify-center bg-gradient-to-tr from-teal-50 to-teal-100">
+                <div className="w-24 h-24 rounded-2xl overflow-hidden mb-3 border-2 border-slate-100 shadow-xs group-hover:scale-105 transition-transform relative flex items-center justify-center bg-teal-50">
                   {doc.avatar && (doc.avatar.startsWith('data:') || doc.avatar.startsWith('http')) && !doc.avatar.includes('photo-1559839734') ? (
                     <img
                       src={doc.avatar}
@@ -944,7 +910,7 @@ export const LandingPage: React.FC = () => {
                       }}
                     />
                   ) : null}
-                  <div className={`w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-teal-700 to-emerald-800 text-white ${doc.avatar && (doc.avatar.startsWith('data:') || doc.avatar.startsWith('http')) && !doc.avatar.includes('photo-1559839734') ? 'hidden' : ''}`}>
+                  <div className={`w-full h-full flex flex-col items-center justify-center bg-teal-700 text-white ${doc.avatar && (doc.avatar.startsWith('data:') || doc.avatar.startsWith('http')) && !doc.avatar.includes('photo-1559839734') ? 'hidden' : ''}`}>
                     <Stethoscope className="w-8 h-8 text-teal-200 mb-1" />
                     <span className="text-xs font-black tracking-wider uppercase">
                       {doc.name.replace(/^Dr\.?\s*/i, '').slice(0, 2).toUpperCase() || 'DR'}
@@ -1301,7 +1267,7 @@ export const LandingPage: React.FC = () => {
             {/* Brand column */}
             <div className="md:col-span-5 space-y-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-teal-700 to-emerald-600 text-white flex items-center justify-center font-bold text-base shadow-xs">
+                <div className="w-9 h-9 rounded-xl bg-teal-700 text-white flex items-center justify-center font-bold text-base shadow-xs">
                   🦷
                 </div>
                 <div>
@@ -1420,7 +1386,7 @@ export const LandingPage: React.FC = () => {
 
       {/* CLINIC PHOTO LIGHTBOX MODAL */}
       {lightboxPhoto && (
-        <div
+        <ModalLayer onDismiss={() => setLightboxPhoto(null)}
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4"
           onClick={() => setLightboxPhoto(null)}
         >
@@ -1453,12 +1419,12 @@ export const LandingPage: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </ModalLayer>
       )}
 
       {/* SMILE TRANSFORMATION CASE LIGHTBOX MODAL */}
       {lightboxCase && (
-        <div
+        <ModalLayer onDismiss={() => setLightboxCase(null)}
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-3 sm:p-4 overflow-y-auto"
           onClick={() => setLightboxCase(null)}
         >
@@ -1550,7 +1516,7 @@ export const LandingPage: React.FC = () => {
                       setSelectedConcern(`Smile Transformation: ${concernTitle}`);
                       setShowEnquiryModal(true);
                     }}
-                    className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-700 to-emerald-600 text-white font-extrabold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                    className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-teal-700 text-white font-extrabold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                   >
                     <Calendar className="w-3.5 h-3.5" />
                     <span>Book Similar Consultation</span>
@@ -1559,7 +1525,7 @@ export const LandingPage: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </ModalLayer>
       )}
 
     </div>

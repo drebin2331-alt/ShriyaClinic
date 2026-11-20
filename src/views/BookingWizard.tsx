@@ -99,7 +99,7 @@ export const BookingWizard: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8 pb-28 animate-in fade-in">
+    <div className="consult-request max-w-4xl mx-auto px-4 py-3 sm:py-8 animate-in fade-in">
       {/* Top Breadcrumb & Return to Site */}
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <button
@@ -107,17 +107,14 @@ export const BookingWizard: React.FC = () => {
           className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-teal-700 cursor-pointer transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>← Back to Website</span>
+          <span>Back to clinic</span>
         </button>
 
-        <span className="text-[10px] sm:text-xs font-bold text-teal-800 bg-teal-50 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border border-teal-200">
-          Reception Coordinated Desk
-        </span>
       </div>
 
       {submittedData ? (
         /* SUCCESS CONFIRMATION VIEW */
-        <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-xl border border-slate-200/90 text-center space-y-6 max-w-2xl mx-auto">
+        <div className="bg-white rounded-xl p-4 sm:p-8 shadow-sm border border-slate-200/90 text-center space-y-6 max-w-2xl mx-auto">
           <div className="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30">
             <CheckCircle2 className="w-10 h-10" />
           </div>
@@ -126,7 +123,7 @@ export const BookingWizard: React.FC = () => {
             <span className="text-xs font-black uppercase text-emerald-600 tracking-wider bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
               Enquiry ID: {submittedData.id}
             </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            <h2 className="section-title text-3xl sm:text-4xl text-slate-900">
               Consultation Request Received!
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto font-medium leading-relaxed">
@@ -167,18 +164,15 @@ export const BookingWizard: React.FC = () => {
         </div>
       ) : (
         /* CONSULTATION ENQUIRY FORM */
-        <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-xl border border-slate-200/90 space-y-6">
+        <div className="bg-white rounded-xl p-4 sm:p-8 shadow-sm border border-slate-200/90 space-y-6">
           {/* Header */}
           <div className="space-y-2 pb-5 border-b border-slate-100">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-black">
-              <Sparkles className="w-3.5 h-3.5 text-teal-600" />
-              <span>Official Dental Appointment Request Desk</span>
-            </div>
+
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Request Your Dental Consultation
+              Book a consultation
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed">
-              Avoid waiting and direct token conflicts. Provide your visit preferences below — our front-desk reception will review the doctor schedule, confirm your slot, and send you the appointment details directly via WhatsApp.
+              Choose your preferred time. Reception will confirm your appointment by WhatsApp.
             </p>
           </div>
 
@@ -186,11 +180,11 @@ export const BookingWizard: React.FC = () => {
             {/* 1. Patient Demographics */}
             <div className="space-y-3">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">
-                1. Patient Contact Details
+                Patient details
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label htmlFor="enquiry-name" className="text-xs font-bold text-slate-700 block mb-1">
                     Patient Full Name *
                   </label>
                   <div className="relative">
@@ -198,7 +192,7 @@ export const BookingWizard: React.FC = () => {
                     <input
                       type="text"
                       required
-                      value={patientName}
+                      id="enquiry-name" autoComplete="name" value={patientName}
                       onChange={(e) => setPatientName(e.target.value)}
                       placeholder="e.g. Rahul Sharma"
                       className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:border-teal-500 font-medium"
@@ -207,18 +201,18 @@ export const BookingWizard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label htmlFor="enquiry-phone" className="text-xs font-bold text-slate-700 block mb-1">
                     WhatsApp / Mobile Number *
                   </label>
                   <div className="relative flex">
                     <span className="inline-flex items-center px-2.5 rounded-l-xl border border-r-0 border-slate-300 bg-slate-100 text-[11px] font-bold text-slate-700">
-                      🇮🇳 +91
+                      +91
                     </span>
                     <input
                       type="tel"
                       inputMode="numeric"
                       required
-                      value={phone.replace(/^\+91/, '')}
+                      id="enquiry-phone" autoComplete="tel-national" value={phone.replace(/^\+91/, '')}
                       onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(-10))}
                       placeholder="10-digit mobile"
                       className="w-full pl-3 pr-3 py-2.5 text-xs rounded-r-xl border border-slate-300 focus:outline-none focus:border-teal-500 font-mono font-medium"
@@ -232,51 +226,44 @@ export const BookingWizard: React.FC = () => {
             </div>
 
             {/* 2. Dental Concern Selection */}
-            <div className="space-y-3 pt-2 border-t border-slate-100">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">
-                2. Primary Dental Concern *
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {COMMON_CONCERNS.map((concern) => (
-                  <button
-                    key={concern}
-                    type="button"
-                    onClick={() => setChiefComplaint(concern)}
-                    className={`p-2.5 rounded-2xl text-left text-xs font-bold transition-all cursor-pointer border ${
-                      chiefComplaint === concern
-                        ? 'bg-teal-500/10 border-teal-500 text-teal-900 shadow-xs ring-1 ring-teal-500'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                    }`}
-                  >
-                    🦷 {concern}
-                  </button>
-                ))}
-              </div>
+            <div className="space-y-2">
+              <h3>Reason for your visit</h3>
+              <details className="concern-picker">
+                <summary>{chiefComplaint}</summary>
+                <div role="group" aria-label="Reason for your visit">
+                  {COMMON_CONCERNS.map(concern => <button type="button" key={concern} aria-pressed={chiefComplaint === concern}
+                    onClick={event => {
+                      setChiefComplaint(concern);
+                      const picker = event.currentTarget.closest('details');
+                      if (picker) { picker.open = false; picker.querySelector('summary')?.focus(); }
+                    }}>{concern}</button>)}
+                </div>
+              </details>
             </div>
 
             {/* 3. Preferred Timing & Doctor */}
             <div className="space-y-3 pt-2 border-t border-slate-100">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">
-                3. Preferred Date, Time Window & Doctor
+                Visit preferences
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                  <label htmlFor="enquiry-date" className="text-xs font-bold text-slate-700 block mb-1">
                     Preferred Visit Date
                   </label>
                   <div className="relative mb-2">
                     <CalendarIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type="date"
-                      value={preferredDate}
+                      id="enquiry-date" value={preferredDate}
                       min={new Date().toISOString().split('T')[0]}
                       onChange={(e) => setPreferredDate(e.target.value)}
                       className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:border-teal-500 font-semibold"
                     />
                   </div>
                   {/* Mobile Quick Date Chips */}
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                  <div className="flex flex-wrap items-center gap-1.5 pb-1">
                     {[
                       { label: 'Today', offset: 0 },
                       { label: 'Tomorrow', offset: 1 },
@@ -340,17 +327,17 @@ export const BookingWizard: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
+                <label htmlFor="enquiry-doctor" className="text-xs font-bold text-slate-700 block mb-1">
                   Preferred Consulting Doctor (Optional)
                 </label>
                 <div className="relative">
                   <Stethoscope className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <select
-                    value={preferredDoctorId}
+                    id="enquiry-doctor" value={preferredDoctorId}
                     onChange={(e) => setPreferredDoctorId(e.target.value)}
                     className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:border-teal-500 font-bold text-slate-800 bg-white"
                   >
-                    <option value="">Any Available Specialist Doctor (Recommended)</option>
+                    <option value="">Any available doctor</option>
                     {doctors.map((doc) => (
                       <option key={doc.id} value={doc.id}>
                         {doc.name} — {doc.specialization} ({doc.cabin})
@@ -361,12 +348,12 @@ export const BookingWizard: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
+                <label htmlFor="enquiry-notes" className="text-xs font-bold text-slate-700 block mb-1">
                   Additional Notes or Symptoms (Optional)
                 </label>
                 <textarea
                   rows={2}
-                  value={notes}
+                  id="enquiry-notes" value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="e.g. Pain in lower left tooth since 2 days, sensitivity to cold water..."
                   className="w-full p-3 text-xs rounded-xl border border-slate-300 focus:outline-none focus:border-teal-500 font-medium"
@@ -384,10 +371,10 @@ export const BookingWizard: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-teal-700 to-emerald-600 hover:from-teal-800 hover:to-emerald-700 text-white font-black text-xs sm:text-sm shadow-lg shadow-teal-950/20 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-teal-700 hover:from-teal-800 hover:to-emerald-700 text-white font-black text-xs sm:text-sm shadow-lg shadow-teal-950/20 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
-                <span>{isSubmitting ? 'Submitting to Reception...' : 'Submit Consultation Request'}</span>
+                <span>{isSubmitting ? 'Submitting to Reception...' : 'Request consultation'}</span>
               </button>
             </div>
           </form>

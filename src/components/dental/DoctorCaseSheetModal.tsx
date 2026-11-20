@@ -1,3 +1,4 @@
+import { ModalLayer } from '../common/ModalLayer';
 import React, { useState, useEffect, useRef } from 'react';
 import { PatientRecord } from '../../types';
 import { ClayButton } from '../common/ClayButton';
@@ -391,25 +392,14 @@ export const DoctorCaseSheetModal: React.FC<DoctorCaseSheetModalProps> = ({
   const currentSectionIndex = SECTIONS.findIndex((s) => s.id === activeSection);
 
   const innerContent = (
-    <div className={`bg-white w-full ${isPageModel ? 'rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200' : 'max-w-3xl rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto'} space-y-6 animate-in fade-in`}>
+    <div className={`case-sheet-panel bg-white w-full ${isPageModel ? 'rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200' : 'max-w-3xl rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto'} space-y-6 animate-in fade-in`}>
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-800 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200">
-              Doctor Consultation Desk
-            </span>
-            <span className="text-xs font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-              First Visit Clinical Intake
-            </span>
-            <span className="text-xs font-black text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
-              Step {currentSectionIndex + 1} of 4
-            </span>
-          </div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-1 flex items-center gap-2">
             <Stethoscope className="w-5 h-5 sm:w-6 sm:h-6 text-sky-600 shrink-0" />
-            <span>Clinical Intake & History: {patient.name}</span>
+            <span>Case sheet · {patient.name}</span>
           </h2>
           <p className="text-xs text-slate-500 mt-1">
             OP: <strong className="text-slate-800 font-mono">{patient.opNumber || patient.id}</strong> • Age: <strong className="text-slate-800">{patient.age}y</strong> ({patient.gender}) • Attending Doctor: <strong className="text-sky-800">{patient.assignedDoctorName}</strong> • Phone: <strong className="text-slate-800 font-mono">{patient.phone}</strong>
@@ -427,7 +417,7 @@ export const DoctorCaseSheetModal: React.FC<DoctorCaseSheetModalProps> = ({
       </div>
 
       {/* Visual Stepper & Progress Bar */}
-      <div className="space-y-3 bg-slate-50/80 p-4 rounded-2xl border border-slate-200">
+      <div className="case-sections space-y-3 bg-slate-50/80 p-4 rounded-2xl border border-slate-200">
         <div className="flex items-center justify-between text-xs font-bold">
           <span className="text-slate-700">
             Active Section: <strong className="text-indigo-900">{SECTIONS[currentSectionIndex].title}</strong>
@@ -437,10 +427,17 @@ export const DoctorCaseSheetModal: React.FC<DoctorCaseSheetModalProps> = ({
           </span>
         </div>
 
+        <label className="case-section-select">
+          <span>Case sheet section</span>
+          <select value={activeSection} onChange={event => setActiveSection(event.target.value as typeof activeSection)}>
+            {SECTIONS.map(section => <option key={section.id} value={section.id}>{section.num} of {SECTIONS.length} · {section.shortTitle}</option>)}
+          </select>
+        </label>
+
         {/* Progress Bar Track */}
         <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
           <div 
-            className="h-full bg-gradient-to-r from-sky-500 via-indigo-500 to-emerald-500 transition-all duration-300 rounded-full"
+            className="h-full bg-sky-500 transition-all duration-300 rounded-full"
             style={{ width: `${((currentSectionIndex + 1) / 4) * 100}%` }}
           />
         </div>
@@ -1080,7 +1077,7 @@ export const DoctorCaseSheetModal: React.FC<DoctorCaseSheetModalProps> = ({
                 onClick={() => setActiveSection(SECTIONS[currentSectionIndex - 1].id)}
                 icon={<ArrowLeft className="w-4 h-4 text-slate-600" />}
               >
-                Previous: {SECTIONS[currentSectionIndex - 1].shortTitle}
+                Previous
               </ClayButton>
             )}
           </div>
@@ -1103,7 +1100,7 @@ export const DoctorCaseSheetModal: React.FC<DoctorCaseSheetModalProps> = ({
                 }}
                 icon={<ArrowRight className="w-4 h-4" />}
               >
-                Next Step: {SECTIONS[currentSectionIndex + 1].shortTitle} →
+                Next section
               </ClayButton>
             ) : (
               <ClayButton
@@ -1113,7 +1110,7 @@ export const DoctorCaseSheetModal: React.FC<DoctorCaseSheetModalProps> = ({
                 onClick={handleSave}
                 icon={<Check className="w-5 h-5" />}
               >
-                Save Clinical Case Sheet EMR
+                Save case sheet
               </ClayButton>
             )}
           </div>
@@ -1127,9 +1124,9 @@ export const DoctorCaseSheetModal: React.FC<DoctorCaseSheetModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+    <ModalLayer onDismiss={onClose} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
       {innerContent}
-    </div>
+    </ModalLayer>
   );
 };
 

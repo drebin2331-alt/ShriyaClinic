@@ -1,3 +1,4 @@
+import { ModalLayer } from './ModalLayer';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
@@ -114,7 +115,7 @@ export const PatientEnquiryModal: React.FC<PatientEnquiryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center sm:items-center sm:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in">
+    <ModalLayer onDismiss={onClose} className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center sm:items-center sm:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in">
       
       {/* Mobile Backdrop Click to Close */}
       <div className="absolute inset-0 -z-10" onClick={onClose} />
@@ -278,7 +279,7 @@ export const PatientEnquiryModal: React.FC<PatientEnquiryModalProps> = ({
                         }`}
                       >
                         <span className="text-xs shrink-0">{c.icon}</span>
-                        <span className="truncate">{c.label}</span>
+                        <span className="text-left whitespace-normal">{c.label}</span>
                       </button>
                     );
                   })}
@@ -397,7 +398,7 @@ export const PatientEnquiryModal: React.FC<PatientEnquiryModalProps> = ({
               type="submit"
               form="patient-enquiry-form"
               disabled={isSubmitting}
-              className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-gradient-to-r from-teal-700 to-emerald-600 hover:from-teal-800 hover:to-emerald-700 text-white font-black text-xs sm:text-sm shadow-md shadow-teal-950/20 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98 disabled:opacity-50"
+              className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-teal-700 hover:from-teal-800 hover:to-emerald-700 text-white font-black text-xs sm:text-sm shadow-md shadow-teal-950/20 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98 disabled:opacity-50"
             >
               {isSubmitting ? (
                 <span>Submitting to Reception...</span>
@@ -412,6 +413,6 @@ export const PatientEnquiryModal: React.FC<PatientEnquiryModalProps> = ({
         )}
 
       </div>
-    </div>
+    </ModalLayer>
   );
 };

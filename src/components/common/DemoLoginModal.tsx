@@ -1,3 +1,4 @@
+import { ModalLayer } from './ModalLayer';
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
@@ -96,12 +97,12 @@ export const DemoLoginModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+    <ModalLayer onDismiss={() => setIsDemoModalOpen(false)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
       <div className="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 max-h-[92vh] overflow-y-auto">
         {/* Top Header Bar */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-teal-700 to-emerald-600 text-white flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-2xl bg-teal-700 text-white flex items-center justify-center shadow-md">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
@@ -113,7 +114,7 @@ export const DemoLoginModal: React.FC = () => {
               </p>
             </div>
           </div>
-          <button
+          <button aria-label="Close dialog"
             onClick={() => setIsDemoModalOpen(false)}
             className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
             title="Close modal"
@@ -204,7 +205,7 @@ export const DemoLoginModal: React.FC = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 rounded-2xl bg-gradient-to-r from-teal-700 to-emerald-600 hover:from-teal-600 hover:to-emerald-500 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-3 rounded-2xl bg-teal-700 hover:from-teal-600 hover:to-emerald-500 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {isSubmitting ? (
               <span>Authenticating...</span>
@@ -217,6 +218,6 @@ export const DemoLoginModal: React.FC = () => {
           </button>
         </form>
       </div>
-    </div>
+    </ModalLayer>
   );
 };

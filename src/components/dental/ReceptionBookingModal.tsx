@@ -1,3 +1,4 @@
+import { ModalLayer } from '../common/ModalLayer';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Appointment, PatientRecord } from '../../types';
@@ -213,7 +214,7 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center sm:items-center sm:p-5 bg-slate-950/70 backdrop-blur-md animate-in fade-in">
+    <ModalLayer onDismiss={onClose} className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center sm:items-center sm:p-5 bg-slate-950/70 backdrop-blur-md animate-in fade-in">
       <div className="bg-white max-sm:rounded-t-3xl sm:rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-200/90 flex flex-col max-h-[92vh] overflow-hidden transform transition-all">
         
         {/* Mobile Drag Indicator */}
@@ -224,25 +225,8 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
         {/* ================================================================= */}
         {/* MODAL HEADER                                                      */}
         {/* ================================================================= */}
-        <div className="relative px-6 py-4 bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 text-white flex items-center justify-between border-b border-teal-800/40 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-teal-500/20 border border-teal-400/30 text-teal-300 flex items-center justify-center font-black shadow-xs">
-              <CalendarIcon className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-black tracking-tight text-white">
-                  {createdAppointment ? 'Appointment Confirmed & Scheduled' : 'Schedule Consultation Desk'}
-                </h3>
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-400/30">
-                  Reception Desk
-                </span>
-              </div>
-              <p className="text-xs text-slate-300 font-medium mt-0.5">
-                Shriya Multispeciality Dental Clinic • Front-Desk Scheduling & WhatsApp Dispatch
-              </p>
-            </div>
-          </div>
+        <div className="px-4 py-3 bg-slate-900 text-white flex items-center justify-between gap-2 border-b border-teal-800/40 shrink-0">
+          <h3 className="text-lg font-bold">{createdAppointment ? 'Appointment confirmed' : 'Book an appointment'}</h3>
 
           <button
             onClick={onClose}
@@ -256,7 +240,7 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
         {/* ================================================================= */}
         {/* MODAL BODY (Scrollable with pinned footer)                        */}
         {/* ================================================================= */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+        <div className="flex-1 overflow-y-auto px-4 py-3 sm:px-6 sm:py-5 space-y-4">
           {createdAppointment ? (
             /* ============================================================= */
             /* SUCCESS CONFIRMATION & WHATSAPP CARD                          */
@@ -294,7 +278,7 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px] font-bold uppercase">Doctor</span>
-                    <span className="font-black text-teal-800 text-xs mt-0.5 block truncate">{createdAppointment.doctorName}</span>
+                    <span className="font-black text-teal-800 text-xs mt-0.5 block wrap-anywhere">{createdAppointment.doctorName}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px] font-bold uppercase">Date & Time</span>
@@ -378,7 +362,7 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
                           : 'text-slate-500 hover:text-slate-900'
                       }`}
                     >
-                      + New / Walk-In Patient
+                      New patient
                     </button>
                     <button
                       type="button"
@@ -389,7 +373,7 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
                           : 'text-slate-500 hover:text-slate-900'
                       }`}
                     >
-                      Search Registered EMR ({patients.length})
+                      Existing ({patients.length})
                     </button>
                   </div>
                 </div>
@@ -414,7 +398,7 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
                           <div
                             key={pat.id}
                             onClick={() => handleSelectExistingPatient(pat)}
-                            className="p-2.5 hover:bg-teal-50 cursor-pointer flex items-center justify-between transition-colors"
+                            className="p-2.5 hover:bg-teal-50 cursor-pointer flex flex-wrap items-center justify-between gap-1 transition-colors"
                           >
                             <div>
                               <span className="text-xs font-bold text-slate-900 block">{pat.name}</span>
@@ -572,10 +556,10 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
                             {doc.name.replace(/^Dr\.\s*/, '').charAt(0)}
                           </div>
                           <div className="min-w-0">
-                            <span className="text-xs font-black text-slate-900 block truncate">
+                            <span className="text-sm font-bold text-slate-900 block wrap-anywhere">
                               {doc.name}
                             </span>
-                            <span className="text-[10px] text-teal-700 font-bold block truncate">
+                            <span className="text-xs text-teal-700 block wrap-anywhere">
                               {doc.specialization}
                             </span>
                           </div>
@@ -752,7 +736,7 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
         {/* ================================================================= */}
         {/* PINNED MODAL FOOTER (Always visible, never scrolled out)         */}
         {/* ================================================================= */}
-        <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+        <div className="px-4 py-2 sm:px-6 sm:py-3.5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
           {createdAppointment ? (
             <div className="flex items-center justify-end gap-2.5 w-full">
               <button
@@ -760,13 +744,13 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
                 onClick={onClose}
                 className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs cursor-pointer transition-colors shadow-xs"
               >
-                Done & Return to Appointments Desk
+                Done
               </button>
             </div>
           ) : (
             <>
               {/* Live Summary Strip */}
-              <div className="text-xs text-slate-600 font-medium truncate max-w-sm">
+              <div className="w-full sm:w-auto min-w-0 text-xs text-slate-600 font-medium whitespace-normal break-words sm:max-w-sm">
                 <span className="font-bold text-slate-800">{patientName || 'New Patient'}</span>
                 {' • '}
                 <span className="text-teal-700 font-bold">{date}</span> at <span className="text-teal-700 font-bold">{timeSlot}</span>
@@ -779,7 +763,7 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-white hover:border-slate-400 transition-colors cursor-pointer"
+                  className="shrink-0 px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-white hover:border-slate-400 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -787,10 +771,10 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
                   type="submit"
                   form="reception-booking-form"
                   disabled={isSubmitting}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-xs shadow-md shadow-teal-900/15 flex items-center gap-2 cursor-pointer transition-all transform hover:-translate-y-0.5 active:scale-98 disabled:opacity-50"
+                  className="px-6 py-2.5 rounded-xl bg-teal-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-xs shadow-md shadow-teal-900/15 flex items-center gap-2 cursor-pointer transition-all transform hover:-translate-y-0.5 active:scale-98 disabled:opacity-50"
                 >
                   <MessageSquare className="w-4 h-4 text-emerald-200" />
-                  <span>{isSubmitting ? 'Scheduling...' : 'Confirm & Schedule Appointment'}</span>
+                  <span>{isSubmitting ? 'Scheduling...' : 'Confirm booking'}</span>
                 </button>
               </div>
             </>
@@ -798,6 +782,6 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
         </div>
 
       </div>
-    </div>
+    </ModalLayer>
   );
 };

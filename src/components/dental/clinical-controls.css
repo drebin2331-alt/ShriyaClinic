@@ -1,0 +1,52 @@
+.case-section-select { display: none; }
+.clinical-section-heading, .rx-editor-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 14px;
+}
+.clinical-section-heading > div { min-width: 0; flex-wrap: wrap; }
+.clinical-section-heading h4, .rx-editor-heading h3 { font-weight: 700; line-height: 1.3; }
+.rx-editor-heading { padding-bottom: 12px; border-bottom: 1px solid var(--rule); }
+.rx-editor-heading h3 { font-size: 1.125rem; }
+.rx-editor-heading p { font-size: .85rem; color: var(--muted); }
+.fee-item-fields {
+  display: grid;
+  grid-template-columns: minmax(3.5rem, .6fr) minmax(6rem, 1.4fr);
+  gap: 6px 10px;
+}
+.fee-item-fields > div { width: auto; }
+.fee-item-fields > div:last-child { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; }
+.plan-metrics { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,9rem),1fr)); gap: 10px; }
+.dental-chart { container: odontogram / inline-size; min-width: 0; padding: 14px; }
+.dental-chart-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.dental-chart-controls button { min-height: 42px; }
+.dental-arches { display: grid; gap: 16px; }
+.dental-arch h4 { font-weight: 650; font-size: 1rem; margin-bottom: 6px; }
+.dental-quadrants { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); border: 1px solid var(--rule); border-radius: 12px; background: var(--sheet); }
+.dental-quadrant { min-width: 0; padding: 8px; }
+.dental-quadrant + .dental-quadrant { border-left: 1px solid var(--rule); }
+.dental-quadrant h5 { font-size: .8rem; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+.dental-teeth { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0,1fr); gap: 2px; }
+.dental-teeth button { min-width: 0; }
+.dental-teeth svg { max-width: 100%; height: auto; }
+@container odontogram (max-width: 50rem) {
+  .dental-quadrants { grid-template-columns: 1fr; }
+  .dental-quadrant + .dental-quadrant { border-left: 0; border-top: 1px solid var(--rule); }
+}
+@container odontogram (max-width: 28rem) {
+  .dental-chart-controls { display: grid; }
+  .dental-chart-controls > div { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0,1fr); }
+  .dental-chart-controls button { padding-inline: 5px; justify-content: center; }
+  .dental-teeth { grid-auto-flow: row; grid-template-columns: repeat(4,minmax(0,1fr)); row-gap: 8px; }
+}
+@media screen and (max-width: 639px) {
+  .case-sheet-panel { padding: 14px; }
+  .case-sections { padding: 0; background: transparent; border: 0; }
+  .case-sections > div { display: none; }
+  .case-section-select { display: grid; gap: 4px; color: var(--muted); font-size: .8rem; font-weight: 600; }
+  .case-section-select select { min-width: 0; width: 100%; margin: 0; padding: 8px; border: 1px solid var(--rule); border-radius: 8px; background: white; color: var(--ink); }
+  .rx-editor-heading { align-items: start; }
+  .rx-editor-heading > div:last-child { gap: 4px; }
+}

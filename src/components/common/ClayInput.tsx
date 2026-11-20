@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 
 interface ClayInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -14,10 +14,12 @@ export const ClayInput: React.FC<ClayInputProps> = ({
   className = '',
   ...rest
 }) => {
+  const generatedId = useId();
+  const id = rest.id || generatedId;
   return (
     <div className="w-full flex flex-col gap-1.5">
       {label && (
-        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider px-1">
+        <label htmlFor={id} className="text-xs font-bold text-slate-700 uppercase tracking-wider px-1">
           {label}
         </label>
       )}
@@ -32,9 +34,12 @@ export const ClayInput: React.FC<ClayInputProps> = ({
             icon ? 'pl-9 pr-3' : 'px-3'
           } ${className}`}
           {...rest}
+          id={id}
+          aria-invalid={error ? true : rest['aria-invalid']}
+          aria-describedby={[rest['aria-describedby'], error ? `${id}-error` : ''].filter(Boolean).join(' ') || undefined}
         />
       </div>
-      {error && <span className="text-[11px] font-medium text-rose-500 px-1">{error}</span>}
+      {error && <span id={`${id}-error`} className="text-xs font-medium text-rose-500 px-1">{error}</span>}
     </div>
   );
 };

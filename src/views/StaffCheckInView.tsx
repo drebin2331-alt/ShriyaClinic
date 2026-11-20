@@ -325,7 +325,7 @@ export const StaffCheckInView: React.FC = () => {
           </button>
           <button className="work-action" onClick={() => setActiveView('reception-tv')}>
             <Tv2 size={13} />
-            <span>Reception TV</span>
+            <span><span className="sm:hidden">TV</span><span className="hidden sm:inline">Reception TV</span></span>
           </button>
         </WorkspaceHeading></div>
         <SectionPicker label="Reception section" value={activeSubTab} onChange={setActiveSubTab} options={[
@@ -357,28 +357,30 @@ export const StaffCheckInView: React.FC = () => {
           </div>
         )}
 
-        <p className="rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-950 px-3 py-2">
-          <strong>{arrivedCount}</strong> waiting · <strong>{checkoutVisits.length}</strong> awaiting checkout
+        <p className="rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-950 px-2.5 py-1.5 flex items-center gap-1.5 font-medium">
+          <span><strong>{arrivedCount}</strong> waiting</span>
+          <span>·</span>
+          <span><strong>{checkoutVisits.length}</strong> awaiting checkout</span>
         </p>
 
         {/* ========================================================= */}
         {/* SUB-TAB 0: TODAY'S LIVE QUEUE & WALK-IN TOKENS             */}
         {/* ========================================================= */}
         {activeSubTab === 'queue' && (
-          <div className="space-y-4 animate-in fade-in">
+          <div className="space-y-3 sm:space-y-4 animate-in fade-in">
             {/* Filter bar */}
-            <ClayCard className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <ClayCard className="p-2 sm:p-4 flex flex-col md:flex-row items-center justify-between gap-2.5 sm:gap-4">
               <div className="w-full md:w-80">
                 <ClayInput
                   placeholder="Search token (e.g. W-013), patient, phone..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  icon={<Search className="w-4 h-4" />}
+                  icon={<Search className="w-3.5 h-3.5" />}
                 />
               </div>
 
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                <div className="w-52">
+              <div className="flex items-center gap-2.5 w-full md:w-auto">
+                <div className="w-full sm:w-52">
                   <ClaySelect
                     value={doctorFilter}
                     onChange={(e) => setDoctorFilter(e.target.value)}
@@ -392,19 +394,22 @@ export const StaffCheckInView: React.FC = () => {
             </ClayCard>
 
             {/* Tokens Table */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between px-1">
-                <h2 className="text-base font-black text-slate-800 flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-sky-600" />
-                  <span>Today's Active Patient Queue ({todayActiveTokens.length})</span>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex items-center justify-between gap-2 px-1">
+                <h2 className="text-xs sm:text-base font-black text-slate-800 flex items-center gap-1.5 min-w-0">
+                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600 shrink-0" />
+                  <span className="truncate">
+                    <span className="sm:hidden">Active Queue ({todayActiveTokens.length})</span>
+                    <span className="hidden sm:inline">Today's Active Patient Queue ({todayActiveTokens.length})</span>
+                  </span>
                 </h2>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => setShowWalkInModal(true)}
-                    className="px-2.5 py-1.5 rounded-lg bg-sky-700 hover:bg-sky-800 text-white text-xs font-bold flex items-center gap-1 shadow-2xs cursor-pointer transition-colors"
+                    className="h-7 px-2 sm:px-2.5 py-1 rounded-lg bg-sky-700 hover:bg-sky-800 text-white text-[11px] sm:text-xs font-extrabold flex items-center gap-1 shadow-2xs cursor-pointer transition-colors whitespace-nowrap"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>+ Walk-In Token</span>
+                    <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    <span><span className="sm:hidden">Walk-In</span><span className="hidden sm:inline">+ Walk-In Token</span></span>
                   </button>
                 </div>
               </div>

@@ -1,3 +1,4 @@
+import { ModalLayer } from '../common/ModalLayer';
 import React from 'react';
 import { PaymentRecord, PatientRecord } from '../../types';
 import { X, Printer, Receipt, CheckCircle2, ShieldCheck, Download } from 'lucide-react';
@@ -141,11 +142,11 @@ export const PrintableReceiptModal: React.FC<PrintableReceiptModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+    <ModalLayer onDismiss={onClose} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
       <div className="bg-white w-full max-w-2xl rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-200 max-h-[95vh] overflow-y-auto space-y-4">
         
         {/* Modal Action Controls (Hidden in Print) */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-200 print:hidden">
+        <div className="flex flex-wrap gap-2 items-center justify-between pb-3 border-b border-slate-200 print:hidden">
           <div className="flex items-center gap-2.5">
             <span className="p-2 bg-emerald-50 text-emerald-800 rounded-xl border border-emerald-200">
               <Receipt className="w-5 h-5 text-emerald-700" />
@@ -165,7 +166,7 @@ export const PrintableReceiptModal: React.FC<PrintableReceiptModalProps> = ({
               <Printer className="w-4 h-4 text-emerald-400" />
               <span>Print / Save PDF</span>
             </button>
-            <button
+            <button aria-label="Close dialog"
               onClick={onClose}
               className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors"
             >
@@ -359,11 +360,11 @@ export const PrintableReceiptModal: React.FC<PrintableReceiptModalProps> = ({
                 <tbody>
                   {linkedInvoice.items.map((item, idx) => (
                     <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                      <td style={{ padding: '5px 8px', color: '#64748b', fontSize: '10px' }}>{idx + 1}</td>
-                      <td style={{ padding: '5px 8px', fontWeight: 600, color: '#0f172a' }}>{item.description}</td>
-                      <td style={{ padding: '5px 8px', textAlign: 'center', color: '#334155' }}>{item.quantity}</td>
-                      <td style={{ padding: '5px 8px', textAlign: 'right', fontFamily: 'monospace', color: '#334155' }}>₹{Number(item.unitPrice).toLocaleString()}</td>
-                      <td style={{ padding: '5px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#0f172a' }}>
+                      <td data-label="Item" style={{ padding: '5px 8px', color: '#64748b', fontSize: '10px' }}>{idx + 1}</td>
+                      <td data-label="Procedure" style={{ padding: '5px 8px', fontWeight: 600, color: '#0f172a' }}>{item.description}</td>
+                      <td data-label="Quantity" style={{ padding: '5px 8px', textAlign: 'center', color: '#334155' }}>{item.quantity}</td>
+                      <td data-label="Unit price" style={{ padding: '5px 8px', textAlign: 'right', fontFamily: 'monospace', color: '#334155' }}>₹{Number(item.unitPrice).toLocaleString()}</td>
+                      <td data-label="Amount" style={{ padding: '5px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#0f172a' }}>
                         ₹{(Number(item.quantity) * Number(item.unitPrice)).toLocaleString()}
                       </td>
                     </tr>
@@ -459,6 +460,6 @@ export const PrintableReceiptModal: React.FC<PrintableReceiptModalProps> = ({
         </div>
 
       </div>
-    </div>
+    </ModalLayer>
   );
 };

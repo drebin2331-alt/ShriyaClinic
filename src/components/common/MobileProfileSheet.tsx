@@ -1,3 +1,4 @@
+import { ModalLayer } from './ModalLayer';
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -79,7 +80,7 @@ export const MobileProfileSheet: React.FC = () => {
   const roleBadge = getRoleBadge();
 
   return (
-    <div 
+    <ModalLayer onDismiss={() => setIsProfileSheetOpen(false)}
       className="fixed inset-0 z-50 flex flex-col justify-end bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150"
       onClick={() => setIsProfileSheetOpen(false)}
     >
@@ -112,10 +113,10 @@ export const MobileProfileSheet: React.FC = () => {
         {/* Scrollable Content */}
         <div className="p-5 space-y-4 overflow-y-auto">
           {/* User Hero Identity Card */}
-          <div className="bg-gradient-to-tr from-slate-900 via-teal-950 to-slate-900 rounded-2xl p-4 sm:p-5 text-white shadow-md relative overflow-hidden">
+          <div className="bg-slate-900 rounded-2xl p-4 sm:p-5 text-white shadow-md relative overflow-hidden">
             <div className="relative z-10 flex items-start gap-3.5">
               <div className="relative shrink-0">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-teal-500 to-emerald-400 text-slate-950 font-black text-xl flex items-center justify-center shadow-lg">
+                <div className="w-14 h-14 rounded-2xl bg-teal-500 text-slate-950 font-black text-xl flex items-center justify-center shadow-lg">
                   {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
                 </div>
                 <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-slate-900" title="Active on duty" />
@@ -235,7 +236,7 @@ export const MobileProfileSheet: React.FC = () => {
             <button
               type="button"
               onClick={handleSignOut}
-              className="w-full py-4 px-4 rounded-2xl bg-gradient-to-r from-rose-600 via-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 active:scale-98 text-white font-black text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-rose-600/30 transition-all cursor-pointer"
+              className="w-full py-4 px-4 rounded-2xl bg-rose-600 hover:from-rose-700 hover:to-red-700 active:scale-98 text-white font-black text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-rose-600/30 transition-all cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
               <span>Sign Out from Clinic OS</span>
@@ -246,7 +247,7 @@ export const MobileProfileSheet: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+    </ModalLayer>
   );
 };
 

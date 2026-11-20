@@ -1,0 +1,346 @@
+.profile-overview-card,
+.profile-masthead,
+.profile-history-card,
+.profile-visit-stats {
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+}
+
+.profile-overview-card,
+.profile-masthead,
+.profile-history-card {
+  padding: clamp(12px, 2vw, 16px);
+}
+
+.profile-overview-body {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-person {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-monogram {
+  display: grid;
+  place-items: center;
+  height: 36px;
+  border-radius: 9px;
+  background: var(--mint);
+  color: var(--forest);
+  font-weight: 700;
+}
+
+.patient-chart-workspace .profile-person h1 {
+  font-family: inherit;
+  font-size: 1.15rem;
+  font-weight: 650;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.profile-person p,
+.profile-masthead-facts dt,
+.profile-visit-details dt,
+.profile-care-summary dt,
+.profile-visit-stats dt {
+  color: var(--muted);
+  font-size: .8rem;
+  line-height: 1.4;
+}
+
+.profile-visit-details,
+.profile-care-summary,
+.profile-visit-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profile-visit-details {
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.5rem), 1fr));
+}
+
+.profile-overview-title {
+  font-size: 1.0625rem;
+  line-height: 1.3;
+  font-weight: 650;
+}
+
+.profile-route-actions,
+.profile-masthead-body,
+.profile-commands {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.profile-route-actions {
+  justify-content: space-between;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 6px;
+}
+
+.profile-route-actions .profile-compact-action {
+  padding-inline: 0;
+  border-color: transparent;
+}
+
+.profile-switch-patient {
+  position: relative;
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  min-height: 42px;
+  padding-inline: 6px;
+  color: var(--forest);
+  font-size: .8125rem;
+  font-weight: 650;
+}
+
+.profile-switch-patient select {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.profile-switch-patient:focus-within {
+  outline: 2px solid var(--forest);
+  outline-offset: 1px;
+}
+
+.profile-masthead-body {
+  gap: 10px 18px;
+  padding-block: 10px;
+}
+
+.profile-person { flex: 2 1 14rem; }
+.profile-masthead-facts {
+  flex: 1 1 15rem;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 6px 12px;
+}
+
+.profile-masthead-facts dd {
+  font-size: .875rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.profile-command-bar {
+  border-top: 1px solid var(--rule);
+  padding-top: 8px;
+}
+
+.patient-chart-workspace .profile-commands button {
+  min-height: 42px;
+  white-space: normal;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 5px 8px;
+  font-size: .8125rem;
+}
+
+.profile-safety-alert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 3px 9px;
+  border: 1px solid #f0c7c5;
+  border-radius: 9px;
+  padding: 9px 12px;
+  color: #852b36;
+  background: #fff2f2;
+  font-size: .875rem;
+}
+
+.profile-safety-alert > div:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile-safety-alert p {
+  overflow-wrap: anywhere;
+}
+
+.profile-care-summary {
+  align-content: center;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  background: #edf2ec;
+  border-radius: 8px;
+}
+
+.profile-visit-details dd,
+.profile-care-summary dd,
+.profile-visit-stats dd {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.profile-visit-details dd,
+.profile-care-summary dd {
+  font-size: .9rem;
+}
+
+.profile-token-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 8px;
+  padding-top: 6px;
+  border-top: 1px solid #d1ddd1;
+}
+
+.profile-token {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: baseline;
+}
+
+.patient-chart-workspace .profile-compact-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 10px;
+  min-height: 42px;
+  max-width: 100%;
+  border: 1px solid #becbbf;
+  border-radius: 7px;
+  background: var(--sheet);
+  color: var(--forest);
+  font-size: .8125rem;
+  font-weight: 650;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.patient-chart-workspace .profile-compact-action:hover {
+  background: var(--mint);
+}
+
+.profile-visit-stats {
+  padding: 12px;
+  gap: 10px 12px;
+}
+
+.profile-visit-stats dd {
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.profile-visit-stats .profile-follow-up-reason {
+  font-size: .8125rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.profile-histories {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 23rem), 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.profile-history-card {
+  container: clinical-history / inline-size;
+  min-width: 0;
+}
+
+.profile-section-heading,
+.profile-detail-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.profile-section-heading {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.profile-section-heading h3 {
+  font-size: 1.0625rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.profile-heading-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.profile-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #36634e;
+  font-size: .75rem;
+  font-weight: 600;
+}
+
+.profile-saved svg {
+  flex: none;
+}
+
+.profile-detail-heading > div {
+  flex: 1 1 17rem;
+}
+
+.profile-detail-heading > button {
+  flex-shrink: 0;
+}
+
+.profile-tooth-counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.4rem), 1fr));
+  gap: 6px;
+}
+
+@container clinical-history (max-width: 25rem) {
+  .profile-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .profile-heading-actions {
+    align-self: stretch;
+    justify-content: space-between;
+  }
+}
+
+@container work (min-width: 40rem) {
+  .profile-overview-body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .profile-care-summary {
+    grid-area: 1 / 2 / 3 / 3;
+  }
+
+  .profile-visit-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

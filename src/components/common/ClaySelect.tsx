@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 
 interface ClaySelectOption {
   value: string;
@@ -21,10 +21,12 @@ export const ClaySelect: React.FC<ClaySelectProps> = ({
   className = '',
   ...rest
 }) => {
+  const generatedId = useId();
+  const id = rest.id || generatedId;
   return (
     <div className="w-full flex flex-col gap-1.5">
       {label && (
-        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider px-1">
+        <label htmlFor={id} className="text-xs font-bold text-slate-700 uppercase tracking-wider px-1">
           {label}
         </label>
       )}
@@ -39,6 +41,9 @@ export const ClaySelect: React.FC<ClaySelectProps> = ({
             icon ? 'pl-10 pr-9' : 'px-4 pr-9'
           } ${className}`}
           {...rest}
+          id={id}
+          aria-invalid={error ? true : rest['aria-invalid']}
+          aria-describedby={[rest['aria-describedby'], error ? `${id}-error` : ''].filter(Boolean).join(' ') || undefined}
         >
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -50,7 +55,7 @@ export const ClaySelect: React.FC<ClaySelectProps> = ({
           ▼
         </div>
       </div>
-      {error && <span className="text-xs font-medium text-red-500 px-1">{error}</span>}
+      {error && <span id={`${id}-error`} className="text-xs font-medium text-red-500 px-1">{error}</span>}
     </div>
   );
 };

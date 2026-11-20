@@ -1,3 +1,7 @@
+import './clinic-modules.css';
+import { SectionPicker, WorkspaceHeading } from '../components/common/WorkspaceControls';
+import { ScheduleBook } from '../components/common/ScheduleBook';
+import { ModalLayer } from '../components/common/ModalLayer';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ClayCard } from '../components/common/ClayCard';
@@ -231,10 +235,8 @@ export const AppointmentManagement: React.FC = () => {
   };
 
   const filteredAppointments = appointments.filter((apt) => {
-    const matchesSearch = 
-      apt.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      apt.tokenId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      apt.patientPhone.includes(searchTerm);
+    const term = searchTerm.trim().toLowerCase();
+    const matchesSearch = [apt.patientName, apt.tokenId, apt.patientPhone].some(value => (value || '').toLowerCase().includes(term));
 
     const matchesStatus = statusFilter === 'ALL' || apt.status === statusFilter;
     const matchesDoctor = doctorFilter === 'ALL' || apt.doctorId === doctorFilter;
@@ -253,101 +255,25 @@ export const AppointmentManagement: React.FC = () => {
   });
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden mx-auto px-2.5 sm:px-4 lg:px-6 py-3 sm:py-5 flex flex-col lg:flex-row gap-4 lg:gap-6">
+    <div className="workspace w-full max-w-full mx-auto px-2.5 sm:px-4 lg:px-6 py-3 sm:py-5 flex flex-col lg:flex-row gap-4 lg:gap-6">
       <Sidebar type="admin" />
 
       <main className="flex-1 min-w-0 flex flex-col gap-6 animate-in fade-in">
-        {/* Top Header Banner */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 p-6 md:p-8 text-white shadow-lg border border-teal-800/30">
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2 max-w-2xl">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <span className="text-[10px] font-black uppercase tracking-widest text-teal-300 bg-teal-500/20 px-3 py-1 rounded-full border border-teal-400/30 backdrop-blur-xs">
-                  Clinical Scheduling & Queue
-                </span>
-                <span className="text-xs font-mono font-medium text-slate-300 flex items-center gap-1.5 bg-slate-800/60 px-3 py-1 rounded-full border border-slate-700/50">
-                  <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
-                  {appointments.length} Total Bookings
-                </span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                Appointment Schedule & Queue Desk
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-300 font-normal leading-relaxed">
-                Track waiting patients, call tokens to doctor cabins, reschedule visits, and seamlessly open clinical EMR records.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full md:w-auto">
-              {/* View Mode Toggle (Mobile Touch Scrollable) */}
-              <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-1 flex items-center shadow-xs backdrop-blur-xs overflow-x-auto max-w-full shrink-0">
-                <button
-                  onClick={() => setViewMode('daily')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                    viewMode === 'daily'
-                      ? 'bg-teal-500 text-white shadow-xs'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  Daily List
-                </button>
-                <button
-                  onClick={() => setViewMode('weekly')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                    viewMode === 'weekly'
-                      ? 'bg-teal-500 text-white shadow-xs'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  Weekly View
-                </button>
-                <button
-                  onClick={() => setViewMode('calendar')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                    viewMode === 'calendar'
-                      ? 'bg-teal-500 text-white shadow-xs'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  Calendar View
-                </button>
-                <button
-                  onClick={() => setViewMode('enquiries')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                    viewMode === 'enquiries'
-                      ? 'bg-emerald-500 text-white shadow-xs'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  <Inbox className="w-3.5 h-3.5" />
-                  <span>Online Enquiries</span>
-                  {newEnquiriesCount > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse">
-                      {newEnquiriesCount}
-                    </span>
-                  )}
-                </button>
-              </div>
-
-              <button
-                onClick={() => {
-                  setBookingInitialData(null);
-                  setShowBookingModal(true);
-                }}
-                className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-white font-extrabold text-xs shadow-lg shadow-teal-950/40 hover:shadow-teal-500/20 transition-all cursor-pointer transform hover:-translate-y-0.5 shrink-0 whitespace-nowrap"
-              >
-                <Plus className="w-4 h-4" />
-                <span>+ New Booking</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
-        </div>
+        <WorkspaceHeading title="Appointment book" detail={appointments.length + (appointments.length === 1 ? ' booking' : ' bookings')}>
+          <button type="button" className="work-action primary" onClick={() => { setBookingInitialData(null); setShowBookingModal(true); }}>
+            <Plus size={18} /> New booking
+          </button>
+        </WorkspaceHeading>
+        <SectionPicker label="Appointment view" value={viewMode} onChange={setViewMode} options={[
+          { id: 'daily', label: 'Daily list' },
+          { id: 'weekly', label: 'Week', description: 'Weekly view' },
+          { id: 'calendar', label: 'Calendar', description: 'Calendar view' },
+          { id: 'enquiries', label: 'Enquiries', description: 'Online enquiries', count: newEnquiriesCount || undefined },
+        ]} />
 
         {/* High-Priority Consultation Requests Alert Banner */}
         {newEnquiriesCount > 0 && viewMode !== 'enquiries' && (
-          <div className="bg-gradient-to-r from-emerald-700 via-teal-700 to-emerald-800 text-white rounded-2xl p-4 sm:p-5 shadow-lg border-2 border-emerald-400/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in">
+          <div className="bg-emerald-700 text-white rounded-2xl p-4 sm:p-5 shadow-lg border-2 border-emerald-400/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in">
             <div className="flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 shadow-xs">
                 <Inbox className="w-6 h-6 text-white animate-bounce" />
@@ -380,68 +306,42 @@ export const AppointmentManagement: React.FC = () => {
           </div>
         )}
 
-        {/* Filters & Search Toolbar */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="w-full md:w-80">
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search patient, phone or token ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-50/80 border border-slate-200 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all outline-hidden text-slate-800 placeholder:text-slate-400"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
+        <div className="appointment-tools">
+          <div className="work-search"><Search size={18} aria-hidden="true" />
+            <input type="search" aria-label="Search appointments or enquiries" placeholder={viewMode === 'enquiries' ? 'Search enquiries' : 'Find an appointment'}
+              value={searchTerm} onChange={event => setSearchTerm(event.target.value)} />
           </div>
-
-          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            <div className="w-40">
-              <ClaySelect
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                options={[
-                  { value: 'ALL', label: 'All Statuses' },
-                  { value: 'Waiting', label: 'Waiting Room' },
-                  { value: 'In Consultation', label: 'In Consultation' },
-                  { value: 'Completed', label: 'Completed' },
-                  { value: 'Cancelled', label: 'Cancelled' }
-                ]}
-              />
+          {viewMode !== 'enquiries' && <details className="appointment-filters">
+            <summary><Filter size={16} /> Filters{(statusFilter !== 'ALL' || doctorFilter !== 'ALL') &&
+              <span className="section-count">{Number(statusFilter !== 'ALL') + Number(doctorFilter !== 'ALL')}</span>}</summary>
+            <div className="appointment-filter-fields">
+              <label className="work-select">Status
+                <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
+                  <option value="ALL">All statuses</option><option value="Waiting">Waiting room</option>
+                  <option>In Consultation</option><option>Completed</option><option>Cancelled</option>
+                </select>
+              </label>
+              <label className="work-select">Doctor
+                <select value={doctorFilter} onChange={event => setDoctorFilter(event.target.value)}>
+                  <option value="ALL">All doctors</option>
+                  {doctors.map(doctor => <option key={doctor.id} value={doctor.id}>{doctor.name}</option>)}
+                </select>
+              </label>
             </div>
-
-            <div className="w-48">
-              <ClaySelect
-                value={doctorFilter}
-                onChange={(e) => setDoctorFilter(e.target.value)}
-                options={[
-                  { value: 'ALL', label: 'All Consulting Doctors' },
-                  ...doctors.map((d) => ({ value: d.id, label: d.name }))
-                ]}
-              />
-            </div>
-          </div>
+          </details>}
         </div>
 
         {/* DAILY / LIST VIEW */}
         {viewMode === 'daily' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="appointment-list">
             {filteredAppointments.length > 0 ? (
               filteredAppointments.map((apt) => {
                 const existingPat = getExistingPatientForAppointment(apt);
 
                 return (
-                  <ClayCard key={apt.id} hoverEffect className="p-5 flex flex-col justify-between gap-4">
+                  <ClayCard key={apt.id} className="appointment-card p-4 flex flex-col justify-between gap-4">
                     <div>
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200">
                         <div className="flex items-center gap-2">
                           <span className="font-mono font-black text-lg text-sky-800">{apt.tokenId}</span>
                           <StatusBadge status={apt.status} size="sm" />
@@ -450,7 +350,7 @@ export const AppointmentManagement: React.FC = () => {
                       </div>
 
                       <div className="mt-3">
-                        <div className="flex items-start justify-between gap-2">
+                        <div className="appointment-patient">
                           <h4 className="text-base font-extrabold text-slate-900">{apt.patientName}</h4>
                           
                           {/* EMR Status Indicator Pill */}
@@ -493,7 +393,7 @@ export const AppointmentManagement: React.FC = () => {
                     </div>
 
                     {/* Card Action Buttons */}
-                    <div className="pt-3 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2">
+                    <div className="appointment-actions">
                       <div className="flex items-center gap-1.5">
                         {/* View Details Button */}
                         <button
@@ -582,8 +482,8 @@ export const AppointmentManagement: React.FC = () => {
                 );
               })
             ) : (
-              <div className="col-span-2 clay-card p-8 text-center text-slate-500 font-bold space-y-3">
-                <p>No appointments found for current selection.</p>
+              <div className="schedule-list-empty clay-card text-slate-600 space-y-3">
+                <p>{statusFilter !== 'ALL' || doctorFilter !== 'ALL' || searchTerm ? 'No appointments match these filters.' : 'No appointments booked.'}</p>
                 {enquiries.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col items-center gap-2">
                     <p className="text-xs text-slate-600 font-semibold">
@@ -604,94 +504,18 @@ export const AppointmentManagement: React.FC = () => {
           </div>
         )}
 
-        {/* CALENDAR VIEW */}
-        {viewMode === 'calendar' && (
-          <ClayCard className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-black text-slate-800">August 2026 Doctor Schedule Calendar</h3>
-              <div className="text-xs font-bold text-sky-600">Today: Aug 10, 2026</div>
-            </div>
-
-            <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-slate-500 mb-2">
-              <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-            </div>
-
-            <div className="grid grid-cols-7 gap-2">
-              {Array.from({ length: 31 }).map((_, i) => {
-                const dayNum = i + 1;
-                const isToday = dayNum === 10;
-                const count = dayNum === 10 ? appointments.length : (dayNum * 3) % 8 + 2;
-
-                return (
-                  <div
-                    key={dayNum}
-                    className={`clay-card-flat p-2 min-h-[70px] flex flex-col justify-between cursor-pointer transition-all ${
-                      isToday ? 'clay-card-accent border-2 border-sky-500' : 'hover:bg-slate-100'
-                    }`}
-                  >
-                    <span className={`text-xs font-black ${isToday ? 'text-sky-900' : 'text-slate-800'}`}>
-                      {dayNum}
-                    </span>
-                    <span className={`text-[10px] font-extrabold rounded-full px-1.5 py-0.5 ${
-                      isToday ? 'bg-sky-600 text-white' : 'bg-slate-200 text-slate-700'
-                    }`}>
-                      {count} Visits
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </ClayCard>
-        )}
-
-        {/* WEEKLY VIEW */}
-        {viewMode === 'weekly' && (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-            {['Mon (Aug 10)', 'Tue (Aug 11)', 'Wed (Aug 12)', 'Thu (Aug 13)', 'Fri (Aug 14)'].map((dayStr, idx) => (
-              <ClayCard key={dayStr} className="p-4 flex flex-col gap-2">
-                <span className="text-xs font-black text-slate-800 pb-2 border-b border-slate-200">{dayStr}</span>
-                {idx === 0 ? (
-                  appointments.slice(0, 4).map((a) => (
-                    <div 
-                      key={a.id} 
-                      onClick={() => setSelectedAppointment(a)}
-                      className="clay-card-flat p-2 text-[11px] font-bold text-slate-700 cursor-pointer hover:bg-sky-50 transition-colors"
-                    >
-                      <span className="text-sky-600 font-mono">{a.tokenId}</span> • {a.patientName} ({a.timeSlot})
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-[11px] text-slate-400 font-semibold py-4 text-center">
-                    {3 + idx} slots booked
-                  </div>
-                )}
-              </ClayCard>
-            ))}
-          </div>
+        {(viewMode === 'calendar' || viewMode === 'weekly') && (
+          <ScheduleBook mode={viewMode} appointments={filteredAppointments} onSelect={setSelectedAppointment} />
         )}
 
         {/* ONLINE CONSULTATION ENQUIRIES VIEW */}
         {viewMode === 'enquiries' && (
           <div className="flex flex-col gap-5 animate-in fade-in">
-            {/* Top Stat Cards for Enquiries */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Total Inquiries</span>
-                <span className="text-2xl font-black text-slate-900">{enquiries.length}</span>
-              </div>
-              <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 shadow-2xs">
-                <span className="text-[10px] font-black uppercase tracking-wider text-rose-700 block">Action Needed (New)</span>
-                <span className="text-2xl font-black text-rose-700">{newEnquiriesCount}</span>
-              </div>
-              <div className="p-4 rounded-2xl bg-sky-50 border border-sky-200 shadow-2xs">
-                <span className="text-[10px] font-black uppercase tracking-wider text-sky-700 block">Contacted</span>
-                <span className="text-2xl font-black text-sky-700">{enquiries.filter((e) => e.status === 'Contacted').length}</span>
-              </div>
-              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 shadow-2xs">
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block">Booked Confirmed</span>
-                <span className="text-2xl font-black text-emerald-700">{enquiries.filter((e) => e.status === 'Appointment Booked').length}</span>
-              </div>
-            </div>
+            <dl className="module-summary">
+              <div><dt>All enquiries</dt><dd>{enquiries.length}</dd></div><div><dt>New</dt><dd>{newEnquiriesCount}</dd></div>
+              <div><dt>Contacted</dt><dd>{enquiries.filter(e => e.status === 'Contacted').length}</dd></div>
+              <div><dt>Booked</dt><dd>{enquiries.filter(e => e.status === 'Appointment Booked').length}</dd></div>
+            </dl>
 
             {/* Filter pills & Count bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
@@ -762,12 +586,12 @@ export const AppointmentManagement: React.FC = () => {
                   return (
                     <div
                       key={enq.id}
-                      className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between gap-4 hover:border-teal-400 transition-colors"
+                      className="bg-white rounded-xl p-3.5 sm:p-5 border border-slate-200 flex flex-col justify-between gap-3"
                     >
                       <div className="space-y-3">
                         {/* Header ID & Status */}
-                        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                          <div className="flex items-center gap-2">
+                        <div className="module-section-heading pb-2 border-b border-slate-100">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span className="font-mono font-black text-xs px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-700">
                               {enq.id}
                             </span>
@@ -797,7 +621,7 @@ export const AppointmentManagement: React.FC = () => {
 
                         {/* Patient Name & Contact */}
                         <div>
-                          <div className="flex items-center justify-between">
+                          <div className="module-section-heading">
                             <h4 className="text-base font-black text-slate-900">{enq.patientName}</h4>
                             <a
                               href={`tel:${enq.phone}`}
@@ -963,7 +787,7 @@ export const AppointmentManagement: React.FC = () => {
           const existingPat = getExistingPatientForAppointment(selectedAppointment);
 
           return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
+            <ModalLayer onDismiss={() => setSelectedAppointment(null)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
               <ClayCard className="max-w-lg w-full p-6 flex flex-col gap-5 max-h-[90vh] overflow-y-auto">
                 {/* Modal Header */}
                 <div className="flex justify-between items-center pb-3 border-b border-slate-200">
@@ -973,7 +797,7 @@ export const AppointmentManagement: React.FC = () => {
                     </span>
                     <h3 className="text-lg font-black text-slate-900">Appointment Details</h3>
                   </div>
-                  <button 
+                  <button aria-label="Close dialog"
                     onClick={() => setSelectedAppointment(null)} 
                     className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 font-bold cursor-pointer"
                   >
@@ -1139,7 +963,7 @@ export const AppointmentManagement: React.FC = () => {
                   </ClayButton>
                 </div>
               </ClayCard>
-            </div>
+            </ModalLayer>
           );
         })()}
 

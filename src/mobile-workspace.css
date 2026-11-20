@@ -137,13 +137,34 @@
     .clinical-actions button {white-space:normal;flex-wrap:wrap;justify-content:center;min-height:44px}
     .workspace {padding:10px 12px}
     .workspace > main {gap:12px}
-    .workspace main > div:first-child:has(h1) {padding:10px 12px;border-radius:12px}
+    .workspace main > div:first-child:has(h1) {padding:8px 10px;border-radius:12px}
     .workspace .work-heading h1 {font-family:inherit;font-size:1.15rem;font-weight:700;letter-spacing:-.02em;line-height:1.2}
-    .workspace .work-heading {gap:6px;padding-block:0}
+    .workspace .work-heading {gap:4px;padding-block:0}
     .workspace .work-heading p {font-size:.75rem;margin-top:2px}
-    .work-heading-actions {display:flex;flex-wrap:wrap;gap:5px;align-items:center}
-    .work-heading-actions .work-action {height:28px !important;min-height:28px !important;padding:3px 8px !important;font-size:.75rem !important;border-radius:7px !important;gap:4px !important;white-space:nowrap !important}
-    .work-heading-actions .work-action svg {width:13px !important;height:13px !important}
+    .work-heading-actions {display:flex;flex-wrap:nowrap !important;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:4px !important;align-items:center;max-width:100%}
+    .work-heading-actions .work-action {height:26px !important;min-height:26px !important;padding:2px 7px !important;font-size:.72rem !important;border-radius:7px !important;gap:3px !important;white-space:nowrap !important;flex-shrink:0 !important}
+    .work-heading-actions .work-action svg {width:12px !important;height:12px !important;flex-shrink:0 !important}
+    .work-picker-field select,
+    .work-select select,
+    .work-search,
+    .workspace .clay-input,
+    .workspace select.clay-input {
+      min-height: 32px !important;
+      height: 32px !important;
+      padding-top: 4px !important;
+      padding-bottom: 4px !important;
+      font-size: 0.8125rem !important;
+      border-radius: 8px !important;
+      line-height: 1.25 !important;
+    }
+    .work-picker-field, .work-select {
+      gap: 2px !important;
+      font-size: 0.75rem !important;
+    }
+    .work-picker-field label {
+      font-size: 0.72rem !important;
+      margin-bottom: 1px !important;
+    }
     .patient-roster-card,.bill-card {padding:12px;border-radius:12px}
     .patient-roster-card h3,.bill-card h3 {font-size:1rem}
     .patient-record-actions {margin-top:10px}

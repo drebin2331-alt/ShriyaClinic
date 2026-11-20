@@ -35,7 +35,7 @@ export const MobilePublicBar: React.FC<MobilePublicBarProps> = ({ onOpenEnquiry 
         <button
           type="button"
           onClick={onOpenEnquiry}
-          className="flex-[1.5] py-2.5 px-3 rounded-2xl bg-gradient-to-r from-teal-700 to-emerald-600 hover:from-teal-800 hover:to-emerald-700 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-md shadow-teal-950/20 active:scale-95 transition-all cursor-pointer"
+          className="flex-[1.5] py-2.5 px-3 rounded-2xl bg-teal-700 hover:from-teal-800 hover:to-emerald-700 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-md shadow-teal-950/20 active:scale-95 transition-all cursor-pointer"
         >
           <Calendar className="w-4 h-4" />
           <span>Book Consult</span>

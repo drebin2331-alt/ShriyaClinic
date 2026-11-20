@@ -2,6 +2,8 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import './daybook.css';
+import './mobile-workspace.css';
 import './utils/safeStorage';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
