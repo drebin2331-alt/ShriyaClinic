@@ -19,7 +19,6 @@ import {
   Check,
   Trash2,
   Edit3,
-  Building2,
   Phone,
   Mail,
   UserCheck,
@@ -366,10 +365,9 @@ export const StaffUserManagementView: React.FC = () => {
                     <th className="py-4 px-3">Role & Access</th>
                     <th className="py-4 px-3">Username / Email</th>
                     <th className="py-4 px-3">Password</th>
-                    <th className="py-4 px-3">Cabin / Station / ID</th>
                     <th className="py-4 px-3">Contact</th>
                     <th className="py-4 px-3">Status</th>
-                    <th className="py-4 px-5 text-right">Actions</th>
+                    <th className="py-4 px-5 text-right whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
@@ -477,17 +475,7 @@ export const StaffUserManagementView: React.FC = () => {
                           </div>
                         </td>
 
-                        {/* 5. Cabin / Desk / Patient ID */}
-                        <td data-label="Cabin / Station / ID" className="py-4 px-3 font-semibold text-slate-700 text-[11px]">
-                          <div className="flex items-center gap-1.5">
-                            <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 text-slate-800 font-mono text-[11px]">
-                              {staff.roomNumber || (isDoctor ? 'Cabin 101' : isCustomer ? 'PAT-001' : 'Desk 1')}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* 6. Phone */}
+                        {/* 5. Phone */}
                         <td data-label="Contact" className="py-4 px-3 text-slate-600 font-mono text-[11px]">
                           <div className="flex items-center gap-1">
                             <Phone className="w-3 h-3 text-slate-400" />
@@ -495,7 +483,7 @@ export const StaffUserManagementView: React.FC = () => {
                           </div>
                         </td>
 
-                        {/* 7. Status */}
+                        {/* 6. Status */}
                         <td data-label="Status" className="py-4 px-3">
                           <span
                             className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
@@ -511,22 +499,24 @@ export const StaffUserManagementView: React.FC = () => {
                           </span>
                         </td>
 
-                        {/* 8. Actions */}
-                        <td data-label="Actions" className="py-4 px-5 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+                        {/* 7. Actions */}
+                        <td data-label="Actions" className="py-4 px-5 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                             <button
+                              type="button"
                               onClick={() => handleCopyCredentials(staff)}
-                              className={`px-2.5 py-1.5 rounded-xl border font-bold text-[11px] transition-all cursor-pointer flex items-center gap-1 shadow-2xs ${
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs border shrink-0 cursor-pointer ${
                                 isCopied
-                                  ? 'bg-emerald-600 text-white border-emerald-600'
-                                  : 'border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
+                                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-emerald-200'
+                                  : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300'
                               }`}
-                              title="Copy full credentials slip"
+                              title="Copy Login Credentials"
+                              aria-label={`Copy credentials for ${staff.name}`}
                             >
                               {isCopied ? (
                                 <>
                                   <Check className="w-3.5 h-3.5 text-white" />
-                                  <span>Copied!</span>
+                                  <span>Copied</span>
                                 </>
                               ) : (
                                 <>
@@ -537,17 +527,21 @@ export const StaffUserManagementView: React.FC = () => {
                             </button>
 
                             <button
+                              type="button"
                               onClick={() => handleOpenEditModal(staff)}
-                              className="p-1.5 rounded-xl border border-slate-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300 transition-colors cursor-pointer"
+                              className="w-8 h-8 rounded-lg bg-white hover:bg-teal-50 text-slate-500 hover:text-teal-700 border border-slate-200 hover:border-teal-300 transition-all shadow-2xs flex items-center justify-center shrink-0 cursor-pointer"
                               title="Edit user details"
+                              aria-label={`Edit ${staff.name}`}
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                             </button>
 
                             <button
+                              type="button"
                               onClick={() => setDeletingStaff(staff)}
-                              className="p-1.5 rounded-xl border border-slate-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 transition-colors cursor-pointer"
+                              className="w-8 h-8 rounded-lg bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 hover:border-rose-300 transition-all shadow-2xs flex items-center justify-center shrink-0 cursor-pointer"
                               title="Delete user account"
+                              aria-label={`Delete ${staff.name}`}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
