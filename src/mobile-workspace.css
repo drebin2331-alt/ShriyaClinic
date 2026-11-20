@@ -26,10 +26,12 @@
   .work-action.primary:hover {filter:brightness(1.08)}
   .work-action:active,.work-segments button:active {filter:brightness(.95);transform:scale(.98)}
   .work-picker {width:100%;min-width:0}
-  .work-segments {display:grid;grid-auto-columns:minmax(0,1fr);grid-auto-flow:column;gap:4px;padding:4px;border-radius:12px;background:#e4ebe4}
-  .work-segments button {min-height:44px;padding:5px 6px;border-radius:8px;color:#40584d;font-size:.875rem;font-weight:650;cursor:pointer;overflow-wrap:normal}
-  .work-segments button[aria-pressed=true] {background:white;color:#183d32;box-shadow:0 1px 3px #213b3220}
-  .section-count {font-size:.75rem;margin-left:4px}
+  .work-segments {display:flex !important;flex-wrap:nowrap !important;overflow-x:auto !important;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none;gap:4px;padding:4px;border-radius:12px;background:#e4ebe4;width:100%;max-width:100%}
+  .work-segments::-webkit-scrollbar {display:none}
+  .work-segments button {display:inline-flex !important;align-items:center !important;justify-content:center !important;flex:0 0 auto !important;white-space:nowrap !important;min-height:38px !important;padding:5px 12px !important;border-radius:8px;color:#40584d;font-size:.8125rem !important;font-weight:650;cursor:pointer;overflow-wrap:normal;transition:all .15s ease}
+  .work-segments button[aria-pressed=true] {background:white !important;color:#183d32 !important;box-shadow:0 1px 3px #213b3220 !important}
+  .section-count {display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;margin-left:5px;padding:1px 6px;border-radius:9999px;background:rgba(0,0,0,.06);line-height:1.2}
+  .work-segments button[aria-pressed=true] .section-count {background:#ecfdf5;color:#065f46}
   .work-picker-field,.work-select {display:grid;gap:4px;font-size:.8125rem;color:var(--muted);font-weight:600}
   .work-picker-field select,.work-select select,.work-search {min-height:46px;border:1px solid #bdcbbf;border-radius:10px;background:white;color:var(--ink);font-size:1rem}
   .work-select select,.work-picker-field select {padding:7px 9px;width:100%}
@@ -88,9 +90,9 @@
   .bill-card > p {font-size:.85rem;color:var(--muted)}
   .bill-amounts {display:flex;flex-wrap:wrap;gap:10px 20px;border-block:1px solid var(--rule);margin-block:12px;padding-block:9px}
   .bill-amounts dd {font-size:.95rem;font-weight:650;font-variant-numeric:tabular-nums}
-  @container work (min-width:56rem) {.patient-roster-table,.invoice-list-table {display:block}.patient-roster-list,.invoice-list-cards,.work-picker-field {display:none}.billing-summary {grid-template-columns:repeat(4,1fr)}.work-picker.many .work-segments {display:flex;flex-wrap:wrap}.work-picker.many button {flex:1 1 auto}}
+  @container work (min-width:56rem) {.patient-roster-table,.invoice-list-table {display:block}.patient-roster-list,.invoice-list-cards,.work-picker-field {display:none}.billing-summary {grid-template-columns:repeat(4,1fr)}.work-picker.many .work-segments {display:flex !important;flex-wrap:nowrap !important;overflow-x:auto !important}.work-picker.many button {flex:0 0 auto !important;white-space:nowrap !important}}
   @container work (max-width:31rem) {.directory-tools {grid-template-columns:1fr}.directory-tools .work-select {display:flex;align-items:center;gap:12px}.directory-tools select {flex:1}.work-heading-actions {flex:1 1 100%;display:flex;flex-wrap:wrap;gap:6px}.work-heading-actions .work-action {width:auto;flex:0 0 auto}}
-  @container work (max-width:22rem) {.work-segments[data-count="4"] {grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-flow:row}}
+  @container work (max-width:22rem) {.work-segments button {padding:4px 8px !important;font-size:.75rem !important}}
   .document-layer {padding:12px;background:#20352e90}
   .document-dialog {container:document / inline-size;display:flex;flex-direction:column;width:min(100%,46rem);min-width:0;max-height:calc(var(--dialog-height,100dvh) - 24px);background:white;border-radius:16px;overflow:hidden;box-shadow:0 12px 50px #152e2a26}
   .document-toolbar,.document-actions {background:white;padding:12px 16px}
@@ -169,8 +171,8 @@
     .patient-record-actions {margin-top:10px}
     .record-facts {padding-block:6px}
     .record-facts dd {font-size:.8125rem}
-    .work-segments {padding:3px;border-radius:9px}
-    .work-segments button {min-height:40px;font-size:.8125rem}
+    .work-segments {padding:3px;border-radius:9px;display:flex !important;flex-wrap:nowrap !important;overflow-x:auto !important}
+    .work-segments button {min-height:34px !important;font-size:.75rem !important;padding:4px 8px !important;flex:0 0 auto !important;white-space:nowrap !important}
     .daybook {padding:16px}
     .daybook h1 {font-family:inherit;font-size:1.5rem;font-weight:650;line-height:1.2}
     .daybook-heading {margin-bottom:12px}
