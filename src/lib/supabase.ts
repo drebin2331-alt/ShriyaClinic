@@ -423,11 +423,11 @@ export const fetchTokensFromDb = async (): Promise<QueueToken[]> => {
 export const saveTokenToDb = async (token: QueueToken): Promise<void> => {
   if (!isSupabaseAvailable() || !token) return;
 
-  let patientName = token.patientName?.trim();
-  let patientId = token.patientId || null;
-  let doctorId = token.doctorId;
-  let doctorName = token.doctorName;
-  let tokenNumber = token.tokenNumber || token.id;
+  let patientName = token.patientName?.trim() || (token as any).patient_name?.trim();
+  let patientId = token.patientId || (token as any).patient_id || null;
+  let doctorId = token.doctorId || (token as any).doctor_id;
+  let doctorName = token.doctorName || (token as any).doctor_name;
+  let tokenNumber = token.tokenNumber || (token as any).token_number || token.id;
 
   // If patientName or doctor details are missing, look up existing token from localStorage
   if (!patientName || !doctorName || !doctorId) {
@@ -441,9 +441,9 @@ export const saveTokenToDb = async (token: QueueToken): Promise<void> => {
         if (match) {
           patientName = patientName || match.patientName?.trim();
           patientId = patientId || match.patientId || null;
-          doctorId = doctorId || match.doctorId;
-          doctorName = doctorName || match.doctorName;
-          tokenNumber = tokenNumber || match.tokenNumber;
+          doctorId = doctorId || match.doctorId || (match as any).doctor_id;
+          doctorName = doctorName || match.doctorName || (match as any).doctor_name;
+          tokenNumber = tokenNumber || match.tokenNumber || (match as any).token_number;
         }
       }
     } catch { }
@@ -459,8 +459,8 @@ export const saveTokenToDb = async (token: QueueToken): Promise<void> => {
         if (matchVisit) {
           patientName = patientName || matchVisit.patientName?.trim();
           patientId = patientId || matchVisit.patientId || null;
-          doctorId = doctorId || matchVisit.doctorId;
-          doctorName = doctorName || matchVisit.doctorName;
+          doctorId = doctorId || matchVisit.doctorId || matchVisit.doctor_id;
+          doctorName = doctorName || matchVisit.doctorName || matchVisit.doctor_name;
         }
       }
     } catch { }
@@ -468,28 +468,49 @@ export const saveTokenToDb = async (token: QueueToken): Promise<void> => {
 
   // Safe non-null fallbacks to strictly satisfy PostgreSQL NOT NULL constraints
   patientName = patientName || 'Patient';
-  doctorName = doctorName || 'Doctor';
-  doctorId = doctorId || 'doc-1';
+  doctorName = doctorName || 'Dr. DOCTOR TEST';
+  doctorId = doctorId || 'staff-1792653030970';
   tokenNumber = tokenNumber || token.id;
+
+  // Map status strictly to PostgreSQL allowed values:
+  // ('Waiting', 'Called', 'In Consultation', 'Completed', 'Cancelled', 'On Hold', 'Skipped')
+  let dbStatus: string = token.status;
+  if (dbStatus === 'Reception Follow-up') {
+    dbStatus = 'Completed';
+  } else if (dbStatus === 'Hold') {
+    dbStatus = 'On Hold';
+  } else if (dbStatus === 'Confirmed') {
+    dbStatus = 'Waiting';
+  }
+  if (!['Waiting', 'Called', 'In Consultation', 'Completed', 'Cancelled', 'On Hold', 'Skipped'].includes(dbStatus)) {
+    dbStatus = 'Waiting';
+  }
+
+  // Map priority strictly to PostgreSQL allowed values:
+  // ('Normal', 'Urgent', 'Emergency')
+  let dbPriority: string = token.priority || 'Normal';
+  if (!['Normal', 'Urgent', 'Emergency'].includes(dbPriority)) {
+    dbPriority = 'Normal';
+  }
 
   const payload = {
     id: token.id,
     token_number: tokenNumber,
-    visit_id: token.visitId || null,
-    appointment_id: token.appointmentId || null,
+    visit_id: token.visitId || (token as any).visit_id || null,
+    appointment_id: token.appointmentId || (token as any).appointment_id || null,
     patient_id: patientId,
     patient_name: patientName,
-    patient_phone: token.patientPhone || null,
+    patient_phone: token.patientPhone || (token as any).patient_phone || null,
     doctor_id: doctorId,
     doctor_name: doctorName,
-    chair_id: token.chairId || null,
-    status: token.status,
-    priority: token.priority || 'Normal',
-    reason_for_visit: token.reasonForVisit || null,
-    estimated_wait_minutes: token.estimatedWaitMinutes || 15,
-    called_at: toValidTimestampTz(token.calledAt, token.date),
-    started_at: toValidTimestampTz(token.startedAt || (token as any).consultationStartedAt, token.date),
-    completed_at: toValidTimestampTz(token.completedAt, token.date)
+    chair_id: token.chairId || (token as any).chair_id || null,
+    status: dbStatus,
+    priority: dbPriority,
+    reason_for_visit: token.reasonForVisit || (token as any).reason_for_visit || null,
+    estimated_wait_minutes: token.estimatedWaitMinutes || (token as any).estimated_wait_minutes || 15,
+    called_at: toValidTimestampTz(token.calledAt || (token as any).called_at, token.date || (token as any).date),
+    started_at: toValidTimestampTz(token.startedAt || (token as any).started_at || (token as any).consultationStartedAt, token.date || (token as any).date),
+    completed_at: toValidTimestampTz(token.completedAt || (token as any).completed_at, token.date || (token as any).date)
   };
 
   const { error } = await supabase.from('tokens').upsert(payload);
