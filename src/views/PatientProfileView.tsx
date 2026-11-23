@@ -1231,12 +1231,12 @@ export const PatientProfileView: React.FC = () => {
 
         <SectionPicker label="Chart section" value={activeTab} onChange={handleTabChange} options={[
           { id: 'overview', label: 'Overview & History' }, { id: 'chart', label: '3D Dental Chart' },
-          { id: 'prescriptions', label: 'Prescriptions', count: patientPrescriptions.length },
-          { id: 'treatment-plan', label: 'Treatment Plans', count: patient.treatmentPlans.length },
-          { id: 'visits-notes', label: 'Visits & Notes', count: patient.clinicalNotes.length || patient.visits.length },
-          { id: 'lab-orders', label: 'Lab Orders', count: patient.labOrders.length },
-          { id: 'billing', label: 'Billing & Invoices', count: patientInvoices.length + unbilledFeeApprovals.length },
-          { id: 'documents', label: 'Documents', count: patient.documents.length },
+          { id: 'prescriptions', label: 'Prescriptions', count: (patientPrescriptions || []).length },
+          { id: 'treatment-plan', label: 'Treatment Plans', count: (patient.treatmentPlans || []).length },
+          { id: 'visits-notes', label: 'Visits & Notes', count: (patient.clinicalNotes || []).length || (patient.visits || []).length },
+          { id: 'lab-orders', label: 'Lab Orders', count: (patient.labOrders || []).length },
+          { id: 'billing', label: 'Billing & Invoices', count: (patientInvoices || []).length + (unbilledFeeApprovals || []).length },
+          { id: 'documents', label: 'Documents', count: (patient.documents || []).length },
         ]} />
 
         {/* ==================================================== */}

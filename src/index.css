@@ -332,4 +332,31 @@ h1, h2, h3, .font-heading {
   }
 }
 
+/* Ensure tabs and segment pickers always render in a single horizontal line without wrapping */
+.work-segments,
+[role="group"][aria-label="Chart section"],
+.work-picker .work-segments {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  gap: 4px !important;
+  max-width: 100% !important;
+}
+
+.work-segments::-webkit-scrollbar,
+[role="group"][aria-label="Chart section"]::-webkit-scrollbar {
+  display: none !important;
+}
+
+.work-segments button,
+[role="group"][aria-label="Chart section"] button {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+
 

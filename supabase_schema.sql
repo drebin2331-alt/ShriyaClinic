@@ -87,6 +87,10 @@ CREATE INDEX IF NOT EXISTS idx_patients_phone ON public.patients(phone);
 CREATE INDEX IF NOT EXISTS idx_patients_op_number ON public.patients(op_number);
 CREATE INDEX IF NOT EXISTS idx_patients_name ON public.patients(name);
 
+-- Safe optional columns for case sheet completion
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS case_sheet_completed BOOLEAN DEFAULT false;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS case_sheet_completed_at TIMESTAMPTZ;
+
 -- ============================================================================
 -- 4. APPOINTMENTS TABLE
 -- ============================================================================

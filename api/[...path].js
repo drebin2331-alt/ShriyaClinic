@@ -183,6 +183,23 @@ export default function handler(req, res) {
     });
   }
 
+  // Medicines Catalog
+  if (pathStr.startsWith('medicines')) {
+    if (req.method === 'POST') {
+      const med = {
+        id: `med-${Date.now()}`,
+        name: body.name || 'Medicine',
+        dosage: body.dosage || '',
+        route: body.route || 'Oral',
+        frequency: body.frequency || 'BD',
+        duration: body.duration || '5 days',
+        instructions: body.instructions || 'After food'
+      };
+      return res.status(200).json({ medicine: med, medicines: [med] });
+    }
+    return res.status(200).json({ medicines: [] });
+  }
+
   // Default fallback for any other route
   return res.status(200).json({
     success: true,

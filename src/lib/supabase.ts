@@ -262,10 +262,12 @@ export const savePatientToDb = async (patient: PatientRecord): Promise<void> => 
     current_treatment: patient.currentTreatment || null,
     status: patient.status || 'New Patient',
     outstanding_balance: patient.outstandingBalance || 0,
-    case_sheet_completed: Boolean(patient.caseSheetCompleted || patient.dentalHistory?.caseSheetCompleted),
-    case_sheet_completed_at: toValidTimestampTz(patient.caseSheetCompletedAt || patient.dentalHistory?.completedAt) || null,
     medical_history: patient.medicalHistory || {},
-    dental_history: patient.dentalHistory || {},
+    dental_history: {
+      ...(patient.dentalHistory || {}),
+      caseSheetCompleted: Boolean(patient.caseSheetCompleted || patient.dentalHistory?.caseSheetCompleted),
+      caseSheetCompletedAt: toValidTimestampTz(patient.caseSheetCompletedAt || patient.dentalHistory?.completedAt) || null
+    },
     dental_chart: Array.isArray(patient.dentalChart) ? patient.dentalChart : [],
     clinical_notes: patient.clinicalNotes || [],
     treatment_plans: Array.isArray(patient.treatmentPlans) ? patient.treatmentPlans : [],
