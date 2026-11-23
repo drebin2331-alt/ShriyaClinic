@@ -54,7 +54,7 @@ import {
 } from '../seed/seedClinicData';
 import { createFullDefaultDentalChart } from '../utils/dentalChartHelper';
 import { openWhatsAppChat } from '../utils/whatsapp';
-import { apiClient } from '../utils/apiClient';
+import { apiClient, apiFetch } from '../utils/apiClient';
 import {
   supabase,
   isSupabaseAvailable,
@@ -1433,7 +1433,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     // Also persist to backend JSON database asynchronously
-    fetch('/api/enquiries', {
+    apiFetch('/api/enquiries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -1463,7 +1463,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     // Also update backend JSON database asynchronously
-    fetch(`/api/enquiries/${id}`, {
+    apiFetch(`/api/enquiries/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
@@ -1480,7 +1480,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     try {
-      await fetch(`/api/enquiries/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/enquiries/${id}`, { method: 'DELETE' });
     } catch { }
 
     notifyCrossTabSync();
@@ -1492,7 +1492,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     safeSetItem('smilecare_enquiries_list', JSON.stringify([]));
 
     try {
-      await fetch('/api/enquiries', { method: 'DELETE' });
+      await apiFetch('/api/enquiries', { method: 'DELETE' });
     } catch { }
 
     notifyCrossTabSync();

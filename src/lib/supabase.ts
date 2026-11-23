@@ -12,8 +12,13 @@ import {
   Doctor
 } from '../types';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Production default credentials ensuring native mobile apps (Capacitor/APK) and CI builds connect seamlessly
+const PRODUCTION_SUPABASE_URL = 'https://rgprflzadkrwyithvwha.supabase.co';
+const PRODUCTION_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJncHJmbHphZGtyd3lpdGh2d2hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1MDc2MzgsImV4cCI6MjEwODA4MzYzOH0.BJDD7cpydjDykRIJjz23PAN5UnVpsufLuIv_rEyYT-A';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || PRODUCTION_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || PRODUCTION_SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured = (): boolean => {
   return Boolean(
@@ -24,13 +29,9 @@ export const isSupabaseConfigured = (): boolean => {
   );
 };
 
-// Fallback dummy client if credentials aren't set yet, avoiding crash on mount
-const fallbackUrl = 'https://placeholder.supabase.co';
-const fallbackKey = 'placeholder-key';
-
 export const supabase: SupabaseClient = createClient(
-  isSupabaseConfigured() ? supabaseUrl : fallbackUrl,
-  isSupabaseConfigured() ? supabaseAnonKey : fallbackKey,
+  supabaseUrl,
+  supabaseAnonKey,
   {
     auth: {
       persistSession: true,

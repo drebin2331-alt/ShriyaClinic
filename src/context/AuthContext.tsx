@@ -206,14 +206,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setIsLoading(true);
 
+    const lookupKey = cleanEmail === 'admin' ? 'admin@clinic.com' : cleanEmail;
+
     // PRIMARY: Authenticate directly against Supabase database profiles table
     if (isSupabaseAvailable() && inputPass) {
       try {
-        const { data: profile, error } = await supabase
+        const { data: profiles, error } = await supabase
           .from('profiles')
           .select('*')
-          .ilike('email', cleanEmail)
-          .maybeSingle();
+          .or(`email.ilike.${lookupKey},phone.eq.${cleanEmail}`)
+          .limit(1);
+
+        const profile = profiles && profiles.length > 0 ? profiles[0] : null;
 
         if (error && isSupabaseBillingError(error)) {
           markSupabaseRestricted(error.message);
@@ -253,7 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // EMERGENCY RECOVERY ONLY: If database is completely unreachable and trying to login as admin
-    if (cleanEmail === 'admin@clinic.com' && inputPass === 'Password@123') {
+    if ((cleanEmail === 'admin@clinic.com' || cleanEmail === 'admin') && inputPass === 'Password@123') {
       const adminUser: AuthUser = {
         id: 'usr-admin-01',
         email: 'admin@clinic.com',

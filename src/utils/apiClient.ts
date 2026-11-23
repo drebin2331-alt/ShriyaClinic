@@ -60,6 +60,32 @@ export async function parseSafeJson(res: Response): Promise<any> {
   }
 }
 
+// In Capacitor mobile apps (Android/iOS) or local file schemes, route API calls to the live production server
+export const getApiBaseUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin;
+    if (
+      !origin ||
+      origin.includes('localhost') ||
+      origin.startsWith('capacitor://') ||
+      origin.startsWith('file://')
+    ) {
+      return 'https://shriya-clinic.vercel.app';
+    }
+  }
+  return '';
+};
+
+export const apiUrl = (endpoint: string): string => {
+  const base = getApiBaseUrl();
+  const clean = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${base}${clean}`;
+};
+
+export const apiFetch = (endpoint: string, init?: RequestInit): Promise<Response> => {
+  return fetch(apiUrl(endpoint), init);
+};
+
 export interface ClinicSyncState {
   patients: PatientRecord[];
   visits: ClinicVisit[];
@@ -147,7 +173,7 @@ function getLocalFallbackState(): ClinicSyncState {
 export const apiClient = {
   async getState(): Promise<ClinicSyncState> {
     try {
-      const res = await fetch('/api/state', {
+      const res = await apiFetch('/api/state', {
         headers: getAuthHeaders()
       });
       if (res.ok) {
@@ -182,7 +208,7 @@ export const apiClient = {
     allowDuplicate?: boolean;
   }): Promise<{ patient: PatientRecord; opNumber: string }> {
     try {
-      const res = await fetch('/api/patients', {
+      const res = await apiFetch('/api/patients', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(data)
@@ -225,7 +251,7 @@ export const apiClient = {
 
   async updatePatient(id: string, data: Partial<PatientRecord>): Promise<{ patient: PatientRecord }> {
     try {
-      const res = await fetch(`/api/patients/${encodeURIComponent(id)}`, {
+      const res = await apiFetch(`/api/patients/${encodeURIComponent(id)}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify(data)
@@ -249,7 +275,7 @@ export const apiClient = {
     chairId?: string;
     isWalkIn?: boolean;
   }): Promise<{ visit: ClinicVisit; token: QueueToken }> {
-    const res = await fetch('/api/check-in', {
+    const res = await apiFetch('/api/check-in', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data)
@@ -265,7 +291,7 @@ export const apiClient = {
   },
 
   async callToken(id: string, chairId?: string, chairName?: string): Promise<{ token: QueueToken; visit?: ClinicVisit }> {
-    const res = await fetch(`/api/tokens/${encodeURIComponent(id)}/call`, {
+    const res = await apiFetch(`/api/tokens/${encodeURIComponent(id)}/call`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ chairId, chairName })
@@ -280,7 +306,7 @@ export const apiClient = {
   },
 
   async holdToken(id: string): Promise<{ token: QueueToken }> {
-    const res = await fetch(`/api/tokens/${encodeURIComponent(id)}/hold`, {
+    const res = await apiFetch(`/api/tokens/${encodeURIComponent(id)}/hold`, {
       method: 'POST',
       headers: getAuthHeaders()
     });
@@ -294,7 +320,7 @@ export const apiClient = {
   },
 
   async skipToken(id: string, reason?: string): Promise<{ token: QueueToken }> {
-    const res = await fetch(`/api/tokens/${encodeURIComponent(id)}/skip`, {
+    const res = await apiFetch(`/api/tokens/${encodeURIComponent(id)}/skip`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ reason })
@@ -312,7 +338,7 @@ export const apiClient = {
     visitIdOrToken: string,
     metadata?: { patientName?: string; patientId?: string; doctorId?: string; doctorName?: string; tokenNumber?: string }
   ): Promise<{ visit: ClinicVisit; token?: QueueToken }> {
-    const res = await fetch('/api/consultations/start', {
+    const res = await apiFetch('/api/consultations/start', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ visitIdOrToken, ...(metadata || {}) })
@@ -336,7 +362,7 @@ export const apiClient = {
     followUpDate?: string;
     followUpReason?: string;
   }): Promise<{ visit: ClinicVisit; token?: QueueToken; message: string }> {
-    const res = await fetch('/api/consultations/complete', {
+    const res = await apiFetch('/api/consultations/complete', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data)
@@ -364,7 +390,7 @@ export const apiClient = {
     feeApprovalId?: string;
     isNewFee?: boolean;
   }): Promise<{ feeApproval: FeeApprovalRecord; invoice: Invoice; visit?: ClinicVisit }> {
-    const res = await fetch('/api/consultations/fee-approval', {
+    const res = await apiFetch('/api/consultations/fee-approval', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data)
@@ -391,7 +417,7 @@ export const apiClient = {
     doctorNotes?: string;
     followUpDate?: string;
   }): Promise<{ prescription: PrescriptionRecord; visit?: ClinicVisit }> {
-    const res = await fetch('/api/prescriptions', {
+    const res = await apiFetch('/api/prescriptions', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data)
@@ -420,7 +446,7 @@ export const apiClient = {
       followUpDate?: string;
     }
   ): Promise<{ prescription: PrescriptionRecord; visit?: ClinicVisit }> {
-    const res = await fetch(`/api/prescriptions/${id}`, {
+    const res = await apiFetch(`/api/prescriptions/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data)
@@ -433,7 +459,7 @@ export const apiClient = {
   },
 
   async deletePrescription(id: string): Promise<{ success: boolean; message: string }> {
-    const res = await fetch(`/api/prescriptions/${id}`, {
+    const res = await apiFetch(`/api/prescriptions/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
@@ -446,7 +472,7 @@ export const apiClient = {
 
   async getMedicines(): Promise<{ medicines: MedicineRecord[] }> {
     try {
-      const res = await fetch('/api/medicines', {
+      const res = await apiFetch('/api/medicines', {
         headers: getAuthHeaders()
       });
       const json = await parseSafeJson(res);
@@ -458,7 +484,7 @@ export const apiClient = {
 
   async saveMedicine(data: Partial<MedicineRecord>): Promise<{ medicine: MedicineRecord; medicines: MedicineRecord[] }> {
     try {
-      const res = await fetch('/api/medicines', {
+      const res = await apiFetch('/api/medicines', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(data)
@@ -495,7 +521,7 @@ export const apiClient = {
     referenceNumber?: string;
     notes?: string;
   }): Promise<{ payment: PaymentRecord; invoice: Invoice; receiptNumber: string; remainingBalance: number }> {
-    const res = await fetch('/api/payments', {
+    const res = await apiFetch('/api/payments', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data)
@@ -508,7 +534,7 @@ export const apiClient = {
   },
 
   async closeVisit(visitId: string, adminNotes?: string, meta?: any): Promise<{ visit: ClinicVisit; token?: QueueToken }> {
-    const res = await fetch(`/api/visits/${encodeURIComponent(visitId)}/close`, {
+    const res = await apiFetch(`/api/visits/${encodeURIComponent(visitId)}/close`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ adminNotes, ...(meta || {}) })
@@ -521,7 +547,7 @@ export const apiClient = {
   },
 
   async rescheduleAppointment(id: string, newDate: string, newTimeSlot: string, reason?: string): Promise<{ appointment: Appointment }> {
-    const res = await fetch(`/api/appointments/${encodeURIComponent(id)}/reschedule`, {
+    const res = await apiFetch(`/api/appointments/${encodeURIComponent(id)}/reschedule`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify({ newDate, newTimeSlot, reason })
@@ -534,7 +560,7 @@ export const apiClient = {
   },
 
   async cancelAppointment(id: string, reason?: string): Promise<{ appointment: Appointment }> {
-    const res = await fetch(`/api/appointments/${encodeURIComponent(id)}/cancel`, {
+    const res = await apiFetch(`/api/appointments/${encodeURIComponent(id)}/cancel`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ reason })
@@ -548,7 +574,7 @@ export const apiClient = {
 
   async getAuditLog(): Promise<{ auditEvents: AuditEvent[] }> {
     try {
-      const res = await fetch('/api/audit', {
+      const res = await apiFetch('/api/audit', {
         headers: getAuthHeaders()
       });
       const json = await parseSafeJson(res);

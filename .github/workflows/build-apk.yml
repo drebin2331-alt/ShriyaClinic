@@ -28,6 +28,9 @@ jobs:
         run: npm install
 
       - name: Build Web Application
+        env:
+          VITE_SUPABASE_URL: https://rgprflzadkrwyithvwha.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJncHJmbHphZGtyd3lpdGh2d2hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1MDc2MzgsImV4cCI6MjEwODA4MzYzOH0.BJDD7cpydjDykRIJjz23PAN5UnVpsufLuIv_rEyYT-A
         run: npm run build
 
       - name: Set up Java 21
@@ -62,14 +65,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.0.0
-          name: Shriya Dental Clinic Mobile App v1.0.0
+          tag_name: v1.0.1
+          name: Shriya Dental Clinic Mobile App v1.0.1
           make_latest: true
           draft: false
           prerelease: false
           body: |
-            ### 📱 Shriya Multispeciality Dental Clinic - Android Mobile App
-            Official Android Mobile App APK build for patients & doctors.
+            ### 📱 Shriya Multispeciality Dental Clinic - Android Mobile App v1.0.1
+            Official Android Mobile App APK build connected to live clinic database with instant staff and patient login.
             
             #### 📥 How to Install:
             1. Tap on **`ShriyaDentalClinic.apk`** below to download the APK directly to your phone.
