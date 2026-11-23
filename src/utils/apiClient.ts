@@ -306,7 +306,7 @@ export const apiClient = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data)
     });
-    const json = await res.json();
+    const json = await parseSafeJson(res);
     if (!res.ok) {
       throw new Error(json.error || 'Failed to complete consultation');
     }
@@ -334,7 +334,7 @@ export const apiClient = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data)
     });
-    const json = await res.json();
+    const json = await parseSafeJson(res);
     if (!res.ok) {
       throw new Error(json.error || 'Failed to approve fee');
     }
@@ -361,7 +361,7 @@ export const apiClient = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data)
     });
-    const json = await res.json();
+    const json = await parseSafeJson(res);
     if (!res.ok) {
       throw new Error(json.error || 'Failed to create prescription');
     }
@@ -390,7 +390,7 @@ export const apiClient = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data)
     });
-    const json = await res.json();
+    const json = await parseSafeJson(res);
     if (!res.ok) {
       throw new Error(json.error || 'Failed to update prescription');
     }
@@ -402,7 +402,7 @@ export const apiClient = {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
-    const json = await res.json();
+    const json = await parseSafeJson(res);
     if (!res.ok) {
       throw new Error(json.error || 'Failed to delete prescription');
     }
@@ -413,10 +413,11 @@ export const apiClient = {
     const res = await fetch('/api/medicines', {
       headers: getAuthHeaders()
     });
+    const json = await parseSafeJson(res);
     if (!res.ok) {
       throw new Error('Failed to fetch medicines catalog');
     }
-    return res.json();
+    return json;
   },
 
   async saveMedicine(data: Partial<MedicineRecord>): Promise<{ medicine: MedicineRecord; medicines: MedicineRecord[] }> {
@@ -425,7 +426,7 @@ export const apiClient = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data)
     });
-    const json = await res.json();
+    const json = await parseSafeJson(res);
     if (!res.ok) {
       throw new Error(json.error || 'Failed to save medicine');
     }
@@ -444,7 +445,7 @@ export const apiClient = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data)
     });
-    const json = await res.json();
+    const json = await parseSafeJson(res);
     if (!res.ok) {
       throw new Error(json.error || 'Failed to record payment');
     }
@@ -457,7 +458,7 @@ export const apiClient = {
       headers: getAuthHeaders(),
       body: JSON.stringify({ adminNotes })
     });
-    const json = await res.json();
+    const json = await parseSafeJson(res);
     if (!res.ok) {
       throw new Error(json.error || 'Failed to close visit');
     }
@@ -470,7 +471,7 @@ export const apiClient = {
       headers: getAuthHeaders(),
       body: JSON.stringify({ newDate, newTimeSlot, reason })
     });
-    const json = await res.json();
+    const json = await parseSafeJson(res);
     if (!res.ok) {
       throw new Error(json.error || 'Failed to reschedule appointment');
     }
@@ -483,7 +484,7 @@ export const apiClient = {
       headers: getAuthHeaders(),
       body: JSON.stringify({ reason })
     });
-    const json = await res.json();
+    const json = await parseSafeJson(res);
     if (!res.ok) {
       throw new Error(json.error || 'Failed to cancel appointment');
     }
@@ -494,9 +495,10 @@ export const apiClient = {
     const res = await fetch('/api/audit', {
       headers: getAuthHeaders()
     });
+    const json = await parseSafeJson(res);
     if (!res.ok) {
       throw new Error('Failed to fetch audit log');
     }
-    return res.json();
+    return json;
   }
 };
