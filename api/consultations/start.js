@@ -41,8 +41,12 @@ export default function handler(req, res) {
     };
 
     const token = {
-      id: visitIdOrToken || `tok-${Date.now()}`,
-      tokenNumber: visitIdOrToken,
+      id: body.tokenId || visitIdOrToken || `tok-${Date.now()}`,
+      tokenNumber: body.tokenNumber || visitIdOrToken,
+      patientName: body.patientName || 'Patient',
+      patientId: body.patientId || 'PAT-TEMP',
+      doctorId: body.doctorId || 'doc-1',
+      doctorName: body.doctorName || 'Doctor',
       status: 'In Consultation',
       consultationStartedAt: nowIso
     };

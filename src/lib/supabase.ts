@@ -391,17 +391,67 @@ export const fetchTokensFromDb = async (): Promise<QueueToken[]> => {
 };
 
 export const saveTokenToDb = async (token: QueueToken): Promise<void> => {
-  if (!isSupabaseAvailable()) return;
+  if (!isSupabaseAvailable() || !token) return;
+
+  let patientName = token.patientName?.trim();
+  let patientId = token.patientId || null;
+  let doctorId = token.doctorId;
+  let doctorName = token.doctorName;
+  let tokenNumber = token.tokenNumber || token.id;
+
+  // If patientName or doctor details are missing, look up existing token from localStorage
+  if (!patientName || !doctorName || !doctorId) {
+    try {
+      const stored = localStorage.getItem('smilecare_tokens_list');
+      if (stored) {
+        const tokens: QueueToken[] = JSON.parse(stored);
+        const match = tokens.find(
+          (t) => t.id === token.id || t.tokenNumber === tokenNumber || (token.visitId && t.visitId === token.visitId)
+        );
+        if (match) {
+          patientName = patientName || match.patientName?.trim();
+          patientId = patientId || match.patientId || null;
+          doctorId = doctorId || match.doctorId;
+          doctorName = doctorName || match.doctorName;
+          tokenNumber = tokenNumber || match.tokenNumber;
+        }
+      }
+    } catch { }
+  }
+
+  // If still missing, check visits list in localStorage
+  if (!patientName || !doctorName || !doctorId) {
+    try {
+      const storedVisits = localStorage.getItem('smilecare_visits_list');
+      if (storedVisits) {
+        const visits = JSON.parse(storedVisits);
+        const matchVisit = visits.find((v: any) => v.id === token.visitId || v.id === token.id || v.tokenId === tokenNumber);
+        if (matchVisit) {
+          patientName = patientName || matchVisit.patientName?.trim();
+          patientId = patientId || matchVisit.patientId || null;
+          doctorId = doctorId || matchVisit.doctorId;
+          doctorName = doctorName || matchVisit.doctorName;
+        }
+      }
+    } catch { }
+  }
+
+  // Safe non-null fallbacks to strictly satisfy PostgreSQL NOT NULL constraints
+  patientName = patientName || 'Patient';
+  doctorName = doctorName || 'Doctor';
+  doctorId = doctorId || 'doc-1';
+  tokenNumber = tokenNumber || token.id;
+
   const payload = {
     id: token.id,
-    token_number: token.tokenNumber,
+    token_number: tokenNumber,
     visit_id: token.visitId || null,
     appointment_id: token.appointmentId || null,
-    patient_id: token.patientId || null,
-    patient_name: token.patientName,
+    patient_id: patientId,
+    patient_name: patientName,
     patient_phone: token.patientPhone || null,
-    doctor_id: token.doctorId,
-    doctor_name: token.doctorName,
+    doctor_id: doctorId,
+    doctor_name: doctorName,
     chair_id: token.chairId || null,
     status: token.status,
     priority: token.priority || 'Normal',

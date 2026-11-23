@@ -1928,12 +1928,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // START CONSULTATION (Called -> In Consultation)
   const startConsultation = async (visitIdOrToken: string): Promise<void> => {
     let result: { visit: ClinicVisit; token?: QueueToken };
+    const existingVisit = visits.find((v) => v.id === visitIdOrToken || v.tokenId === visitIdOrToken);
+    const existingToken = tokens.find((t) => t.visitId === existingVisit?.id || t.tokenNumber === visitIdOrToken || t.id === visitIdOrToken);
+
     try {
-      result = await apiClient.startConsultation(visitIdOrToken);
+      result = await apiClient.startConsultation(visitIdOrToken, {
+        patientName: existingToken?.patientName || existingVisit?.patientName,
+        patientId: existingToken?.patientId || existingVisit?.patientId,
+        doctorId: existingToken?.doctorId || existingVisit?.doctorId,
+        doctorName: existingToken?.doctorName || existingVisit?.doctorName,
+        tokenNumber: existingToken?.tokenNumber || existingVisit?.tokenId || visitIdOrToken
+      });
     } catch {
       // Local fallback for offline / serverless deployment
-      const existingVisit = visits.find((v) => v.id === visitIdOrToken || v.tokenId === visitIdOrToken);
-      const existingToken = tokens.find((t) => t.visitId === existingVisit?.id || t.tokenNumber === visitIdOrToken || t.id === visitIdOrToken);
       const nowIso = new Date().toISOString();
       const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -1980,12 +1987,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     if (result.token) {
+      const existingToken = tokens.find(
+        (t) => t.id === result.token!.id || t.tokenNumber === result.token!.tokenNumber || t.visitId === result.visit.id
+      );
+      const mergedToken: QueueToken = {
+        ...(existingToken || {}),
+        ...result.token,
+        patientName: result.token.patientName || existingToken?.patientName || result.visit.patientName || 'Patient',
+        patientId: result.token.patientId || existingToken?.patientId || result.visit.patientId || 'PAT-TEMP',
+        doctorId: result.token.doctorId || existingToken?.doctorId || result.visit.doctorId || 'doc-1',
+        doctorName: result.token.doctorName || existingToken?.doctorName || result.visit.doctorName || 'Doctor',
+        tokenNumber: result.token.tokenNumber || existingToken?.tokenNumber || result.visit.tokenId || result.token.id,
+        status: 'In Consultation',
+        startedAt: result.token.startedAt || (result.token as any).consultationStartedAt || new Date().toISOString()
+      };
+
       setTokens((prev) => {
-        const next = prev.map((t) => (t.id === result.token!.id ? result.token! : t));
+        const next = prev.map((t) => (t.id === mergedToken.id || t.tokenNumber === mergedToken.tokenNumber ? mergedToken : t));
+        if (!next.some((t) => t.id === mergedToken.id || t.tokenNumber === mergedToken.tokenNumber)) {
+          next.unshift(mergedToken);
+        }
         safeSetItem('smilecare_tokens_list', JSON.stringify(next));
         return next;
       });
-      saveTokenToDb(result.token).catch(() => { });
+      saveTokenToDb(mergedToken).catch(() => { });
     }
 
     const pat = patients.find((p) => p.id === result.visit.patientId);
@@ -2076,12 +2101,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     if (result.token) {
+      const existingToken = tokens.find(
+        (t) => t.id === result.token!.id || t.tokenNumber === result.token!.tokenNumber || t.visitId === result.visit.id
+      );
+      const mergedToken: QueueToken = {
+        ...(existingToken || {}),
+        ...result.token,
+        patientName: result.token.patientName || existingToken?.patientName || result.visit.patientName || 'Patient',
+        patientId: result.token.patientId || existingToken?.patientId || result.visit.patientId || 'PAT-TEMP',
+        doctorId: result.token.doctorId || existingToken?.doctorId || result.visit.doctorId || 'doc-1',
+        doctorName: result.token.doctorName || existingToken?.doctorName || result.visit.doctorName || 'Doctor',
+        tokenNumber: result.token.tokenNumber || existingToken?.tokenNumber || result.visit.tokenId || result.token.id,
+        status: result.token.status || 'Reception Follow-up',
+        completedAt: result.token.completedAt || new Date().toISOString()
+      };
+
       setTokens((prev) => {
-        const next = prev.map((t) => (t.id === result.token!.id ? result.token! : t));
+        const next = prev.map((t) => (t.id === mergedToken.id || t.tokenNumber === mergedToken.tokenNumber ? mergedToken : t));
+        if (!next.some((t) => t.id === mergedToken.id || t.tokenNumber === mergedToken.tokenNumber)) {
+          next.unshift(mergedToken);
+        }
         safeSetItem('smilecare_tokens_list', JSON.stringify(next));
         return next;
       });
-      saveTokenToDb(result.token).catch(() => { });
+      saveTokenToDb(mergedToken).catch(() => { });
     }
 
     // Free chair
@@ -2546,10 +2589,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       prev.map((v) => (v.id === result.visit.id ? result.visit : v))
     );
     if (result.token) {
-      setTokens((prev) =>
-        prev.map((t) => (t.id === result.token!.id ? result.token! : t))
-      );
-      saveTokenToDb(result.token).catch(() => { });
+      const existingVisit = visits.find((v) => v.id === visitId);
+      const existingToken = tokens.find((t) => t.visitId === visitId || t.tokenNumber === existingVisit?.tokenId || t.id === result.token!.id);
+      const mergedToken: QueueToken = {
+        ...(existingToken || {}),
+        ...result.token,
+        patientName: result.token.patientName || existingToken?.patientName || result.visit.patientName || 'Patient',
+        patientId: result.token.patientId || existingToken?.patientId || result.visit.patientId || 'PAT-TEMP',
+        doctorId: result.token.doctorId || existingToken?.doctorId || result.visit.doctorId || 'doc-1',
+        doctorName: result.token.doctorName || existingToken?.doctorName || result.visit.doctorName || 'Doctor',
+        tokenNumber: result.token.tokenNumber || existingToken?.tokenNumber || result.visit.tokenId || result.token.id,
+        status: 'Completed',
+        completedAt: result.token.completedAt || new Date().toISOString()
+      };
+      setTokens((prev) => {
+        const next = prev.map((t) => (t.id === mergedToken.id || t.tokenNumber === mergedToken.tokenNumber ? mergedToken : t));
+        safeSetItem('smilecare_tokens_list', JSON.stringify(next));
+        return next;
+      });
+      saveTokenToDb(mergedToken).catch(() => { });
     }
     notifyCrossTabSync();
     addToast('Checkout Complete! 👋', `Encounter closed for ${result.visit.patientName}.`, 'success');

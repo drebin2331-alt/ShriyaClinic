@@ -48,8 +48,12 @@ export default function handler(req, res) {
     };
 
     const token = {
-      id: `tok-${Date.now()}`,
+      id: body.tokenId || `tok-${Date.now()}`,
       tokenNumber: body.tokenNumber || body.tokenId || visitId,
+      patientName: body.patientName || 'Patient',
+      patientId: body.patientId || 'PAT-TEMP',
+      doctorId: body.doctorId || 'doc-1',
+      doctorName: body.doctorName || 'Doctor',
       status: 'Reception Follow-up',
       completedAt: nowIso
     };

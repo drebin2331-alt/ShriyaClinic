@@ -276,11 +276,14 @@ export const apiClient = {
     return json;
   },
 
-  async startConsultation(visitIdOrToken: string): Promise<{ visit: ClinicVisit; token?: QueueToken }> {
+  async startConsultation(
+    visitIdOrToken: string,
+    metadata?: { patientName?: string; patientId?: string; doctorId?: string; doctorName?: string; tokenNumber?: string }
+  ): Promise<{ visit: ClinicVisit; token?: QueueToken }> {
     const res = await fetch('/api/consultations/start', {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ visitIdOrToken })
+      body: JSON.stringify({ visitIdOrToken, ...(metadata || {}) })
     });
     const json = await parseSafeJson(res);
     if (!res.ok) {

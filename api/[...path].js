@@ -28,6 +28,9 @@ export default function handler(req, res) {
       token: {
         id,
         tokenNumber: id,
+        patientName: body.patientName || 'Patient',
+        doctorId: body.doctorId || 'doc-1',
+        doctorName: body.doctorName || 'Doctor',
         status: 'Called',
         calledAt: new Date().toISOString(),
         chairId: body.chairId || null,
@@ -42,6 +45,9 @@ export default function handler(req, res) {
       token: {
         id,
         tokenNumber: id,
+        patientName: body.patientName || 'Patient',
+        doctorId: body.doctorId || 'doc-1',
+        doctorName: body.doctorName || 'Doctor',
         status: 'Hold'
       }
     });
@@ -53,6 +59,9 @@ export default function handler(req, res) {
       token: {
         id,
         tokenNumber: id,
+        patientName: body.patientName || 'Patient',
+        doctorId: body.doctorId || 'doc-1',
+        doctorName: body.doctorName || 'Doctor',
         status: 'Skipped'
       }
     });
