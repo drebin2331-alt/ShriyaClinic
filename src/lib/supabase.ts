@@ -66,6 +66,23 @@ export const isSupabaseBillingError = (error: any): boolean => {
   );
 };
 
+export const isSupabaseNetworkOrOfflineError = (error: any): boolean => {
+  if (!error) return false;
+  const msg = String(error?.message || error?.error_description || error?.details || error || '').toLowerCase();
+  const code = String(error?.code || '');
+  return (
+    code === 'PGRST000' ||
+    msg.includes('connection_closed') ||
+    msg.includes('err_connection_closed') ||
+    msg.includes('failed to fetch') ||
+    msg.includes('network error') ||
+    msg.includes('networkrequestfailed') ||
+    msg.includes('abort') ||
+    msg.includes('timeout') ||
+    msg.includes('load failed')
+  );
+};
+
 export const markSupabaseRestricted = (reason?: string): void => {
   if (!supabaseServiceRestricted) {
     supabaseServiceRestricted = true;
@@ -87,7 +104,7 @@ export const markSupabaseRestricted = (reason?: string): void => {
   if (!restrictedWarned) {
     restrictedWarned = true;
     console.warn(
-      `[Supabase] Cloud sync paused (${reason || 'HTTP 402: project plan/spend cap reached'}). Operating on local clinic storage & API.`
+      `[Supabase] Cloud sync paused (${reason || 'Connection closed or service unavailable'}). Operating smoothly on local clinic storage & backend API.`
     );
   }
 };
@@ -109,13 +126,18 @@ export const probeSupabaseAvailability = async (): Promise<boolean> => {
 
   probePromise = (async () => {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
       const res = await fetch(`${supabaseUrl}/rest/v1/profiles?select=id&limit=1`, {
         method: 'GET',
+        signal: controller.signal,
         headers: {
           apikey: supabaseAnonKey,
           Authorization: `Bearer ${supabaseAnonKey}`
         }
       });
+      clearTimeout(timeoutId);
+
       if (res.status === 402) {
         let detail = 'HTTP 402 Payment Required';
         try {
@@ -125,8 +147,14 @@ export const probeSupabaseAvailability = async (): Promise<boolean> => {
         markSupabaseRestricted(detail);
         return false;
       }
+
+      if (!res.ok) {
+        markSupabaseRestricted(`Supabase HTTP ${res.status}`);
+        return false;
+      }
       return true;
-    } catch {
+    } catch (err: any) {
+      markSupabaseRestricted(err?.message || 'Connection closed / unreachable');
       return false;
     }
   })();
@@ -136,11 +164,11 @@ export const probeSupabaseAvailability = async (): Promise<boolean> => {
 
 const handleSupabaseError = (context: string, error: any): void => {
   if (!error) return;
-  if (isSupabaseBillingError(error)) {
-    markSupabaseRestricted(error?.message || String(error));
+  if (isSupabaseBillingError(error) || isSupabaseNetworkOrOfflineError(error)) {
+    markSupabaseRestricted(error?.message || 'Supabase offline or connection closed');
     return;
   }
-  console.error(context, error);
+  console.warn(context, error?.message || error);
 };
 
 // ============================================================================
