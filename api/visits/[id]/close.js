@@ -1,0 +1,26 @@
+export default function handler(req, res) {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-actor-id, x-actor-name, x-actor-role');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  const { id } = req.query;
+  const nowIso = new Date().toISOString();
+
+  return res.status(200).json({
+    visit: {
+      id: id || `VIS-${Date.now()}`,
+      status: 'Completed',
+      checkoutTime: nowIso
+    },
+    token: {
+      id: `tok-${Date.now()}`,
+      status: 'Completed',
+      completedAt: nowIso
+    }
+  });
+}

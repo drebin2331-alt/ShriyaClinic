@@ -28,11 +28,11 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
 
   // Search Patients
   const matchedPatients = trimmed ? patients.filter((p) =>
-    p.name.toLowerCase().includes(trimmed) ||
-    p.id.toLowerCase().includes(trimmed) ||
-    p.phone.includes(trimmed) ||
-    p.dentalChart?.some((t) => t.toothNumber.toString() === trimmed || (trimmed.startsWith('tooth') && t.toothNumber.toString() === trimmed.replace('tooth', '').trim())) ||
-    p.treatmentPlans?.some((tp) => tp.procedure.toLowerCase().includes(trimmed) || tp.diagnosis.toLowerCase().includes(trimmed))
+    (p.name || '').toLowerCase().includes(trimmed) ||
+    (p.id || '').toLowerCase().includes(trimmed) ||
+    (p.phone || '').includes(trimmed) ||
+    (Array.isArray(p.dentalChart) && p.dentalChart.some((t) => (t.toothNumber || '').toString() === trimmed || (trimmed.startsWith('tooth') && (t.toothNumber || '').toString() === trimmed.replace('tooth', '').trim()))) ||
+    (Array.isArray(p.treatmentPlans) && p.treatmentPlans.some((tp) => (tp.procedure || '').toLowerCase().includes(trimmed) || (tp.diagnosis || '').toLowerCase().includes(trimmed)))
   ) : [];
 
   // Search Appointments

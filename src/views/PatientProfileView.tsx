@@ -405,12 +405,13 @@ export const PatientProfileView: React.FC = () => {
   const unbilledTreatmentPlans = useMemo(() => {
     return (patient.treatmentPlans || []).filter((tp) => {
       if (tp.status === 'Billed' || tp.status === 'Completed') return false;
+      const tpProc = (tp.procedure || '').toLowerCase().trim();
       const inInvoice = patientInvoices.some((inv) =>
-        (inv.items || []).some((it) => it.description?.toLowerCase().trim() === tp.procedure?.toLowerCase().trim())
+        (inv.items || []).some((it) => (it.description || '').toLowerCase().trim() === tpProc)
       );
       if (inInvoice) return false;
       const inFeeApproval = (effectiveVisit?.feeApproval?.items || []).some((it) =>
-        it.description?.toLowerCase().trim() === tp.procedure?.toLowerCase().trim()
+        (it.description || '').toLowerCase().trim() === tpProc
       );
       if (inFeeApproval) return false;
       return true;

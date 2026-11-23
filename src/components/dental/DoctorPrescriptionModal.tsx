@@ -405,7 +405,7 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
       for (const item of items) {
         if (item.medicine.trim()) {
           const exists = (medicines || []).some(
-            (m) => m.name.toLowerCase().trim() === item.medicine.toLowerCase().trim()
+            (m) => (m.name || '').toLowerCase().trim() === (item.medicine || '').toLowerCase().trim()
           );
           if (!exists) {
             saveMedicine({
@@ -848,7 +848,7 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
                               )}
 
                               {/* If user typed a custom new medicine name, offer instant 1-click database save */}
-                              {item.medicine.trim() && !medicines.some(m => m.name.toLowerCase().trim() === item.medicine.toLowerCase().trim()) && (
+                              {item.medicine?.trim() && !medicines.some(m => (m.name || '').toLowerCase().trim() === item.medicine.toLowerCase().trim()) && (
                                 <div className="pt-1 mt-1 border-t border-slate-100">
                                   <button
                                     type="button"

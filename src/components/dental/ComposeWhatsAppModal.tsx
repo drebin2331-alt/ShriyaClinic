@@ -12,14 +12,19 @@ import {
   Phone, 
   ShieldCheck,
   Clock,
-  Info
+  Info,
+  Share2,
+  ExternalLink
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { 
   CLINIC_WHATSAPP_TEMPLATES, 
   WhatsAppTemplate, 
   openWhatsAppChat,
-  formatWhatsAppNumber 
+  createWhatsAppUrl,
+  formatWhatsAppNumber,
+  CLINIC_OFFICIAL_PHONE,
+  CLINIC_OFFICIAL_PHONE_DISPLAY
 } from '../../utils/whatsapp';
 import { WhatsAppMessageType } from '../../types';
 
@@ -134,6 +139,26 @@ export const ComposeWhatsAppModal: React.FC<ComposeWhatsAppModalProps> = ({
     setCopied(true);
     addToast('Copied to Clipboard 📋', 'WhatsApp message text copied.', 'success');
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Share using Web Share API
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Shriya Dental - ${getMessageType()}`,
+          text: messageText
+        });
+        addToast('Shared Successfully 📢', 'Notice shared via device share dialog.', 'success');
+        return;
+      } catch (e: any) {
+        if (e.name !== 'AbortError') {
+          handleCopy();
+        }
+        return;
+      }
+    }
+    handleCopy();
   };
 
   // Map template category to WhatsAppMessageType
@@ -580,20 +605,32 @@ export const ComposeWhatsAppModal: React.FC<ComposeWhatsAppModalProps> = ({
 
         {/* Modal Footer Controls */}
         <div className="px-5 py-3.5 border-t border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors"
-          >
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-            {copied ? 'Copied!' : 'Copy Text'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? 'Copied!' : 'Copy Text'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleShare}
+              className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Share via device menu"
+            >
+              <Share2 className="w-3.5 h-3.5 text-emerald-600" />
+              Share Notice
+            </button>
+          </div>
 
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleSchedulePending}
-              className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors"
+              className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Clock className="w-3.5 h-3.5 text-amber-600" />
               Queue as Pending
