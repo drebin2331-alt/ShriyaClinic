@@ -78,7 +78,7 @@ export const ReceptionCheckoutModal: React.FC<ReceptionCheckoutModalProps> = ({
       (inv) =>
         inv.patientId === currentPatient?.id ||
         (currentPatient?.opNumber && inv.patientOpNumber === currentPatient.opNumber) ||
-        (inv.patientName && inv.patientName.toLowerCase() === currentPatient?.name?.toLowerCase())
+        (inv.patientName && currentPatient?.name && inv.patientName.toLowerCase() === currentPatient.name.toLowerCase())
     );
 
     // 1. Explicit target invoice ID

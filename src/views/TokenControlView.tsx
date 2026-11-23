@@ -439,7 +439,7 @@ export const TokenControlView: React.FC = () => {
                         if (linkedVis) {
                           setCheckoutVisitTarget(linkedVis);
                         } else {
-                          const pat = patients.find((p) => p.id === tok.patientId || p.name.toLowerCase() === tok.patientName.toLowerCase());
+                          const pat = patients.find((p) => p.id === tok.patientId || (p.name && tok.patientName && p.name.toLowerCase() === tok.patientName.toLowerCase()));
                           const fallbackVis: ClinicVisit = {
                             id: tok.visitId || `vis-${tok.id}`,
                             patientId: tok.patientId || pat?.id || `pat-${Date.now()}`,
@@ -781,7 +781,7 @@ export const TokenControlView: React.FC = () => {
             onClose={() => setCheckoutVisitTarget(null)}
             visit={checkoutVisitTarget}
             patient={
-              patients.find((p) => p.id === checkoutVisitTarget.patientId || p.name.toLowerCase() === checkoutVisitTarget.patientName.toLowerCase()) ||
+              patients.find((p) => p.id === checkoutVisitTarget.patientId || (p.name && checkoutVisitTarget.patientName && p.name.toLowerCase() === checkoutVisitTarget.patientName.toLowerCase())) ||
               ({
                 id: checkoutVisitTarget.patientId,
                 name: checkoutVisitTarget.patientName,

@@ -304,7 +304,7 @@ export const PatientManagementView: React.FC = () => {
                                 const activeToken = tokens.find(
                                   (t) =>
                                     (t.patientId === patient.id ||
-                                      (t.patientName && t.patientName.toLowerCase() === patient.name.toLowerCase()) ||
+                                      (t.patientName && patient.name && t.patientName.toLowerCase() === patient.name.toLowerCase()) ||
                                       (num && t.patientPhone && t.patientPhone.replace(/\D/g, '') === num)) &&
                                     t.status !== 'Completed' &&
                                     t.status !== 'Cancelled'

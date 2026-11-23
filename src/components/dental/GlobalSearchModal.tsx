@@ -37,10 +37,10 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
 
   // Search Appointments
   const matchedAppointments = trimmed ? appointments.filter((a) =>
-    a.patientName.toLowerCase().includes(trimmed) ||
-    a.tokenId.toLowerCase().includes(trimmed) ||
-    a.patientPhone.includes(trimmed) ||
-    a.reasonForVisit.toLowerCase().includes(trimmed)
+    (a.patientName || '').toLowerCase().includes(trimmed) ||
+    (a.tokenId || '').toLowerCase().includes(trimmed) ||
+    (a.patientPhone || '').includes(trimmed) ||
+    (a.reasonForVisit || '').toLowerCase().includes(trimmed)
   ) : [];
 
   return (
@@ -151,7 +151,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                   <div
                     key={apt.id}
                     onClick={() => {
-                      const p = patients.find((pat) => pat.name.toLowerCase() === apt.patientName.toLowerCase() || pat.phone === apt.patientPhone);
+                      const p = patients.find((pat) => (pat.name && apt.patientName && pat.name.toLowerCase() === apt.patientName.toLowerCase()) || (pat.phone && pat.phone === apt.patientPhone));
                       if (p) onSelectPatient(p);
                       if (onSelectAppointment) onSelectAppointment(apt);
                       onClose();

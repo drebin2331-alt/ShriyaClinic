@@ -33,7 +33,7 @@ export function PatientRosterCard({
   const activeToken = tokens.find(
     (t) =>
       (t.patientId === patient.id ||
-        (t.patientName && t.patientName.toLowerCase() === patient.name.toLowerCase()) ||
+        (t.patientName && patient.name && t.patientName.toLowerCase() === patient.name.toLowerCase()) ||
         (number && t.patientPhone && t.patientPhone.replace(/\D/g, '') === number)) &&
       t.status !== 'Completed' &&
       t.status !== 'Cancelled'

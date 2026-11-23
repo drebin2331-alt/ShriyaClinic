@@ -1384,7 +1384,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const generatedAptId = `APT-2026-${Math.floor(100000 + Math.random() * 900000)}`;
 
     let patient = patients.find(
-      (p) => p.phone === data.patientPhone || p.name.toLowerCase() === data.patientName.toLowerCase()
+      (p) => (p.phone && data.patientPhone && p.phone === data.patientPhone) || (p.name && data.patientName && p.name.toLowerCase() === data.patientName.toLowerCase())
     );
 
     let patientId = patient?.id;
@@ -1814,7 +1814,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     chairId?: string;
   }): Promise<{ visit: ClinicVisit; token: QueueToken }> => {
     let patient = patients.find(
-      (p) => p.phone === data.patientPhone || p.name.toLowerCase() === data.patientName.toLowerCase()
+      (p) => (p.phone && data.patientPhone && p.phone === data.patientPhone) || (p.name && data.patientName && p.name.toLowerCase() === data.patientName.toLowerCase())
     );
 
     let patientId = patient?.id;

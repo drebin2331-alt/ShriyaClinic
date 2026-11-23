@@ -78,9 +78,9 @@ export const AdminDashboard: React.FC = () => {
   // Filtered Appointments
   const filteredAppointments = appointments.filter((apt) => {
     const matchesSearch = 
-      apt.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      apt.tokenId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      apt.patientPhone.includes(searchTerm);
+      (apt.patientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (apt.tokenId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (apt.patientPhone || '').includes(searchTerm);
 
     const matchesStatus = statusFilter === 'ALL' || apt.status === statusFilter;
     const matchesDoctor = doctorFilter === 'ALL' || apt.doctorId === doctorFilter;

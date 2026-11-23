@@ -93,11 +93,11 @@ export const PatientPortal: React.FC<PatientPortalProps> = ({ initialTab = 'dash
 
   // Invoices & Payments for this patient
   const myInvoices = invoices.filter(
-    (inv) => inv.patientId === patientRecord?.id || inv.patientName.toLowerCase() === (patientRecord?.name || '').toLowerCase()
+    (inv) => inv.patientId === patientRecord?.id || (inv.patientName && patientRecord?.name && inv.patientName.toLowerCase() === patientRecord.name.toLowerCase())
   );
 
   const myPayments = payments.filter(
-    (pay) => pay.patientId === patientRecord?.id || pay.patientName.toLowerCase() === (patientRecord?.name || '').toLowerCase()
+    (pay) => pay.patientId === patientRecord?.id || (pay.patientName && patientRecord?.name && pay.patientName.toLowerCase() === patientRecord.name.toLowerCase())
   );
 
   const totalMyBilled = myInvoices.reduce((sum, inv) => sum + inv.total, 0);

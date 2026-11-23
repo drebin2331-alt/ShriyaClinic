@@ -151,7 +151,7 @@ export const AppointmentManagement: React.FC = () => {
       age: apt.patientAge || 30,
       gender: apt.patientGender || 'Other',
       phone: apt.patientPhone,
-      email: apt.patientEmail || `${apt.patientName.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+      email: apt.patientEmail || `${(apt.patientName || 'patient').toLowerCase().replace(/\s+/g, '.')}@example.com`,
       address: 'Bengaluru, Karnataka',
       emergencyContact: {
         name: 'Family Contact',
@@ -248,9 +248,9 @@ export const AppointmentManagement: React.FC = () => {
     const matchesFilter = enquiryFilter === 'ALL' || e.status === enquiryFilter;
     const matchesSearch =
       !searchTerm.trim() ||
-      e.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      e.phone.includes(searchTerm) ||
-      e.chiefComplaint.toLowerCase().includes(searchTerm.toLowerCase());
+      (e.patientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (e.phone || '').includes(searchTerm) ||
+      (e.chiefComplaint || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 

@@ -124,7 +124,7 @@ export const PrintableReceiptModal: React.FC<PrintableReceiptModalProps> = ({
   if (!isOpen || !payment) return null;
 
   const matchedPatient = patient || patients.find(
-    (p) => p.id === payment.patientId || p.opNumber === patientOpNumber || p.name.toLowerCase() === payment.patientName.toLowerCase()
+    (p) => p.id === payment.patientId || p.opNumber === patientOpNumber || (p.name && payment.patientName && p.name.toLowerCase() === payment.patientName.toLowerCase())
   );
 
   const linkedInvoice = invoices.find((inv) => inv.id === payment.invoiceId);

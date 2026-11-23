@@ -104,9 +104,9 @@ export const BillingPaymentView: React.FC = () => {
   // Filtered Invoices
   const filteredInvoices = invoices.filter((inv) => {
     const matchesSearch = 
-      inv.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inv.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inv.doctorName.toLowerCase().includes(searchTerm.toLowerCase());
+      (inv.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (inv.patientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (inv.doctorName || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = invoiceStatusFilter === 'ALL' || inv.status === invoiceStatusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -114,9 +114,9 @@ export const BillingPaymentView: React.FC = () => {
   // Filtered Payments (Payment Pay Records)
   const filteredPayments = payments.filter((p) => {
     const matchesSearch = 
-      p.receiptNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.invoiceId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.receiptNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.patientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.invoiceId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.referenceNumber && p.referenceNumber.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesMethod = paymentMethodFilter === 'ALL' || p.paymentMethod === paymentMethodFilter;
     return matchesSearch && matchesMethod;

@@ -312,17 +312,17 @@ export const PatientProfileView: React.FC = () => {
   const [compFollowUp, setCompFollowUp] = useState('');
 
   const activeVisit = visits.find(
-    (v) => (v.patientId === patient.id || v.patientName.toLowerCase() === patient.name.toLowerCase()) &&
+    (v) => (v.patientId === patient.id || (v.patientName && patient.name && v.patientName.toLowerCase() === patient.name.toLowerCase())) &&
       (v.status === 'In Consultation' || v.status === 'Called')
   );
 
   const checkoutVisit = visits.find(
-    (v) => (v.patientId === patient.id || v.patientName.toLowerCase() === patient.name.toLowerCase()) &&
+    (v) => (v.patientId === patient.id || (v.patientName && patient.name && v.patientName.toLowerCase() === patient.name.toLowerCase())) &&
       v.status === 'Reception Follow-up'
   );
 
   const activeToken = tokens.find(
-    (t) => (t.patientId === patient.id || (t.patientName && t.patientName.toLowerCase() === patient.name.toLowerCase())) &&
+    (t) => (t.patientId === patient.id || (t.patientName && patient.name && t.patientName.toLowerCase() === patient.name.toLowerCase())) &&
       t.status !== 'Completed' && t.status !== 'Cancelled'
   );
 
@@ -331,7 +331,7 @@ export const PatientProfileView: React.FC = () => {
     if (checkoutVisit) return checkoutVisit;
 
     const waitingOrActiveVisit = visits.find(
-      (v) => (v.patientId === patient.id || v.patientName?.toLowerCase() === patient.name?.toLowerCase()) &&
+      (v) => (v.patientId === patient.id || (v.patientName && patient.name && v.patientName.toLowerCase() === patient.name.toLowerCase())) &&
         v.status !== 'Completed' && v.status !== 'Cancelled'
     );
     if (waitingOrActiveVisit) return waitingOrActiveVisit;
@@ -342,7 +342,7 @@ export const PatientProfileView: React.FC = () => {
     }
 
     const anyPatientVisit = visits.find(
-      (v) => v.patientId === patient.id || v.patientName?.toLowerCase() === patient.name?.toLowerCase()
+      (v) => v.patientId === patient.id || (v.patientName && patient.name && v.patientName.toLowerCase() === patient.name.toLowerCase())
     );
     if (anyPatientVisit) return anyPatientVisit;
 
@@ -369,7 +369,7 @@ export const PatientProfileView: React.FC = () => {
     const fromGlobal = globalInvoices.filter(
       (inv) => inv.patientId === patient.id ||
         (patient.opNumber && inv.patientOpNumber === patient.opNumber) ||
-        (inv.patientName && inv.patientName.toLowerCase() === patient.name.toLowerCase())
+        (inv.patientName && patient.name && inv.patientName.toLowerCase() === patient.name.toLowerCase())
     );
     const fromPatient = patient.invoices || [];
     const map = new Map<string, Invoice>();
@@ -382,7 +382,7 @@ export const PatientProfileView: React.FC = () => {
   // Check for any doctor-approved fee on visits that has not yet been converted to an invoice
   const unbilledFeeApprovals = useMemo(() => {
     const patientVisits = visits.filter(
-      (v) => v.patientId === patient.id || (v.patientName && v.patientName.toLowerCase() === patient.name.toLowerCase())
+      (v) => v.patientId === patient.id || (v.patientName && patient.name && v.patientName.toLowerCase() === patient.name.toLowerCase())
     );
     return patientVisits
       .filter((v) => {
@@ -506,7 +506,7 @@ export const PatientProfileView: React.FC = () => {
       (p) =>
         p.patientId === patient.id ||
         (patient.opNumber && p.patientOpNumber === patient.opNumber) ||
-        (p.patientName && p.patientName.toLowerCase() === patient.name.toLowerCase())
+        (p.patientName && patient.name && p.patientName.toLowerCase() === patient.name.toLowerCase())
     );
     if (patient.prescriptions) {
       patient.prescriptions.forEach((rx) => {
@@ -2873,8 +2873,8 @@ export const PatientProfileView: React.FC = () => {
               {(() => {
                 const patientReceipts = globalPayments.filter(
                   (p) => p.patientId === patient.id ||
-                    p.patientName?.toLowerCase() === patient.name.toLowerCase() ||
-                    patient.invoices.some((inv) => inv.id === p.invoiceId)
+                    (p.patientName && patient.name && p.patientName.toLowerCase() === patient.name.toLowerCase()) ||
+                    (patient.invoices || []).some((inv) => inv.id === p.invoiceId)
                 );
 
                 if (patientReceipts.length === 0) {

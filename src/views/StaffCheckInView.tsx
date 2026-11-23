@@ -143,9 +143,9 @@ export const StaffCheckInView: React.FC = () => {
 
   const todayAppointments = appointments.filter((apt) => {
     const matchesSearch = 
-      apt.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      apt.patientPhone.includes(searchTerm) ||
-      apt.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (apt.patientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (apt.patientPhone || '').includes(searchTerm) ||
+      (apt.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (apt.tokenId && apt.tokenId.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesDoctor = doctorFilter === 'ALL' || apt.doctorId === doctorFilter;
@@ -158,9 +158,9 @@ export const StaffCheckInView: React.FC = () => {
     const query = returningSearchTerm.toLowerCase();
     return patients.filter(
       (p) =>
-        p.name.toLowerCase().includes(query) ||
-        p.phone.includes(query) ||
-        p.id.toLowerCase().includes(query) ||
+        (p.name || '').toLowerCase().includes(query) ||
+        (p.phone || '').includes(query) ||
+        (p.id || '').toLowerCase().includes(query) ||
         (p.opNumber && p.opNumber.toLowerCase().includes(query))
     );
   }, [patients, returningSearchTerm]);
@@ -175,9 +175,9 @@ export const StaffCheckInView: React.FC = () => {
 
       const matchesSearch =
         !searchTerm.trim() ||
-        t.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (t.patientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (t.patientPhone && t.patientPhone.includes(searchTerm)) ||
-        t.tokenNumber.toLowerCase().includes(searchTerm.toLowerCase());
+        (t.tokenNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesDoctor = doctorFilter === 'ALL' || t.doctorId === doctorFilter;
       return matchesSearch && matchesDoctor;
     });
@@ -298,10 +298,10 @@ export const StaffCheckInView: React.FC = () => {
       const term = enquirySearchTerm.toLowerCase().trim();
       const matchSearch =
         !term ||
-        enq.patientName.toLowerCase().includes(term) ||
-        enq.phone.includes(term) ||
-        enq.chiefComplaint.toLowerCase().includes(term) ||
-        enq.id.toLowerCase().includes(term);
+        (enq.patientName || '').toLowerCase().includes(term) ||
+        (enq.phone || '').includes(term) ||
+        (enq.chiefComplaint || '').toLowerCase().includes(term) ||
+        (enq.id || '').toLowerCase().includes(term);
       return matchFilter && matchSearch;
     });
   }, [enquiries, enquiryFilter, enquirySearchTerm]);
