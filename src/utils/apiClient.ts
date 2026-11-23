@@ -43,6 +43,23 @@ function getAuthHeaders(): Record<string, string> {
   return headers;
 }
 
+export async function parseSafeJson(res: Response): Promise<any> {
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      return await res.json();
+    } catch {
+      return {};
+    }
+  }
+  const text = await res.text().catch(() => '');
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: text || `HTTP ${res.status}` };
+  }
+}
+
 export interface ClinicSyncState {
   patients: PatientRecord[];
   visits: ClinicVisit[];
@@ -205,10 +222,11 @@ export const apiClient = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data)
     });
-    const json = await res.json();
+    const json = await parseSafeJson(res);
     if (!res.ok) {
-      const err = new Error(json.error || 'Failed to check in patient');
+      const err = new Error(json.error || `Check-in server responded with ${res.status}`);
       (err as any).activeToken = json.activeToken;
+      (err as any).status = res.status;
       throw err;
     }
     return json;
@@ -220,9 +238,11 @@ export const apiClient = {
       headers: getAuthHeaders(),
       body: JSON.stringify({ chairId, chairName })
     });
-    const json = await res.json();
+    const json = await parseSafeJson(res);
     if (!res.ok) {
-      throw new Error(json.error || 'Failed to call token');
+      const err = new Error(json.error || 'Failed to call token');
+      (err as any).status = res.status;
+      throw err;
     }
     return json;
   },
@@ -232,9 +252,11 @@ export const apiClient = {
       method: 'POST',
       headers: getAuthHeaders()
     });
-    const json = await res.json();
+    const json = await parseSafeJson(res);
     if (!res.ok) {
-      throw new Error(json.error || 'Failed to hold token');
+      const err = new Error(json.error || 'Failed to hold token');
+      (err as any).status = res.status;
+      throw err;
     }
     return json;
   },
@@ -245,9 +267,11 @@ export const apiClient = {
       headers: getAuthHeaders(),
       body: JSON.stringify({ reason })
     });
-    const json = await res.json();
+    const json = await parseSafeJson(res);
     if (!res.ok) {
-      throw new Error(json.error || 'Failed to skip token');
+      const err = new Error(json.error || 'Failed to skip token');
+      (err as any).status = res.status;
+      throw err;
     }
     return json;
   },
@@ -258,9 +282,11 @@ export const apiClient = {
       headers: getAuthHeaders(),
       body: JSON.stringify({ visitIdOrToken })
     });
-    const json = await res.json();
+    const json = await parseSafeJson(res);
     if (!res.ok) {
-      throw new Error(json.error || 'Failed to start consultation');
+      const err = new Error(json.error || 'Failed to start consultation');
+      (err as any).status = res.status;
+      throw err;
     }
     return json;
   },

@@ -1666,37 +1666,140 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     reasonForVisit: string;
     isWalkIn?: boolean;
   }): Promise<{ visit: ClinicVisit; token: QueueToken }> => {
+    let result: { visit: ClinicVisit; token: QueueToken };
     try {
-      const result = await apiClient.checkInPatient(data);
-      setVisits((prev) => [result.visit, ...prev.filter((v) => v.id !== result.visit.id)]);
-      setTokens((prev) => [...prev.filter((t) => t.id !== result.token.id), result.token]);
-      setUserToken(result.token.tokenNumber);
-
-      if (data.appointmentId) {
-        setAppointments((prev) =>
-          prev.map((a) =>
-            a.id === data.appointmentId
-              ? { ...a, tokenId: result.token.tokenNumber, visitId: result.visit.id, status: 'Waiting' }
-              : a
-          )
-        );
-      }
-
-      saveTokenToDb(result.token).catch(() => { });
-      notifyCrossTabSync();
-      addToast('Patient Arrival Confirmed! 🎟️', `Token ${result.token.tokenNumber} issued for ${result.visit.patientName}.`, 'success');
-      return result;
+      result = await apiClient.checkInPatient(data);
     } catch (err: any) {
-      if (err?.activeToken) {
-        setTokens((prev) => {
-          const next = [...prev.filter((t) => t.id !== err.activeToken.id && t.tokenNumber !== err.activeToken.tokenNumber), err.activeToken];
-          safeSetItem('smilecare_tokens_list', JSON.stringify(next));
-          return next;
-        });
+      if (err?.activeToken || err?.status === 409) {
+        if (err?.activeToken) {
+          setTokens((prev) => {
+            const next = [...prev.filter((t) => t.id !== err.activeToken.id && t.tokenNumber !== err.activeToken.tokenNumber), err.activeToken];
+            safeSetItem('smilecare_tokens_list', JSON.stringify(next));
+            return next;
+          });
+        }
+        addToast('Check-In Notice', err.message || 'Patient already has an active queue token for today.', 'danger');
+        throw err;
       }
-      addToast('Check-In Notice', err.message || 'Unable to check in patient.', 'danger');
-      throw err;
+
+      // Offline / Static Deployment Fallback: Create locally in client state & Supabase
+      const patient = patients.find((p) => p.id === data.patientId || p.opNumber === data.patientId);
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      // Check if patient already has an active token today
+      const activeExistingToken = tokens.find(
+        (t) => t.patientId === data.patientId && t.date === todayStr &&
+          ['Waiting', 'Called', 'In Consultation', 'Reception Follow-up'].includes(t.status)
+      );
+
+      if (activeExistingToken) {
+        addToast('Check-In Notice', `Patient already has an active token (${activeExistingToken.tokenNumber}) for today.`, 'warning');
+        return {
+          visit: visits.find((v) => v.id === activeExistingToken.visitId) || {
+            id: activeExistingToken.visitId || `vis-${Date.now()}`,
+            patientId: data.patientId,
+            patientName: patient?.name || 'Patient',
+            opNumber: patient?.opNumber || 'OP-2026-00001',
+            doctorId: data.doctorId,
+            doctorName: patient?.assignedDoctorName || 'Dr. DOCTOR TEST',
+            visitDate: todayStr,
+            status: 'Waiting'
+          } as ClinicVisit,
+          token: activeExistingToken
+        };
+      }
+
+      const prefix = data.isWalkIn ? 'W' : 'A';
+      const matchingTokens = tokens.filter((t) => t.date === todayStr && t.tokenNumber && t.tokenNumber.startsWith(prefix));
+      let maxNum = 0;
+      matchingTokens.forEach((t) => {
+        const parts = t.tokenNumber.split('-');
+        if (parts[1]) {
+          const num = parseInt(parts[1], 10);
+          if (!isNaN(num) && num > maxNum) maxNum = num;
+        }
+      });
+      const tokenNumber = `${prefix}-${String(maxNum + 1).padStart(3, '0')}`;
+      const visitId = `VIS-2026-${String(visits.length + 1).padStart(5, '0')}`;
+      const nowIso = new Date().toISOString();
+      const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const doc = doctors.find((d) => d.id === data.doctorId);
+      const doctorName = doc?.name || patient?.assignedDoctorName || 'Dr. DOCTOR TEST';
+
+      const fallbackVisit: ClinicVisit = {
+        id: visitId,
+        patientId: data.patientId,
+        patientName: patient?.name || 'Patient',
+        opNumber: patient?.opNumber || 'OP-2026-00001',
+        patientPhone: patient?.phone || '',
+        appointmentId: data.appointmentId,
+        doctorId: data.doctorId || 'doc-1',
+        doctorName,
+        visitDate: todayStr,
+        checkInTime: nowIso,
+        status: 'Waiting',
+        tokenId: tokenNumber,
+        chairId: data.chairId,
+        priority: data.priority || 'Normal',
+        reasonForVisit: data.reasonForVisit || 'Consultation & Oral Examination',
+        timeline: [
+          {
+            time: nowTimeStr,
+            event: `Patient Checked In. Token ${tokenNumber} generated at reception desk.`,
+            actor: 'Reception Desk'
+          }
+        ]
+      };
+
+      const fallbackToken: QueueToken = {
+        id: `tok-${Date.now()}`,
+        tokenNumber,
+        patientId: data.patientId,
+        patientName: patient?.name || 'Patient',
+        patientPhone: patient?.phone || '',
+        appointmentId: data.appointmentId,
+        visitId,
+        doctorId: data.doctorId || 'doc-1',
+        doctorName,
+        chairId: data.chairId,
+        date: todayStr,
+        status: 'Waiting',
+        priority: data.priority || 'Normal',
+        createdAt: nowIso,
+        estimatedWaitMinutes: 15
+      };
+
+      result = { visit: fallbackVisit, token: fallbackToken };
     }
+
+    setVisits((prev) => {
+      const next = [result.visit, ...prev.filter((v) => v.id !== result.visit.id)];
+      safeSetItem('smilecare_visits_list', JSON.stringify(next));
+      return next;
+    });
+
+    setTokens((prev) => {
+      const next = [...prev.filter((t) => t.id !== result.token.id && t.tokenNumber !== result.token.tokenNumber), result.token];
+      safeSetItem('smilecare_tokens_list', JSON.stringify(next));
+      return next;
+    });
+
+    setUserToken(result.token.tokenNumber);
+
+    if (data.appointmentId) {
+      setAppointments((prev) =>
+        prev.map((a) =>
+          a.id === data.appointmentId
+            ? { ...a, tokenId: result.token.tokenNumber, visitId: result.visit.id, status: 'Waiting' }
+            : a
+        )
+      );
+    }
+
+    saveTokenToDb(result.token).catch(() => { });
+    notifyCrossTabSync();
+    addToast('Patient Arrival Confirmed! 🎟️', `Token ${result.token.tokenNumber} issued for ${result.visit.patientName}.`, 'success');
+    return result;
   };
 
   // WALK-IN PATIENT
@@ -1762,28 +1865,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           prev.map((v) => (v.id === result.visit!.id ? result.visit! : v))
         );
       }
-
-      // Update chair
-      if (targetChair) {
-        setChairs((prev) =>
-          prev.map((c) =>
-            c.id === targetChair.id
-              ? {
-                ...c,
-                status: 'Occupied',
-                currentPatientName: result.token.patientName,
-                currentToken: result.token.tokenNumber
-              }
-              : c
-          )
-        );
+    } catch {
+      // Local fallback for offline / serverless deployment
+      const targetToken = tokens.find((t) => t.tokenNumber === tokenNumberOrId || t.id === tokenNumberOrId);
+      if (targetToken) {
+        const nowIso = new Date().toISOString();
+        const updatedToken: QueueToken = {
+          ...targetToken,
+          status: 'Called',
+          calledAt: nowIso,
+          chairId: targetChair?.id,
+          chairName: targetChair?.name
+        };
+        setTokens((prev) => {
+          const next = prev.map((t) => (t.id === targetToken.id ? updatedToken : t));
+          safeSetItem('smilecare_tokens_list', JSON.stringify(next));
+          return next;
+        });
+        saveTokenToDb(updatedToken).catch(() => { });
       }
-
-      notifyCrossTabSync();
-      addToast(`Calling Token ${tokenNumberOrId} 🔔`, `Please proceed to doctor's consulting room.`, 'info');
-    } catch (err: any) {
-      addToast('Error', err.message || 'Failed to call token', 'danger');
     }
+
+    // Update chair
+    if (targetChair) {
+      const tok = tokens.find((t) => t.tokenNumber === tokenNumberOrId || t.id === tokenNumberOrId);
+      setChairs((prev) =>
+        prev.map((c) =>
+          c.id === targetChair.id
+            ? {
+              ...c,
+              status: 'Occupied',
+              currentPatientName: tok?.patientName || 'Patient',
+              currentToken: tok?.tokenNumber || tokenNumberOrId
+            }
+            : c
+        )
+      );
+    }
+
+    notifyCrossTabSync();
+    addToast(`Calling Token ${tokenNumberOrId} 🔔`, `Please proceed to doctor's consulting room.`, 'info');
   };
 
   // SEND TOKEN TO DOCTOR (Reception handoff: direct waiting patient to doctor's cabin)
@@ -2176,11 +2297,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         prev.map((t) => (t.id === result.token.id || t.tokenNumber === tokenNumberOrId ? result.token : t))
       );
       saveTokenToDb(result.token).catch(() => { });
-      notifyCrossTabSync();
-      addToast('Token Placed on Hold', `Token ${tokenNumberOrId} placed on hold.`, 'warning');
-    } catch (err: any) {
-      addToast('Error', err.message || 'Failed to hold token', 'danger');
+    } catch {
+      // Local fallback
+      setTokens((prev) => {
+        const next = prev.map((t) =>
+          t.id === tokenNumberOrId || t.tokenNumber === tokenNumberOrId
+            ? { ...t, status: 'Hold' as TokenStatus }
+            : t
+        );
+        safeSetItem('smilecare_tokens_list', JSON.stringify(next));
+        const updated = next.find((t) => t.id === tokenNumberOrId || t.tokenNumber === tokenNumberOrId);
+        if (updated) saveTokenToDb(updated).catch(() => { });
+        return next;
+      });
     }
+    notifyCrossTabSync();
+    addToast('Token Placed on Hold', `Token ${tokenNumberOrId} placed on hold.`, 'warning');
   };
 
   const skipToken = async (tokenNumberOrId: string, reason?: string): Promise<void> => {
@@ -2190,11 +2322,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         prev.map((t) => (t.id === result.token.id || t.tokenNumber === tokenNumberOrId ? result.token : t))
       );
       saveTokenToDb(result.token).catch(() => { });
-      notifyCrossTabSync();
-      addToast('Token Skipped', `Token ${tokenNumberOrId} was skipped.`, 'warning');
-    } catch (err: any) {
-      addToast('Error', err.message || 'Failed to skip token', 'danger');
+    } catch {
+      // Local fallback
+      setTokens((prev) => {
+        const next = prev.map((t) =>
+          t.id === tokenNumberOrId || t.tokenNumber === tokenNumberOrId
+            ? { ...t, status: 'Skipped' as TokenStatus }
+            : t
+        );
+        safeSetItem('smilecare_tokens_list', JSON.stringify(next));
+        const updated = next.find((t) => t.id === tokenNumberOrId || t.tokenNumber === tokenNumberOrId);
+        if (updated) saveTokenToDb(updated).catch(() => { });
+        return next;
+      });
     }
+    notifyCrossTabSync();
+    addToast('Token Skipped', `Token ${tokenNumberOrId} was skipped.`, 'warning');
   };
 
   // Legacy queue call methods
