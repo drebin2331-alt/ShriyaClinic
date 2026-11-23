@@ -601,7 +601,7 @@ export const ReportsView: React.FC = () => {
 
                   <div className="text-right">
                     <div className="h-10 border-b border-slate-400 w-48 mb-1 ml-auto" />
-                    <span className="font-bold text-slate-800 block">{doctors[0]?.name || 'Dr. DOCTOR TEST'}</span>
+                    <span className="font-bold text-slate-800 block">{doctors[0]?.name || 'Consulting Doctor'}</span>
                     <span className="text-[10px]">{doctors[0]?.specialization || 'Medical Director & Chief Admin'}</span>
                   </div>
                 </div>

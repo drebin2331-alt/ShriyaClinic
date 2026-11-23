@@ -468,8 +468,8 @@ export const saveTokenToDb = async (token: QueueToken): Promise<void> => {
 
   // Safe non-null fallbacks to strictly satisfy PostgreSQL NOT NULL constraints
   patientName = patientName || 'Patient';
-  doctorName = doctorName || 'Dr. DOCTOR TEST';
-  doctorId = doctorId || 'staff-1792653030970';
+  doctorName = doctorName || 'Consulting Doctor';
+  doctorId = doctorId || 'doc-1';
   tokenNumber = tokenNumber || token.id;
 
   // Map status strictly to PostgreSQL allowed values:
@@ -714,8 +714,8 @@ export const fetchPrescriptionsFromDb = async (): Promise<PrescriptionRecord[]> 
     patientOpNumber: row.patient_op_number || undefined,
     patientAge: row.patient_age || undefined,
     patientGender: row.patient_gender || undefined,
-    doctorId: row.doctor_id || 'staff-1792653030970',
-    doctorName: row.doctor_name || 'Dr. DOCTOR TEST',
+    doctorId: row.doctor_id || 'doc-1',
+    doctorName: row.doctor_name || 'Consulting Doctor',
     clinicName: 'Shriya Multispeciality Dental Clinic',
     clinicAddress: 'Pollachi Road, Kozhinjapara, Palakkad - 678555',
     clinicPhone: '+91 94003 20890',

@@ -111,52 +111,10 @@ export const INITIAL_STAFF_MEMBERS: StaffUser[] = [
     roomNumber: 'Admin Suite',
     status: 'Active',
     createdAt: '2026-10-20'
-  },
-  {
-    id: 'staff-1792653030970',
-    name: 'Dr. DOCTOR TEST',
-    email: 'doctor@gmail.com',
-    password: 'Password@123',
-    role: 'doctor',
-    phone: '+919633746591',
-    specialization: 'Orthodontics & Aligners',
-    qualification: 'BDS, MDS',
-    roomNumber: 'Cabin 101',
-    status: 'Active',
-    createdAt: '2026-10-22'
-  },
-  {
-    id: 'staff-1792774723829',
-    name: 'TEST DESK',
-    email: 'desk@gmail.com',
-    password: 'Password@123',
-    role: 'receptionist',
-    phone: '+919633746594',
-    specialization: 'Front Desk & Patient Desk',
-    qualification: 'Reception Coordinator',
-    roomNumber: 'Cabin 102',
-    status: 'Active',
-    createdAt: '2026-10-23'
   }
 ];
 
-export const INITIAL_DOCTORS: Doctor[] = [
-  {
-    id: 'staff-1792653030970',
-    name: 'Dr. DOCTOR TEST',
-    title: 'Dental Surgeon & Orthodontic Specialist',
-    qualification: 'BDS, MDS',
-    specialization: 'Orthodontics & Aligners',
-    experience: '5+ Years Experience',
-    rating: 5.0,
-    reviewsCount: 120,
-    avatar: '',
-    availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-    slots: ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '04:00 PM'],
-    bio: 'Specialist in dental orthodontics, invisible aligners, teeth alignment, and comprehensive dental surgery.',
-    roomNumber: 'Cabin 101'
-  }
-];
+export const INITIAL_DOCTORS: Doctor[] = [];
 
 interface AppContextType {
   activeView: ViewMode;
@@ -457,7 +415,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // One-time clean launch reset for client production: purge legacy test data
   if (typeof window !== 'undefined') {
     try {
-      const cleanLaunchKey = 'smilecare_clean_launch_v2';
+      const cleanLaunchKey = 'smilecare_clean_launch_v5';
       if (!localStorage.getItem(cleanLaunchKey)) {
         localStorage.removeItem('smilecare_patients_list');
         localStorage.removeItem('smilecare_tokens_list');
@@ -467,6 +425,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         localStorage.removeItem('smilecare_prescriptions_list');
         localStorage.removeItem('smilecare_fee_approvals');
         localStorage.removeItem('smilecare_whatsapp_reminders');
+        localStorage.removeItem('smilecare_staff_members');
+        localStorage.removeItem('smilecare_doctors_list');
+        const savedAuth = localStorage.getItem('smilecare_auth_user');
+        if (savedAuth) {
+          try {
+            const parsed = JSON.parse(savedAuth);
+            if (parsed.email !== 'admin@clinic.com') {
+              localStorage.removeItem('smilecare_auth_user');
+            }
+          } catch {
+            localStorage.removeItem('smilecare_auth_user');
+          }
+        }
         localStorage.setItem(cleanLaunchKey, 'true');
       }
     } catch { }
@@ -545,11 +516,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const cleaned = parsed
           .filter(
             (s) =>
+              s.email !== 'doctor@gmail.com' &&
+              s.email !== 'desk@gmail.com' &&
               s.email !== 'doctor@clinic.com' &&
               s.email !== 'reception@clinic.com' &&
               s.email !== 'patient@clinic.com' &&
               s.email !== 'ananya.doc@demo.com' &&
               s.email !== 'vikram.doc@demo.com' &&
+              s.name !== 'DOCTOR TEST' &&
+              s.name !== 'TEST DESK' &&
               s.name !== 'Dr. Priya Sharma' &&
               s.name !== 'Sunita Sharma' &&
               s.name !== 'Rahul Kumar' &&
@@ -578,9 +553,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const cleaned = parsed
           .filter(
             (d) =>
+              d.id !== 'staff-1792653030970' &&
               d.id !== 'doc-1' &&
               d.id !== 'doc-3' &&
               d.id !== 'doc-4' &&
+              d.name !== 'DOCTOR TEST' &&
+              d.name !== 'Dr. DOCTOR TEST' &&
               d.name !== 'Dr. Priya Sharma' &&
               d.name !== 'Dr. Ananya Reddy' &&
               d.name !== 'Dr. Vikram Malhotra'
@@ -932,106 +910,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           fetchProfilesFromDb()
         ]);
 
-        // Only merge patients if Supabase has non-empty valid records
-        if (dbPatients.status === 'fulfilled' && dbPatients.value && dbPatients.value.length > 0) {
-          setPatients((prev) => {
-            const merged = deduplicatePatients([...dbPatients.value, ...(prev || [])]);
-            safeSetItem('smilecare_patients_list', JSON.stringify(merged));
-            return merged;
-          });
+        // Sync patients directly from Supabase
+        if (dbPatients.status === 'fulfilled') {
+          const cleanPatients = deduplicatePatients(dbPatients.value || []);
+          setPatients(cleanPatients);
+          safeSetItem('smilecare_patients_list', JSON.stringify(cleanPatients));
         }
 
-        // Only merge appointments if Supabase actually returned appointments (NEVER wipe out with empty array)
-        if (dbAppointments.status === 'fulfilled' && dbAppointments.value && dbAppointments.value.length > 0) {
-          setAppointments((prev) => {
-            const map = new Map<string, Appointment>();
-            (prev || []).forEach((a) => map.set(a.id, a));
-            dbAppointments.value.forEach((a) => map.set(a.id, a));
-            const merged = Array.from(map.values()).filter((a) => !isDemoPatientOrToken(a.patientName));
-            safeSetItem('smilecare_appointments_list', JSON.stringify(merged));
-            return merged;
-          });
+        // Sync appointments directly from Supabase
+        if (dbAppointments.status === 'fulfilled') {
+          const cleanAppointments = (dbAppointments.value || []).filter((a) => !isDemoPatientOrToken(a.patientName));
+          setAppointments(cleanAppointments);
+          safeSetItem('smilecare_appointments_list', JSON.stringify(cleanAppointments));
         }
 
-        // Only merge tokens by unique ID, preventing stale DB status from demoting active token
-        if (dbTokens.status === 'fulfilled' && dbTokens.value && dbTokens.value.length > 0) {
-          setTokens((prev) => {
-            const map = new Map<string, QueueToken>();
-            (prev || []).forEach((t) => map.set(t.id, t));
-
-            const STATUS_PRECEDENCE: Record<string, number> = {
-              'Waiting': 1,
-              'On Hold': 2,
-              'Skipped': 2,
-              'Called': 3,
-              'In Consultation': 4,
-              'Reception Follow-up': 5,
-              'Completed': 6,
-              'Cancelled': 6
-            };
-
-            dbTokens.value.forEach((dbT) => {
-              const existing = map.get(dbT.id);
-              if (!existing) {
-                map.set(dbT.id, dbT);
-              } else {
-                const existingRank = STATUS_PRECEDENCE[existing.status] || 0;
-                const dbRank = STATUS_PRECEDENCE[dbT.status] || 0;
-                // If local/API state is further along (e.g. Called/In Consultation vs Waiting), NEVER demote back!
-                if (existingRank > dbRank) {
-                  const resolved = { ...dbT, status: existing.status, calledAt: existing.calledAt || dbT.calledAt };
-                  map.set(dbT.id, resolved);
-                  saveTokenToDb(resolved).catch(() => { });
-                } else {
-                  map.set(dbT.id, { ...existing, ...dbT });
-                }
-              }
-            });
-            const today = new Date().toISOString().split('T')[0];
-            const merged = Array.from(map.values())
-              .filter((t) => !isDemoPatientOrToken(t.patientName))
-              .map((t) => {
-                if (t.id === 'tok-1794029736556' || t.tokenNumber === 'W-002' || (t.status === 'Waiting' && t.date && t.date < today)) {
-                  return { ...t, status: 'Completed' as TokenStatus, completedAt: t.completedAt || new Date().toISOString() };
-                }
-                return t;
-              });
-            safeSetItem('smilecare_tokens_list', JSON.stringify(merged));
-            return merged;
-          });
+        // Sync tokens directly from Supabase
+        if (dbTokens.status === 'fulfilled') {
+          const cleanTokens = (dbTokens.value || []).filter((t) => !isDemoPatientOrToken(t.patientName));
+          setTokens(cleanTokens);
+          safeSetItem('smilecare_tokens_list', JSON.stringify(cleanTokens));
         }
 
-        // Only merge invoices if non-empty
-        if (dbInvoices.status === 'fulfilled' && dbInvoices.value && dbInvoices.value.length > 0) {
-          setInvoices((prev) => {
-            const map = new Map<string, Invoice>();
-            (prev || []).forEach((i) => map.set(i.id, i));
-            dbInvoices.value.forEach((i) => map.set(i.id, i));
-            const merged = Array.from(map.values());
-            safeSetItem('smilecare_invoices_list', JSON.stringify(merged));
-            return merged;
-          });
+        // Sync invoices directly from Supabase
+        if (dbInvoices.status === 'fulfilled') {
+          const cleanInvoices = (dbInvoices.value || []).filter((i) => !isDemoPatientOrToken(i.patientName));
+          setInvoices(cleanInvoices);
+          safeSetItem('smilecare_invoices_list', JSON.stringify(cleanInvoices));
         }
 
-        // Only merge payments if non-empty
-        if (dbPayments.status === 'fulfilled' && dbPayments.value && dbPayments.value.length > 0) {
-          setPayments((prev) => {
-            const map = new Map<string, PaymentRecord>();
-            (prev || []).forEach((p) => map.set(p.id, p));
-            dbPayments.value.forEach((p) => map.set(p.id, p));
-            const merged = Array.from(map.values());
-            safeSetItem('smilecare_payments_list', JSON.stringify(merged));
-            return merged;
-          });
+        // Sync payments directly from Supabase
+        if (dbPayments.status === 'fulfilled') {
+          const cleanPayments = (dbPayments.value || []).filter((p) => !isDemoPatientOrToken(p.patientName));
+          setPayments(cleanPayments);
+          safeSetItem('smilecare_payments_list', JSON.stringify(cleanPayments));
         }
 
         if (dbChairs.status === 'fulfilled' && dbChairs.value && dbChairs.value.length > 0) {
           setChairs(dbChairs.value);
         }
 
-        // Profiles / Doctors: Only update if changed
-        if (dbProfiles.status === 'fulfilled' && dbProfiles.value && dbProfiles.value.length > 0) {
-          const mappedStaff: StaffUser[] = dbProfiles.value.map((p) => ({
+        // Profiles / Doctors: Authoritative synchronization from Supabase profiles
+        if (dbProfiles.status === 'fulfilled') {
+          const profilesList = dbProfiles.value || [];
+          const mappedStaff: StaffUser[] = profilesList.map((p) => ({
             id: p.id,
             name: p.name,
             email: p.email,
@@ -1046,13 +967,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             avatar: p.avatar && !p.avatar.includes('photo-1559839734') ? p.avatar : ''
           }));
 
-          setStaffMembers((prev) => {
-            if (prev.length === mappedStaff.length && prev.every((s, i) => s.id === mappedStaff[i].id && s.name === mappedStaff[i].name)) {
-              return prev;
-            }
-            try { safeSetItem('smilecare_staff_members', JSON.stringify(mappedStaff)); } catch { }
-            return mappedStaff;
-          });
+          const authoritativeStaff = mappedStaff.length > 0 ? mappedStaff : INITIAL_STAFF_MEMBERS;
+          setStaffMembers(authoritativeStaff);
+          try { safeSetItem('smilecare_staff_members', JSON.stringify(authoritativeStaff)); } catch { }
 
           const realDoctors: Doctor[] = mappedStaff
             .filter((s) => s.role === 'doctor')
@@ -1072,13 +989,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               roomNumber: s.roomNumber || 'Cabin 101'
             }));
 
-          setDoctors((prev) => {
-            if (prev.length === realDoctors.length && prev.every((d, i) => d.id === realDoctors[i].id && d.name === realDoctors[i].name)) {
-              return prev;
-            }
-            try { safeSetItem('smilecare_doctors_list', JSON.stringify(realDoctors)); } catch { }
-            return realDoctors;
-          });
+          setDoctors(realDoctors);
+          try { safeSetItem('smilecare_doctors_list', JSON.stringify(realDoctors)); } catch { }
         }
       } catch (err) {
         console.warn('Supabase background sync note:', err);
@@ -1656,7 +1568,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             patientName: patient?.name || 'Patient',
             opNumber: patient?.opNumber || 'OP-2026-00001',
             doctorId: data.doctorId,
-            doctorName: patient?.assignedDoctorName || 'Dr. DOCTOR TEST',
+            doctorName: patient?.assignedDoctorName || 'Consulting Doctor',
             visitDate: todayStr,
             status: 'Waiting'
           } as ClinicVisit,
@@ -1679,7 +1591,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const nowIso = new Date().toISOString();
       const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const doc = doctors.find((d) => d.id === data.doctorId);
-      const doctorName = doc?.name || patient?.assignedDoctorName || 'Dr. DOCTOR TEST';
+      const doctorName = doc?.name || patient?.assignedDoctorName || 'Consulting Doctor';
 
       const fallbackVisit: ClinicVisit = {
         id: visitId,
@@ -1917,7 +1829,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         patientName: existingToken?.patientName || 'Patient',
         opNumber: 'OP-TEMP',
         doctorId: existingToken?.doctorId || 'doc-1',
-        doctorName: existingToken?.doctorName || 'Dr. DOCTOR TEST',
+        doctorName: existingToken?.doctorName || 'Consulting Doctor',
         visitDate: nowIso.split('T')[0],
         checkInTime: nowIso,
         status: 'In Consultation',
@@ -2033,7 +1945,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         patientName: existingToken?.patientName || 'Patient',
         opNumber: 'OP-TEMP',
         doctorId: existingToken?.doctorId || 'doc-1',
-        doctorName: existingToken?.doctorName || 'Dr. DOCTOR TEST',
+        doctorName: existingToken?.doctorName || 'Consulting Doctor',
         visitDate: nowIso.split('T')[0],
         status: 'Completed',
         consultationEndTime: nowIso,
@@ -2140,7 +2052,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         patientName: data.patientName || patient?.name || 'Patient',
         patientOpNumber: data.patientOpNumber || patient?.opNumber || 'OP-TEMP',
         doctorId: data.doctorId || 'doc-1',
-        doctorName: data.doctorName || patient?.assignedDoctorName || 'Dr. DOCTOR TEST',
+        doctorName: data.doctorName || patient?.assignedDoctorName || 'Consulting Doctor',
         date: nowIso.split('T')[0],
         consultationFee: data.consultationFee || 0,
         items: data.items,
@@ -2160,7 +2072,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         patientId: data.patientId || patient?.id || 'PAT-TEMP',
         patientName: data.patientName || patient?.name || 'Patient',
         patientOpNumber: data.patientOpNumber || patient?.opNumber || 'OP-TEMP',
-        doctorName: data.doctorName || patient?.assignedDoctorName || 'Dr. DOCTOR TEST',
+        doctorName: data.doctorName || patient?.assignedDoctorName || 'Consulting Doctor',
         date: nowIso.split('T')[0],
         feeApprovalId,
         items: data.items.map((it, idx) => ({
@@ -2248,7 +2160,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         patientName: patient?.name || 'Patient',
         patientOpNumber: patient?.opNumber || 'OP-TEMP',
         doctorId: visit?.doctorId || 'doc-1',
-        doctorName: visit?.doctorName || 'Dr. DOCTOR TEST',
+        doctorName: visit?.doctorName || 'Consulting Doctor',
         date: nowIso.split('T')[0],
         diagnosis: data.diagnosis || visit?.diagnosis || 'Dental Examination',
         doctorNotes: data.doctorNotes || '',
@@ -2375,7 +2287,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         patientName: 'Patient',
         patientOpNumber: 'OP-TEMP',
         doctorId: 'doc-1',
-        doctorName: 'Dr. DOCTOR TEST',
+        doctorName: 'Consulting Doctor',
         date: new Date().toISOString().split('T')[0],
         diagnosis: data.diagnosis || 'Clinical Dental Evaluation',
         doctorNotes: data.doctorNotes || '',
@@ -2537,8 +2449,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           patientId: existingVisit?.patientId || meta?.patientId || 'PAT-TEMP',
           patientName: existingVisit?.patientName || meta?.patientName || 'Patient',
           opNumber: existingVisit?.opNumber || 'OP-TEMP',
-          doctorId: existingVisit?.doctorId || meta?.doctorId || 'staff-1792653030970',
-          doctorName: existingVisit?.doctorName || meta?.doctorName || 'Dr. DOCTOR TEST',
+          doctorId: existingVisit?.doctorId || meta?.doctorId || 'doc-1',
+          doctorName: existingVisit?.doctorName || meta?.doctorName || 'Consulting Doctor',
           visitDate: existingVisit?.visitDate || todayStr,
           checkInTime: existingVisit?.checkInTime || nowIso,
           status: 'Completed',
@@ -2559,8 +2471,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: existingVisit?.id || result.visit?.id || visitId,
       patientId: patientId || 'PAT-TEMP',
       patientName: patientName || 'Patient',
-      doctorId: result.visit?.doctorId || existingVisit?.doctorId || meta?.doctorId || 'staff-1792653030970',
-      doctorName: result.visit?.doctorName || existingVisit?.doctorName || meta?.doctorName || 'Dr. DOCTOR TEST',
+      doctorId: result.visit?.doctorId || existingVisit?.doctorId || meta?.doctorId || 'doc-1',
+      doctorName: result.visit?.doctorName || existingVisit?.doctorName || meta?.doctorName || 'Consulting Doctor',
       tokenId: targetTokenId || existingVisit?.tokenId,
       status: 'Completed',
       checkoutTime: nowIso,

@@ -12,7 +12,7 @@ import {
 } from '../lib/supabase';
 import { safeSetItem } from '../utils/safeStorage';
 
-// Core clinic accounts with instant authentication fallback
+// Core clinic administrator account
 export const DEFAULT_ACCOUNTS: AuthUser[] = [
   {
     id: 'usr-admin-01',
@@ -21,24 +21,6 @@ export const DEFAULT_ACCOUNTS: AuthUser[] = [
     role: 'admin',
     title: 'Clinic Managing Director & Chief Administrator',
     avatar: '👨‍⚕️'
-  },
-  {
-    id: 'staff-1792653030970',
-    email: 'doctor@gmail.com',
-    name: 'DOCTOR TEST',
-    role: 'doctor',
-    title: 'Dental Surgeon & Consultant',
-    avatar: '👨‍⚕️',
-    phone: '+919400180740'
-  },
-  {
-    id: 'staff-1792774723829',
-    email: 'desk@gmail.com',
-    name: 'TEST DESK',
-    role: 'receptionist',
-    title: 'Front Desk & Billing Executive',
-    avatar: '👩‍💼',
-    phone: '+919400180740'
   }
 ];
 
@@ -99,11 +81,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Avoid legacy mock accounts from localStorage
+        // Avoid legacy mock or deleted accounts from localStorage
         if (
+          parsed.email === 'doctor@gmail.com' ||
+          parsed.email === 'desk@gmail.com' ||
           parsed.email === 'doctor@clinic.com' ||
           parsed.email === 'reception@clinic.com' ||
-          parsed.email === 'patient@clinic.com' ||
+          parsed.name === 'DOCTOR TEST' ||
+          parsed.name === 'TEST DESK' ||
           parsed.name === 'Dr. Priya Sharma' ||
           parsed.name === 'Sunita Sharma' ||
           parsed.name === 'Rahul Kumar'
@@ -126,6 +111,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated && 
     (currentUser.role === 'admin' || currentUser.role === 'doctor' || currentUser.role === 'receptionist' || currentUser.role === 'billing')
   );
+
+  // Validate active session against live Supabase database
+  useEffect(() => {
+    const validateSessionWithDatabase = async () => {
+      if (!currentUser || currentUser.id === 'guest' || !currentUser.email) return;
+      if (currentUser.email === 'admin@clinic.com') return; // Master administrator
+
+      if (isSupabaseAvailable()) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, email, status')
+            .ilike('email', currentUser.email)
+            .maybeSingle();
+
+          if (!profile) {
+            console.warn(`User ${currentUser.email} has been deleted from clinic database. Logging out.`);
+            localStorage.removeItem('smilecare_auth_user');
+            setCurrentUser(GUEST_USER);
+          }
+        } catch (e) {
+          console.warn('Session database validation check error:', e);
+        }
+      }
+    };
+
+    validateSessionWithDatabase();
+  }, [currentUser?.email]);
 
   // Synchronize accounts directly from Supabase profiles table
   const refreshAccounts = async (): Promise<AuthUser[]> => {
@@ -180,7 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [currentUser]);
 
-  // Direct login verifying against database profiles or local registered accounts
+  // Direct login verifying strictly against Supabase database profiles
   const login = async (email: string, password?: string): Promise<{ success: boolean; error?: string }> => {
     const cleanEmail = email.toLowerCase().trim();
     if (!cleanEmail) {
@@ -193,83 +206,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setIsLoading(true);
 
-    // FAST PATH 1: Instant local verification against known staff & default accounts (< 5ms)
-    // Avoids waiting on network when logging in with standard clinic credentials
-    try {
-      // 1a. Check built-in clinic accounts (Admin, Doctor, Receptionist)
-      const matchDefault = DEFAULT_ACCOUNTS.find((u) => u.email.toLowerCase() === cleanEmail);
-      if (matchDefault) {
-        const isDefaultDoctor = matchDefault.email === 'doctor@gmail.com';
-        const isDefaultDesk = matchDefault.email === 'desk@gmail.com';
-        const isPassCorrect = 
-          inputPass === 'Password@123' || 
-          ((isDefaultDoctor || isDefaultDesk) && inputPass === '123456');
-
-        if (isPassCorrect) {
-          setCurrentUser(matchDefault);
-          setIsDemoModalOpen(false);
-          setIsLoading(false);
-          return { success: true };
-        }
-      }
-
-      // 1b. Check local staff cache (smilecare_staff_members saved by admin)
-      const savedStaff = localStorage.getItem('smilecare_staff_members');
-      if (savedStaff) {
-        const staffList: any[] = JSON.parse(savedStaff);
-        const match = staffList.find((s) => s.email && s.email.toLowerCase() === cleanEmail);
-        if (match) {
-          const expected = (match.password || 'Password@123').trim();
-          if (inputPass === expected) {
-            const user: AuthUser = {
-              id: match.id,
-              email: match.email,
-              name: match.name,
-              role: match.role as UserRole,
-              title: match.qualification || (match.role === 'doctor' ? 'Dental Surgeon' : match.role === 'receptionist' ? 'Front Desk' : match.role.toUpperCase()),
-              phone: match.phone,
-              avatar: match.role === 'doctor' ? '👨‍⚕️' : match.role === 'receptionist' ? '👩‍💼' : '👤',
-              doctorId: match.doctorId || match.id,
-              patientId: match.patientId
-            };
-            setCurrentUser(user);
-            setIsDemoModalOpen(false);
-            setIsLoading(false);
-            return { success: true };
-          }
-        }
-      }
-
-      // 1c. Check cached demoAccounts
-      const matchDemo = demoAccounts.find((u) => u.email.toLowerCase() === cleanEmail);
-      if (matchDemo && inputPass === 'Password@123') {
-        setCurrentUser(matchDemo);
-        setIsDemoModalOpen(false);
-        setIsLoading(false);
-        return { success: true };
-      }
-    } catch {
-      // Fall through to database check
-    }
-
-    // PATH 2: If not matched in local cache, verify against Supabase database with a 2.5-second timeout
+    // PRIMARY: Authenticate directly against Supabase database profiles table
     if (isSupabaseAvailable() && inputPass) {
       try {
-        const queryPromise = supabase
+        const { data: profile, error } = await supabase
           .from('profiles')
           .select('*')
           .ilike('email', cleanEmail)
           .maybeSingle();
 
-        const timeoutPromise = new Promise<{ data: null; error: Error }>((_, reject) =>
-          setTimeout(() => reject(new Error('Network timeout')), 2500)
-        );
-
-        const { data: profile, error } = (await Promise.race([queryPromise, timeoutPromise])) as any;
-
         if (error && isSupabaseBillingError(error)) {
           markSupabaseRestricted(error.message);
-        } else if (!error && profile) {
+        } else if (profile) {
           const expectedPassword = (profile.password || 'Password@123').trim();
           if (inputPass === expectedPassword) {
             const user: AuthUser = {
@@ -277,7 +225,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               email: profile.email,
               name: profile.name,
               role: profile.role as UserRole,
-              title: profile.title || (profile.role === 'doctor' ? 'Dental Surgeon' : profile.role === 'customer' ? 'Patient Portal' : profile.role.toUpperCase()),
+              title: profile.title || (profile.role === 'admin' ? 'Clinic Administrator' : profile.role === 'doctor' ? 'Dental Surgeon' : profile.role === 'customer' ? 'Patient Portal' : profile.role.toUpperCase()),
               phone: profile.phone,
               avatar: profile.avatar || (profile.role === 'doctor' ? '👨‍⚕️' : profile.role === 'receptionist' ? '👩‍💼' : '👤'),
               doctorId: profile.doctor_id,
@@ -291,16 +239,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setIsLoading(false);
             return { success: false, error: 'Incorrect password. Please verify your credentials.' };
           }
+        } else {
+          // Profile NOT found in database: REJECT LOGIN!
+          setIsLoading(false);
+          return {
+            success: false,
+            error: 'User account not found in database. Please contact your Clinic Administrator.'
+          };
         }
       } catch (err: any) {
         console.warn('Database login check note:', err);
       }
     }
 
+    // EMERGENCY RECOVERY ONLY: If database is completely unreachable and trying to login as admin
+    if (cleanEmail === 'admin@clinic.com' && inputPass === 'Password@123') {
+      const adminUser: AuthUser = {
+        id: 'usr-admin-01',
+        email: 'admin@clinic.com',
+        name: 'ADMIN',
+        role: 'admin',
+        title: 'Clinic Managing Director & Chief Administrator',
+        avatar: '👨‍⚕️'
+      };
+      setCurrentUser(adminUser);
+      setIsDemoModalOpen(false);
+      setIsLoading(false);
+      return { success: true };
+    }
+
     setIsLoading(false);
     return {
       success: false,
-      error: 'Account not found or incorrect credentials. Please contact the Clinic Administrator.'
+      error: 'Account not found in clinic database or invalid credentials.'
     };
   };
 

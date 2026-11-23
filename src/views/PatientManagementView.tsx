@@ -258,7 +258,7 @@ export const PatientManagementView: React.FC = () => {
                           {/* 5. Assigned Doctor */}
                           <td data-label="Assigned Doctor" className="py-4 px-3 font-semibold text-slate-700 text-[11px]">
                             <span className="bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/80 text-slate-800 inline-block">
-                              {patient.assignedDoctorName || 'Dr. DOCTOR TEST'}
+                              {patient.assignedDoctorName || 'Unassigned'}
                             </span>
                           </td>
 

@@ -49,7 +49,7 @@ export const ComposeWhatsAppModal: React.FC<ComposeWhatsAppModalProps> = ({
   );
   const [customName, setCustomName] = useState('');
   const [customPhone, setCustomPhone] = useState('');
-  const [doctorName, setDoctorName] = useState(doctors[0]?.name || 'Dr. DOCTOR TEST');
+  const [doctorName, setDoctorName] = useState(doctors[0]?.name || 'Consulting Doctor');
   const [appointmentDate, setAppointmentDate] = useState(
     new Date(Date.now() + 86400000).toISOString().split('T')[0]
   );
@@ -70,7 +70,7 @@ export const ComposeWhatsAppModal: React.FC<ComposeWhatsAppModalProps> = ({
   const [messageText, setMessageText] = useState<string>(() => {
     return CLINIC_WHATSAPP_TEMPLATES[0].defaultText
       .replace('{patientName}', patients[0]?.name || 'Valued Patient')
-      .replace('{doctorName}', doctors[0]?.name || 'Dr. DOCTOR TEST')
+      .replace('{doctorName}', doctors[0]?.name || 'Consulting Doctor')
       .replace('{date}', new Date(Date.now() + 86400000).toISOString().split('T')[0])
       .replace('{time}', '10:30 AM')
       .replace('{clinicName}', 'Shriya Multispeciality Dental Clinic');

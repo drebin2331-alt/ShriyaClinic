@@ -41,28 +41,6 @@ export const SEED_USERS: StaffUser[] = [
     "password": "Password@123",
     "phone": "+91 98765 33445",
     "status": "Active"
-  },
-  {
-    "id": "staff-1792653030970",
-    "name": "Dr. DOCTOR TEST",
-    "email": "doctor@gmail.com",
-    "role": "doctor",
-    "password": "Password@123",
-    "phone": "+919633746591",
-    "specialization": "Orthodontics & Aligners",
-    "qualification": "BDS, MDS",
-    "roomNumber": "Cabin 101",
-    "status": "Active"
-  },
-  {
-    "id": "staff-1792774723829",
-    "name": "TEST DESK",
-    "email": "desk@gmail.com",
-    "role": "receptionist",
-    "password": "Password@123",
-    "phone": "+919633746594",
-    "roomNumber": "Cabin 102",
-    "status": "Active"
   }
 ];
 
@@ -183,5 +161,5 @@ export const SEED_DOCTORS: Doctor[] = SEED_USERS
     rating: 4.9,
     reviewsCount: 120,
     phone: u.phone || '+91 9400320890',
-    email: u.email || 'doctor@gmail.com'
+    email: u.email || ''
   }));

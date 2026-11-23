@@ -120,9 +120,7 @@ The application provides instant staff authentication profiles for testing:
 | Role | Username / Registered Email | Password | Access Rights |
 | :--- | :--- | :--- | :--- |
 | **Administrator** | `admin@clinic.com` | `Password@123` | Full clinical and administrative governance |
-| **Doctor** | `doctor@gmail.com` | `123456` or `Password@123` | Consultations, Odontogram, Rx & Pricing Authorization |
-| **Receptionist** | `desk@gmail.com` | `123456` or `Password@123` | Patient Registration, Queue Tokens & Billing |
-| **Patient** | `patient@clinic.com` | `Password@123` | Personal records, dental charts & receipts |
+| **Staff & Doctors** | *Provisioned via Admin* | *Set by Admin* | Manage staff in Admin > Staff Management |
 
 ---
 

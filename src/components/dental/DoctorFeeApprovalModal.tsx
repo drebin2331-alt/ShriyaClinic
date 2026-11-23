@@ -210,7 +210,7 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
         patientName: resolvedPatient?.name || patientName || 'Customer 1',
         patientOpNumber: resolvedPatient?.opNumber || patient?.opNumber || 'OP-2026-00101',
         doctorId: resolvedVisit?.doctorId || patient?.assignedDoctorId || 'staff-1792653030970',
-        doctorName: resolvedVisit?.doctorName || defaultDoctorName || patient?.assignedDoctorName || 'Dr. DOCTOR TEST',
+        doctorName: resolvedVisit?.doctorName || defaultDoctorName || patient?.assignedDoctorName || 'Consulting Doctor',
         consultationFee: Number(consultationFee) || 0,
         items: items.filter((it) => it.description && it.description.trim()),
         discountType,

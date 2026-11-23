@@ -42,7 +42,7 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
   onDeleteTreatmentPlan,
   onEditTreatmentPlan,
   onNavigateToBilling,
-  doctorName = 'Dr. DOCTOR TEST',
+  doctorName = 'Consulting Doctor',
   patientId
 }) => {
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);

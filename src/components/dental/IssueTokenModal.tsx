@@ -157,7 +157,7 @@ export const IssueTokenModal: React.FC<IssueTokenModalProps> = ({
             <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 text-xs text-left space-y-1.5">
               <div className="flex justify-between">
                 <span className="text-slate-500">Doctor Assigned:</span>
-                <span className="font-bold text-slate-800">{issuedToken.doctorName || 'Dr. DOCTOR TEST'}</span>
+                <span className="font-bold text-slate-800">{issuedToken.doctorName || 'Consulting Doctor'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Queue Priority:</span>

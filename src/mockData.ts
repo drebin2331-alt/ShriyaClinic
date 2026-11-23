@@ -93,22 +93,7 @@ export const MOCK_SERVICES: Service[] = [
 // ============================================================================
 // CLINICAL DOCTORS (Default doctor initialized from authoritative clinic store)
 // ============================================================================
-export const MOCK_DOCTORS: Doctor[] = SEED_DOCTORS.length > 0 ? SEED_DOCTORS : [
-  {
-    id: 'staff-1792653030970',
-    name: 'Dr. DOCTOR TEST',
-    specialization: 'Orthodontics & Aligners',
-    qualification: 'BDS, MDS',
-    experience: '8+ Years',
-    avatar: '',
-    availability: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-    cabinNumber: 'Cabin 101',
-    rating: 4.9,
-    reviewsCount: 120,
-    phone: '+91 9400320890',
-    email: 'doctor@gmail.com'
-  }
-];
+export const MOCK_DOCTORS: Doctor[] = SEED_DOCTORS;
 
 // ============================================================================
 // DENTAL OPERATORIES & CHAIRS (Matches Supabase Schema)
@@ -117,7 +102,7 @@ export const MOCK_CHAIRS: DentalChair[] = [
   {
     id: 'chair-1',
     name: 'Dental Operatory 1 (Main Surgery)',
-    doctorName: 'Dr. DOCTOR TEST',
+    doctorName: 'Unassigned',
     status: 'Available',
     isOperational: true
   },

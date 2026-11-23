@@ -235,8 +235,8 @@ export const PatientProfileView: React.FC = () => {
     };
   }, [rawPatient]);
 
-  const defaultDoctorName = patient?.assignedDoctorName || currentUser?.name || doctors[0]?.name || 'Dr. DOCTOR TEST';
-  const defaultDoctorId = patient?.assignedDoctorId || currentUser?.id || doctors[0]?.id || 'staff-1792653030970';
+  const defaultDoctorName = patient?.assignedDoctorName || currentUser?.name || doctors[0]?.name || 'Consulting Doctor';
+  const defaultDoctorId = patient?.assignedDoctorId || currentUser?.id || doctors[0]?.id || 'doc-1';
 
   type TabType =
     | 'overview'
@@ -989,7 +989,7 @@ export const PatientProfileView: React.FC = () => {
         visitId: v.id,
         patientId: patient.id,
         patientName: patient.name,
-        doctorName: v.doctorName || patient.assignedDoctorName || 'Dr. DOCTOR TEST',
+        doctorName: v.doctorName || patient.assignedDoctorName || 'Consulting Doctor',
         items: items.map((it) => ({
           description: it.description,
           quantity: it.quantity || 1,
@@ -2614,7 +2614,7 @@ export const PatientProfileView: React.FC = () => {
                           </span>
                           <span className="text-xs font-semibold tabular-nums text-slate-700">Ref: {item.visit.tokenId || item.visit.id}</span>
                           <span className="text-xs font-semibold text-slate-600">
-                            Doctor: <strong className="text-slate-900">{item.visit.doctorName || patient.assignedDoctorName || 'Dr. DOCTOR TEST'}</strong>
+                            Doctor: <strong className="text-slate-900">{item.visit.doctorName || patient.assignedDoctorName || 'Consulting Doctor'}</strong>
                           </span>
                         </div>
                         <h4 className="text-sm font-bold text-slate-900 mt-1">

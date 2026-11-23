@@ -37,7 +37,7 @@ export default function handler(req, res) {
           tokenNumber: id,
           patientName: body.patientName || 'Patient',
           doctorId: body.doctorId || 'staff-1792653030970',
-          doctorName: body.doctorName || 'Dr. DOCTOR TEST',
+          doctorName: body.doctorName || 'Consulting Doctor',
           status: 'Called',
           calledAt: nowIso,
           chairId: body.chairId || null,
@@ -52,7 +52,7 @@ export default function handler(req, res) {
           tokenNumber: id,
           patientName: body.patientName || 'Patient',
           doctorId: body.doctorId || 'staff-1792653030970',
-          doctorName: body.doctorName || 'Dr. DOCTOR TEST',
+          doctorName: body.doctorName || 'Consulting Doctor',
           status: 'On Hold'
         }
       });
@@ -64,7 +64,7 @@ export default function handler(req, res) {
           tokenNumber: id,
           patientName: body.patientName || 'Patient',
           doctorId: body.doctorId || 'staff-1792653030970',
-          doctorName: body.doctorName || 'Dr. DOCTOR TEST',
+          doctorName: body.doctorName || 'Consulting Doctor',
           status: 'Skipped'
         }
       });
@@ -97,7 +97,7 @@ export default function handler(req, res) {
         patientName: body.patientName || 'Patient',
         patientId: body.patientId || 'PAT-TEMP',
         doctorId: body.doctorId || 'staff-1792653030970',
-        doctorName: body.doctorName || 'Dr. DOCTOR TEST',
+        doctorName: body.doctorName || 'Consulting Doctor',
         status: 'Reception Follow-up',
         completedAt: nowIso
       }
@@ -135,7 +135,7 @@ export default function handler(req, res) {
     const patientId = body.patientId || null;
     const patientName = body.patientName || 'Patient';
     const doctorId = body.doctorId || 'staff-1792653030970';
-    const doctorName = body.doctorName || 'Dr. DOCTOR TEST';
+    const doctorName = body.doctorName || 'Consulting Doctor';
     const tokenId = body.tokenId || body.tokenNumber || null;
 
     return res.status(200).json({
@@ -230,7 +230,7 @@ export default function handler(req, res) {
         patientId: body.patientId || 'PAT-TEMP',
         patientName: body.patientName || 'Patient',
         patientOpNumber: body.patientOpNumber || 'OP-TEMP',
-        doctorName: body.doctorName || 'Dr. DOCTOR TEST',
+        doctorName: body.doctorName || 'Consulting Doctor',
         date: body.date || todayStr,
         medicines: body.medicines || [],
         instructions: body.instructions || '',

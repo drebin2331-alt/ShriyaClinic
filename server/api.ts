@@ -179,7 +179,7 @@ apiRouter.post('/patients', (req: Request, res: Response): void => {
     referralSource: referralSource ? referralSource.trim() : undefined,
     registeredBy: actor.actorName,
     assignedDoctorId: assignedDoctorId || 'staff-1792653030970',
-    assignedDoctorName: assignedDoctorName || 'Dr. DOCTOR TEST',
+    assignedDoctorName: assignedDoctorName || 'Consulting Doctor',
     firstVisitDate: todayStr,
     lastVisit: todayStr,
     totalVisits: 0,
@@ -318,7 +318,7 @@ apiRouter.post('/check-in', (req: Request, res: Response): void => {
   db.counters = getDb().counters;
   const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  const doctorName = db.visits.find((v) => v.doctorId === doctorId)?.doctorName || patient.assignedDoctorName || 'Dr. DOCTOR TEST';
+  const doctorName = db.visits.find((v) => v.doctorId === doctorId)?.doctorName || patient.assignedDoctorName || 'Consulting Doctor';
 
   const newVisit: ClinicVisit = {
     id: visitId,
@@ -721,7 +721,7 @@ apiRouter.post('/consultations/fee-approval', (req: Request, res: Response): voi
       outstandingBalance: 0,
       currentTreatment: 'Dental Treatment & Consultation',
       assignedDoctorId: req.body.doctorId || actor.actorId || 'staff-1792653030970',
-      assignedDoctorName: req.body.doctorName || actor.actorName || 'Dr. DOCTOR TEST',
+      assignedDoctorName: req.body.doctorName || actor.actorName || 'Consulting Doctor',
       firstVisitDate: '2026-10-23',
       lastVisit: new Date().toISOString().split('T')[0],
       totalVisits: 1,
@@ -752,7 +752,7 @@ apiRouter.post('/consultations/fee-approval', (req: Request, res: Response): voi
         patientId: patient.id,
         patientName: patient.name,
         doctorId: req.body.doctorId || actor.actorId || 'doc-1',
-        doctorName: req.body.doctorName || actor.actorName || 'Dr. DOCTOR TEST',
+        doctorName: req.body.doctorName || actor.actorName || 'Consulting Doctor',
         visitDate: todayStr,
         checkInTime: nowTimeStr,
         status: 'In Consultation',
@@ -805,7 +805,7 @@ apiRouter.post('/consultations/fee-approval', (req: Request, res: Response): voi
 
   const todayStr = new Date().toISOString().split('T')[0];
 
-  const assignedDoctorName = req.body.doctorName || visit.feeApproval?.authorizingDoctorName || visit.doctorName || patient.assignedDoctorName || 'Dr. DOCTOR TEST';
+  const assignedDoctorName = req.body.doctorName || visit.feeApproval?.authorizingDoctorName || visit.doctorName || patient.assignedDoctorName || 'Consulting Doctor';
   const assignedDoctorId = req.body.doctorId || visit.feeApproval?.authorizingDoctorId || visit.doctorId || (actor.actorRole === 'doctor' ? actor.actorId : 'doc-1');
   const authorizingDoctorName = actor.actorRole === 'doctor' ? actor.actorName : (visit.feeApproval?.authorizingDoctorName || assignedDoctorName);
   const authorizingDoctorId = actor.actorRole === 'doctor' ? actor.actorId : (visit.feeApproval?.authorizingDoctorId || assignedDoctorId);

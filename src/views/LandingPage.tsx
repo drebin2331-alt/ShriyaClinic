@@ -249,23 +249,8 @@ export const LandingPage: React.FC = () => {
     Zap: <Zap className="w-5 h-5 text-amber-600" />
   };
 
-  // Default Clinical Faculty for Shriya Multispeciality Dental Clinic
-  // Displayed whenever dynamic Supabase doctor list is initially being configured
-  const fallbackSpecialists = [
-    {
-      id: 'staff-1792653030970',
-      name: 'Dr. DOCTOR TEST',
-      specialization: 'Orthodontics & Aligners',
-      qualification: 'BDS, MDS',
-      experience: '5+ Years Experience',
-      rating: 5.0,
-      reviewsCount: 120,
-      avatar: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=400&q=80',
-      bio: 'Specialist in dental orthodontics, invisible aligners, teeth alignment, and comprehensive dental surgery.'
-    }
-  ];
-
-  const displaySpecialists = doctors.length > 0 ? doctors : fallbackSpecialists;
+  // Dynamic specialist list from clinic database
+  const displaySpecialists = doctors;
 
   const handleInquirySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -891,59 +876,81 @@ export const LandingPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {displaySpecialists.map((doc) => (
-              <div
-                key={doc.id}
-                className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs hover:shadow-md hover:border-teal-200 transition-all flex flex-col items-center text-center group"
-              >
-                <div className="w-24 h-24 rounded-2xl overflow-hidden mb-3 border-2 border-slate-100 shadow-xs group-hover:scale-105 transition-transform relative flex items-center justify-center bg-teal-50">
-                  {doc.avatar && (doc.avatar.startsWith('data:') || doc.avatar.startsWith('http')) && !doc.avatar.includes('photo-1559839734') ? (
-                    <img
-                      src={doc.avatar}
-                      alt={doc.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        const fb = e.currentTarget.nextElementSibling;
-                        if (fb) fb.classList.remove('hidden');
-                      }}
-                    />
-                  ) : null}
-                  <div className={`w-full h-full flex flex-col items-center justify-center bg-teal-700 text-white ${doc.avatar && (doc.avatar.startsWith('data:') || doc.avatar.startsWith('http')) && !doc.avatar.includes('photo-1559839734') ? 'hidden' : ''}`}>
-                    <Stethoscope className="w-8 h-8 text-teal-200 mb-1" />
-                    <span className="text-xs font-black tracking-wider uppercase">
-                      {doc.name.replace(/^Dr\.?\s*/i, '').slice(0, 2).toUpperCase() || 'DR'}
-                    </span>
-                  </div>
-                </div>
-
-                <h3 className="text-base font-extrabold text-slate-900">{doc.name}</h3>
-                <span className="text-xs font-bold text-teal-700 mt-0.5">{doc.specialization}</span>
-                <span className="text-[11px] font-medium text-slate-500 mt-0.5">{doc.qualification}</span>
-
-                <div className="mt-2.5 py-0.5 px-2.5 rounded-full bg-amber-50 text-amber-800 text-[11px] font-extrabold flex items-center gap-1 border border-amber-200">
-                  <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                  <span>{doc.rating} ({doc.reviewsCount} reviews)</span>
-                </div>
-
-                <p className="text-xs text-slate-500 mt-3 line-clamp-3 leading-relaxed">
-                  {doc.bio}
-                </p>
-
-                <button
-                  onClick={() => {
-                    setSelectedConcern(`Consultation with ${doc.name} (${doc.specialization})`);
-                    setShowEnquiryModal(true);
-                  }}
-                  className="w-full mt-4 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+          {displaySpecialists.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {displaySpecialists.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs hover:shadow-md hover:border-teal-200 transition-all flex flex-col items-center text-center group"
                 >
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>Book Consultation</span>
-                </button>
+                  <div className="w-24 h-24 rounded-2xl overflow-hidden mb-3 border-2 border-slate-100 shadow-xs group-hover:scale-105 transition-transform relative flex items-center justify-center bg-teal-50">
+                    {doc.avatar && (doc.avatar.startsWith('data:') || doc.avatar.startsWith('http')) && !doc.avatar.includes('photo-1559839734') ? (
+                      <img
+                        src={doc.avatar}
+                        alt={doc.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const fb = e.currentTarget.nextElementSibling;
+                          if (fb) fb.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <div className={`w-full h-full flex flex-col items-center justify-center bg-teal-700 text-white ${doc.avatar && (doc.avatar.startsWith('data:') || doc.avatar.startsWith('http')) && !doc.avatar.includes('photo-1559839734') ? 'hidden' : ''}`}>
+                      <Stethoscope className="w-8 h-8 text-teal-200 mb-1" />
+                      <span className="text-xs font-black tracking-wider uppercase">
+                        {doc.name.replace(/^Dr\.?\s*/i, '').slice(0, 2).toUpperCase() || 'DR'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <h3 className="text-base font-extrabold text-slate-900">{doc.name}</h3>
+                  <span className="text-xs font-bold text-teal-700 mt-0.5">{doc.specialization}</span>
+                  <span className="text-[11px] font-medium text-slate-500 mt-0.5">{doc.qualification}</span>
+
+                  <div className="mt-2.5 py-0.5 px-2.5 rounded-full bg-amber-50 text-amber-800 text-[11px] font-extrabold flex items-center gap-1 border border-amber-200">
+                    <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                    <span>{doc.rating} ({doc.reviewsCount} reviews)</span>
+                  </div>
+
+                  <p className="text-xs text-slate-500 mt-3 line-clamp-3 leading-relaxed">
+                    {doc.bio}
+                  </p>
+
+                  <button
+                    onClick={() => {
+                      setSelectedConcern(`Consultation with ${doc.name} (${doc.specialization})`);
+                      setShowEnquiryModal(true);
+                    }}
+                    className="w-full mt-4 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Book Consultation</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-3xl p-8 border border-slate-200 text-center max-w-lg mx-auto shadow-2xs">
+              <div className="w-14 h-14 rounded-2xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center mx-auto mb-3">
+                <Stethoscope className="w-7 h-7" />
               </div>
-            ))}
-          </div>
+              <h3 className="text-lg font-bold text-slate-800">Clinical Consultations</h3>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Our certified dental doctors and surgeons are available for consultations and advanced clinical procedures. Book an appointment online or contact our front desk.
+              </p>
+              <button
+                onClick={() => {
+                  setSelectedConcern('General Dental Consultation');
+                  setShowEnquiryModal(true);
+                }}
+                className="mt-4 px-5 py-2.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs transition-colors inline-flex items-center gap-2 cursor-pointer shadow-xs"
+              >
+                <Calendar className="w-4 h-4" />
+                <span>Book Clinical Appointment</span>
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
