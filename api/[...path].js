@@ -21,113 +21,203 @@ export default function handler(req, res) {
   }
   body = body || {};
 
-  // Tokens actions (call, hold, skip)
-  if (pathStr.startsWith('tokens/') && pathStr.endsWith('/call')) {
-    const id = pathStr.split('/')[1];
-    return res.status(200).json({
-      token: {
-        id,
-        tokenNumber: id,
-        patientName: body.patientName || 'Patient',
-        doctorId: body.doctorId || 'doc-1',
-        doctorName: body.doctorName || 'Doctor',
-        status: 'Called',
-        calledAt: new Date().toISOString(),
-        chairId: body.chairId || null,
-        chairName: body.chairName || null
-      }
-    });
+  const nowIso = new Date().toISOString();
+  const todayStr = nowIso.split('T')[0];
+  const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  // 1. Tokens actions (call, hold, skip)
+  if (pathStr.startsWith('tokens/')) {
+    const parts = pathStr.split('/');
+    const id = parts[1];
+    const action = parts[2];
+    if (action === 'call') {
+      return res.status(200).json({
+        token: {
+          id,
+          tokenNumber: id,
+          patientName: body.patientName || 'Patient',
+          doctorId: body.doctorId || 'staff-1792653030970',
+          doctorName: body.doctorName || 'Dr. DOCTOR TEST',
+          status: 'Called',
+          calledAt: nowIso,
+          chairId: body.chairId || null,
+          chairName: body.chairName || null
+        }
+      });
+    }
+    if (action === 'hold') {
+      return res.status(200).json({
+        token: {
+          id,
+          tokenNumber: id,
+          patientName: body.patientName || 'Patient',
+          doctorId: body.doctorId || 'staff-1792653030970',
+          doctorName: body.doctorName || 'Dr. DOCTOR TEST',
+          status: 'On Hold'
+        }
+      });
+    }
+    if (action === 'skip') {
+      return res.status(200).json({
+        token: {
+          id,
+          tokenNumber: id,
+          patientName: body.patientName || 'Patient',
+          doctorId: body.doctorId || 'staff-1792653030970',
+          doctorName: body.doctorName || 'Dr. DOCTOR TEST',
+          status: 'Skipped'
+        }
+      });
+    }
   }
 
-  if (pathStr.startsWith('tokens/') && pathStr.endsWith('/hold')) {
-    const id = pathStr.split('/')[1];
-    return res.status(200).json({
-      token: {
-        id,
-        tokenNumber: id,
-        patientName: body.patientName || 'Patient',
-        doctorId: body.doctorId || 'doc-1',
-        doctorName: body.doctorName || 'Doctor',
-        status: 'Hold'
-      }
-    });
-  }
-
-  if (pathStr.startsWith('tokens/') && pathStr.endsWith('/skip')) {
-    const id = pathStr.split('/')[1];
-    return res.status(200).json({
-      token: {
-        id,
-        tokenNumber: id,
-        patientName: body.patientName || 'Patient',
-        doctorId: body.doctorId || 'doc-1',
-        doctorName: body.doctorName || 'Doctor',
-        status: 'Skipped'
-      }
-    });
-  }
-
-  // Consultations actions (start, complete, fee-approval)
+  // 2. Consultations actions (start, complete, fee-approval)
   if (pathStr.startsWith('consultations/start')) {
-    const visitId = body.visitIdOrToken || `vis-${Date.now()}`;
+    const visitId = body.visitId || body.visitIdOrToken || `VIS-${Date.now()}`;
     return res.status(200).json({
       visit: {
         id: visitId,
         status: 'In Consultation',
-        consultationStartTime: new Date().toISOString()
+        consultationStartTime: nowIso
       }
     });
   }
 
   if (pathStr.startsWith('consultations/complete')) {
-    const visitId = body.visitId || `vis-${Date.now()}`;
+    const visitId = body.visitId || body.visitIdOrToken || `VIS-${Date.now()}`;
     return res.status(200).json({
       visit: {
         id: visitId,
         status: 'Completed',
-        consultationEndTime: new Date().toISOString()
+        consultationEndTime: nowIso
+      },
+      token: {
+        id: body.tokenId || `tok-${Date.now()}`,
+        tokenNumber: body.tokenNumber || body.tokenId || visitId,
+        patientName: body.patientName || 'Patient',
+        patientId: body.patientId || 'PAT-TEMP',
+        doctorId: body.doctorId || 'staff-1792653030970',
+        doctorName: body.doctorName || 'Dr. DOCTOR TEST',
+        status: 'Reception Follow-up',
+        completedAt: nowIso
       }
     });
   }
 
   if (pathStr.startsWith('consultations/fee-approval')) {
-    const nowIso = new Date().toISOString();
+    const total = (body.items || []).reduce((s, it) => s + (it.quantity * it.unitPrice), 0) + (body.consultationFee || 0);
     return res.status(200).json({
       feeApproval: {
         id: body.feeApprovalId || `FA-${Date.now()}`,
         visitId: body.visitId,
         patientId: body.patientId || 'PAT-TEMP',
         status: 'Approved',
-        date: nowIso.split('T')[0],
-        total: (body.items || []).reduce((s, it) => s + (it.quantity * it.unitPrice), 0) + (body.consultationFee || 0)
+        date: todayStr,
+        total
       },
       invoice: {
         id: `INV-${Date.now()}`,
         visitId: body.visitId,
         patientId: body.patientId || 'PAT-TEMP',
         status: 'Unpaid',
-        date: nowIso.split('T')[0],
-        total: (body.items || []).reduce((s, it) => s + (it.quantity * it.unitPrice), 0) + (body.consultationFee || 0),
-        balance: (body.items || []).reduce((s, it) => s + (it.quantity * it.unitPrice), 0) + (body.consultationFee || 0),
+        date: todayStr,
+        total,
+        balance: total,
         items: body.items || []
       }
     });
   }
 
-  // Visits close
+  // 3. Visits close (Checkout & Encounter Finalization)
   if (pathStr.startsWith('visits/') && pathStr.endsWith('/close')) {
     const parts = pathStr.split('/');
-    const visitId = parts[1] || `vis-${Date.now()}`;
+    const visitId = parts[1] || body.visitId || `VIS-${Date.now()}`;
+    const patientId = body.patientId || null;
+    const patientName = body.patientName || 'Patient';
+    const doctorId = body.doctorId || 'staff-1792653030970';
+    const doctorName = body.doctorName || 'Dr. DOCTOR TEST';
+    const tokenId = body.tokenId || body.tokenNumber || null;
+
     return res.status(200).json({
       visit: {
         id: visitId,
+        patientId,
+        patientName,
+        doctorId,
+        doctorName,
+        tokenId,
         status: 'Completed',
-        checkoutTime: new Date().toISOString()
-      }
+        checkoutTime: nowIso,
+        adminNotes: body.adminNotes || '',
+        timeline: [
+          {
+            time: nowTimeStr,
+            event: `Reception Checkout Completed. Encounter Closed. Notes: ${body.adminNotes || 'Payment & visit finalized.'}`,
+            actor: 'Receptionist'
+          }
+        ]
+      },
+      token: tokenId ? {
+        id: tokenId,
+        tokenNumber: tokenId,
+        patientId,
+        patientName,
+        doctorId,
+        doctorName,
+        status: 'Completed',
+        completedAt: nowIso
+      } : null
     });
   }
 
-  // Prescriptions
+  // 4. Patients (register, update, list)
+  if (pathStr.startsWith('patients')) {
+    const parts = pathStr.split('/');
+    if (req.method === 'POST') {
+      const randNum = Math.floor(1000 + Math.random() * 9000);
+      const patient = {
+        id: body.id || `PAT-2026-${randNum}`,
+        opNumber: body.opNumber || `OP-2026-${randNum}`,
+        name: body.name || 'New Patient',
+        phone: body.phone || '',
+        age: body.age || 0,
+        gender: body.gender || 'Other',
+        status: 'New Patient',
+        firstVisitDate: todayStr,
+        totalVisits: 1,
+        outstandingBalance: 0,
+        ...body
+      };
+      return res.status(201).json({ patient });
+    }
+    if (req.method === 'PUT' && parts[1]) {
+      return res.status(200).json({ patient: { id: parts[1], ...body } });
+    }
+    return res.status(200).json({ patients: [] });
+  }
+
+  // 5. Enquiries
+  if (pathStr.startsWith('enquiries')) {
+    const parts = pathStr.split('/');
+    if (req.method === 'POST') {
+      const enquiry = {
+        id: `ENQ-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+        createdAt: nowIso,
+        status: 'New',
+        ...body
+      };
+      return res.status(201).json(enquiry);
+    }
+    if (req.method === 'PUT' && parts[1]) {
+      return res.status(200).json({ enquiry: { id: parts[1], ...body } });
+    }
+    if (req.method === 'DELETE') {
+      return res.status(200).json({ success: true, message: 'Enquiries cleared' });
+    }
+    return res.status(200).json({ enquiries: [] });
+  }
+
+  // 6. Prescriptions
   if (pathStr.startsWith('prescriptions')) {
     if (req.method === 'DELETE') {
       return res.status(200).json({ success: true, message: 'Prescription deleted successfully' });
@@ -136,29 +226,31 @@ export default function handler(req, res) {
     return res.status(200).json({
       prescription: {
         id: rxId,
-        visitId: body.visitId || 'VIS-TEMP',
+        visitId: body.visitId || `vis-${Date.now()}`,
         patientId: body.patientId || 'PAT-TEMP',
-        patientName: 'Patient',
-        date: new Date().toISOString().split('T')[0],
-        diagnosis: body.diagnosis || '',
-        doctorNotes: body.doctorNotes || '',
-        items: body.items || [],
-        followUpDate: body.followUpDate
+        patientName: body.patientName || 'Patient',
+        patientOpNumber: body.patientOpNumber || 'OP-TEMP',
+        doctorName: body.doctorName || 'Dr. DOCTOR TEST',
+        date: body.date || todayStr,
+        medicines: body.medicines || [],
+        instructions: body.instructions || '',
+        diagnosis: body.diagnosis || ''
       }
     });
   }
 
-  // Payments
+  // 7. Payments
   if (pathStr.startsWith('payments')) {
-    const nowIso = new Date().toISOString();
+    const payId = `PAY-${Date.now()}`;
+    const recNum = `REC-${Date.now()}`;
     return res.status(200).json({
       payment: {
-        id: `PAY-${Date.now()}`,
+        id: payId,
         invoiceId: body.invoiceId || `INV-${Date.now()}`,
         amount: body.amount || 0,
-        paymentDate: nowIso.split('T')[0],
+        paymentDate: todayStr,
         paymentMethod: body.paymentMethod || 'Cash',
-        receiptNumber: `REC-${Date.now()}`
+        receiptNumber: recNum
       },
       invoice: {
         id: body.invoiceId || `INV-${Date.now()}`,
@@ -166,24 +258,26 @@ export default function handler(req, res) {
         paidAmount: body.amount || 0,
         balance: 0
       },
-      receiptNumber: `REC-${Date.now()}`,
+      receiptNumber: recNum,
       remainingBalance: 0
     });
   }
 
-  // Appointments
-  if (pathStr.startsWith('appointments/')) {
+  // 8. Appointments
+  if (pathStr.startsWith('appointments')) {
+    const parts = pathStr.split('/');
+    const aptId = parts[1] || `apt-${Date.now()}`;
     return res.status(200).json({
       appointment: {
-        id: pathStr.split('/')[1] || `apt-${Date.now()}`,
+        id: aptId,
         status: pathStr.endsWith('/cancel') ? 'Cancelled' : 'Confirmed',
-        date: body.newDate || new Date().toISOString().split('T')[0],
+        date: body.newDate || todayStr,
         timeSlot: body.newTimeSlot || '10:00 AM'
       }
     });
   }
 
-  // Medicines Catalog
+  // 9. Medicines
   if (pathStr.startsWith('medicines')) {
     if (req.method === 'POST') {
       const med = {
@@ -200,7 +294,12 @@ export default function handler(req, res) {
     return res.status(200).json({ medicines: [] });
   }
 
-  // Default fallback for any other route
+  // 10. Audit
+  if (pathStr.startsWith('audit')) {
+    return res.status(200).json({ success: true, message: 'Audit event logged' });
+  }
+
+  // Default fallback
   return res.status(200).json({
     success: true,
     message: 'Operation handled successfully',
