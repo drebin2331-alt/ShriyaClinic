@@ -294,7 +294,14 @@ export const ReceptionCheckoutModal: React.FC<ReceptionCheckoutModalProps> = ({
   const handleCompleteCheckout = async () => {
     setIsClosing(true);
     try {
-      await closeVisit(currentVisit.id, adminNotes);
+      await closeVisit(currentVisit.id, adminNotes, {
+        patientId: currentPatient?.id,
+        patientName: currentPatient?.name,
+        tokenId: currentVisit?.tokenId,
+        tokenNumber: currentVisit?.tokenId,
+        doctorId: currentVisit?.doctorId,
+        doctorName: currentVisit?.doctorName
+      });
       onClose();
     } catch (err: any) {
       addToast('Error', err.message || 'Failed to close encounter.', 'danger');

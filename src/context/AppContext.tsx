@@ -297,7 +297,18 @@ interface AppContextType {
   saveMedicine: (med: Partial<MedicineRecord>) => Promise<MedicineRecord>;
 
   // Receptionist Checkout / Encounter Closure
-  closeVisit: (visitId: string, adminNotes?: string) => Promise<void>;
+  closeVisit: (
+    visitId: string, 
+    adminNotes?: string,
+    meta?: {
+      patientId?: string;
+      patientName?: string;
+      tokenId?: string;
+      tokenNumber?: string;
+      doctorId?: string;
+      doctorName?: string;
+    }
+  ) => Promise<void>;
 
   // Queue calls (legacy compatible)
   callNextPatient: () => void;
@@ -443,78 +454,22 @@ export const deduplicatePatients = (list: PatientRecord[]): PatientRecord[] => {
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Guaranteed auto-seed of authoritative clinic data (Customer 1, 2, 3, etc.)
+  // One-time clean launch reset for client production: purge legacy test data
   if (typeof window !== 'undefined') {
     try {
-      const p = localStorage.getItem('smilecare_patients_list');
-      const parsedP = p ? JSON.parse(p) : [];
-      if (!Array.isArray(parsedP) || parsedP.length === 0) {
-        localStorage.setItem('smilecare_patients_list', JSON.stringify(SEED_PATIENTS));
+      const cleanLaunchKey = 'smilecare_clean_launch_v2';
+      if (!localStorage.getItem(cleanLaunchKey)) {
+        localStorage.removeItem('smilecare_patients_list');
+        localStorage.removeItem('smilecare_tokens_list');
+        localStorage.removeItem('smilecare_visits_list');
+        localStorage.removeItem('smilecare_invoices_list');
+        localStorage.removeItem('smilecare_payments_list');
+        localStorage.removeItem('smilecare_prescriptions_list');
+        localStorage.removeItem('smilecare_fee_approvals');
+        localStorage.removeItem('smilecare_whatsapp_reminders');
+        localStorage.setItem(cleanLaunchKey, 'true');
       }
-    } catch {
-      localStorage.setItem('smilecare_patients_list', JSON.stringify(SEED_PATIENTS));
-    }
-    try {
-      const t = localStorage.getItem('smilecare_tokens_list');
-      const parsedT = t ? JSON.parse(t) : [];
-      if (!Array.isArray(parsedT) || parsedT.length === 0) {
-        localStorage.setItem('smilecare_tokens_list', JSON.stringify(SEED_TOKENS));
-      } else {
-        const sanitizedT = parsedT.map((item: any) => {
-          if (item.id === 'tok-1794029736556' || item.tokenNumber === 'W-002' || (item.status === 'Waiting' && item.date && item.date < new Date().toISOString().split('T')[0])) {
-            return { ...item, status: 'Completed', completedAt: item.completedAt || new Date().toISOString() };
-          }
-          return item;
-        });
-        localStorage.setItem('smilecare_tokens_list', JSON.stringify(sanitizedT));
-      }
-    } catch {
-      localStorage.setItem('smilecare_tokens_list', JSON.stringify(SEED_TOKENS));
-    }
-    try {
-      const v = localStorage.getItem('smilecare_visits_list');
-      const parsedV = v ? JSON.parse(v) : [];
-      if (!Array.isArray(parsedV) || parsedV.length === 0) {
-        localStorage.setItem('smilecare_visits_list', JSON.stringify(SEED_VISITS));
-      } else {
-        const sanitizedV = parsedV.map((item: any) => {
-          if (item.id === 'VIS-2026-00002' || (item.status === 'Waiting' && item.visitDate && item.visitDate < new Date().toISOString().split('T')[0])) {
-            return { ...item, status: 'Closed', closedAt: item.closedAt || '11:35 am' };
-          }
-          return item;
-        });
-        localStorage.setItem('smilecare_visits_list', JSON.stringify(sanitizedV));
-      }
-    } catch {
-      localStorage.setItem('smilecare_visits_list', JSON.stringify(SEED_VISITS));
-    }
-    try {
-      const inv = localStorage.getItem('smilecare_invoices_list');
-      const parsedInv = inv ? JSON.parse(inv) : [];
-      if (!Array.isArray(parsedInv) || parsedInv.length === 0) {
-        localStorage.setItem('smilecare_invoices_list', JSON.stringify(SEED_INVOICES));
-      }
-    } catch {
-      localStorage.setItem('smilecare_invoices_list', JSON.stringify(SEED_INVOICES));
-    }
-    try {
-      const pay = localStorage.getItem('smilecare_payments_list');
-      const parsedPay = pay ? JSON.parse(pay) : [];
-      if (!Array.isArray(parsedPay) || parsedPay.length === 0) {
-        localStorage.setItem('smilecare_payments_list', JSON.stringify(SEED_PAYMENTS));
-      }
-    } catch {
-      localStorage.setItem('smilecare_payments_list', JSON.stringify(SEED_PAYMENTS));
-    }
-    try {
-      const rx = localStorage.getItem('smilecare_prescriptions_list');
-      const parsedRx = rx ? JSON.parse(rx) : [];
-      if (!Array.isArray(parsedRx) || parsedRx.length === 0) {
-        localStorage.setItem('smilecare_prescriptions_list', JSON.stringify(SEED_PRESCRIPTIONS));
-      }
-    } catch {
-      localStorage.setItem('smilecare_prescriptions_list', JSON.stringify(SEED_PRESCRIPTIONS));
-    }
+    } catch { }
   }
 
   const [activeView, setActiveView] = useState<ViewMode>(() => {
@@ -2549,68 +2504,161 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // RECEPTIONIST CLOSES VISIT (CHECKOUT)
-  const closeVisit = async (visitId: string, adminNotes?: string): Promise<void> => {
+  // RECEPTIONIST CLOSES VISIT (CHECKOUT & ENCOUNTER CLOSURE)
+  const closeVisit = async (
+    visitId: string, 
+    adminNotes?: string,
+    meta?: {
+      patientId?: string;
+      patientName?: string;
+      tokenId?: string;
+      tokenNumber?: string;
+      doctorId?: string;
+      doctorName?: string;
+    }
+  ): Promise<void> => {
+    const nowIso = new Date().toISOString();
+    const todayStr = nowIso.split('T')[0];
+
+    // Find the existing visit or synthesized visit
+    const existingVisit = visits.find((v) => 
+      v.id === visitId || 
+      (meta?.tokenId && v.tokenId === meta.tokenId) ||
+      (meta?.patientId && v.patientId === meta.patientId && v.status !== 'Completed')
+    );
+
     let result: { visit: ClinicVisit; token?: QueueToken };
     try {
-      result = await apiClient.closeVisit(visitId, adminNotes);
+      result = await apiClient.closeVisit(visitId, adminNotes, meta);
     } catch {
-      // Local fallback for offline / serverless deployment
-      const existingVisit = visits.find((v) => v.id === visitId);
-      const existingToken = tokens.find((t) => t.visitId === visitId || t.tokenNumber === existingVisit?.tokenId);
-      const nowIso = new Date().toISOString();
-      const updatedVisit: ClinicVisit = existingVisit ? {
-        ...existingVisit,
-        status: 'Completed',
-        checkoutTime: nowIso
-      } : {
-        id: visitId,
-        patientId: 'PAT-TEMP',
-        patientName: 'Patient',
-        opNumber: 'OP-TEMP',
-        doctorId: 'doc-1',
-        doctorName: 'Doctor',
-        visitDate: nowIso.split('T')[0],
-        checkInTime: nowIso,
-        status: 'Completed',
-        checkoutTime: nowIso
+      result = {
+        visit: {
+          id: existingVisit?.id || visitId,
+          patientId: existingVisit?.patientId || meta?.patientId || 'PAT-TEMP',
+          patientName: existingVisit?.patientName || meta?.patientName || 'Patient',
+          opNumber: existingVisit?.opNumber || 'OP-TEMP',
+          doctorId: existingVisit?.doctorId || meta?.doctorId || 'staff-1792653030970',
+          doctorName: existingVisit?.doctorName || meta?.doctorName || 'Dr. DOCTOR TEST',
+          visitDate: existingVisit?.visitDate || todayStr,
+          checkInTime: existingVisit?.checkInTime || nowIso,
+          status: 'Completed',
+          checkoutTime: nowIso,
+          adminNotes: adminNotes || existingVisit?.adminNotes
+        }
       };
+    }
 
-      const updatedToken: QueueToken | undefined = existingToken ? {
-        ...existingToken,
+    const patientId = meta?.patientId || existingVisit?.patientId || result.visit?.patientId;
+    const patientName = meta?.patientName || existingVisit?.patientName || result.visit?.patientName;
+    const targetTokenId = meta?.tokenId || meta?.tokenNumber || existingVisit?.tokenId;
+
+    // 1. Build completed visit record preserving clinical history
+    const completedVisit: ClinicVisit = {
+      ...(existingVisit || {}),
+      ...(result.visit || {}),
+      id: existingVisit?.id || result.visit?.id || visitId,
+      patientId: patientId || 'PAT-TEMP',
+      patientName: patientName || 'Patient',
+      doctorId: result.visit?.doctorId || existingVisit?.doctorId || meta?.doctorId || 'staff-1792653030970',
+      doctorName: result.visit?.doctorName || existingVisit?.doctorName || meta?.doctorName || 'Dr. DOCTOR TEST',
+      tokenId: targetTokenId || existingVisit?.tokenId,
+      status: 'Completed',
+      checkoutTime: nowIso,
+      adminNotes: adminNotes || existingVisit?.adminNotes
+    };
+
+    // Update visits state and persistent storage
+    setVisits((prev) => {
+      const exists = prev.some((v) => v.id === completedVisit.id);
+      const next = exists
+        ? prev.map((v) => (v.id === completedVisit.id ? completedVisit : v))
+        : [completedVisit, ...prev];
+      safeSetItem('smilecare_visits_list', JSON.stringify(next));
+      return next;
+    });
+
+    // 2. Identify and complete all matching tokens for this patient encounter
+    const tokensToComplete = tokens.filter((t) =>
+      t.status !== 'Completed' && (
+        t.visitId === visitId ||
+        t.visitId === completedVisit.id ||
+        (targetTokenId && (t.tokenNumber === targetTokenId || t.id === targetTokenId)) ||
+        (patientId && t.patientId === patientId) ||
+        (patientName && t.patientName && t.patientName.toLowerCase() === patientName.toLowerCase())
+      )
+    );
+
+    if (tokensToComplete.length === 0 && result.token) {
+      tokensToComplete.push(result.token);
+    }
+
+    // Update tokens state and localStorage
+    setTokens((prev) => {
+      const next = prev.map((t) => {
+        const isMatch = tokensToComplete.some((tc) => tc.id === t.id || tc.tokenNumber === t.tokenNumber);
+        if (isMatch) {
+          return {
+            ...t,
+            status: 'Completed' as TokenStatus,
+            completedAt: nowIso
+          };
+        }
+        return t;
+      });
+      safeSetItem('smilecare_tokens_list', JSON.stringify(next));
+      return next;
+    });
+
+    // Persist completed tokens to Supabase
+    tokensToComplete.forEach((t) => {
+      const updatedToken: QueueToken = {
+        ...t,
         status: 'Completed',
         completedAt: nowIso
-      } : undefined;
-
-      result = { visit: updatedVisit, token: updatedToken };
-    }
-
-    setVisits((prev) =>
-      prev.map((v) => (v.id === result.visit.id ? result.visit : v))
-    );
-    if (result.token) {
-      const existingVisit = visits.find((v) => v.id === visitId);
-      const existingToken = tokens.find((t) => t.visitId === visitId || t.tokenNumber === existingVisit?.tokenId || t.id === result.token!.id);
-      const mergedToken: QueueToken = {
-        ...(existingToken || {}),
-        ...result.token,
-        patientName: result.token.patientName || existingToken?.patientName || result.visit.patientName || 'Patient',
-        patientId: result.token.patientId || existingToken?.patientId || result.visit.patientId || 'PAT-TEMP',
-        doctorId: result.token.doctorId || existingToken?.doctorId || result.visit.doctorId || 'doc-1',
-        doctorName: result.token.doctorName || existingToken?.doctorName || result.visit.doctorName || 'Doctor',
-        tokenNumber: result.token.tokenNumber || existingToken?.tokenNumber || result.visit.tokenId || result.token.id,
-        status: 'Completed',
-        completedAt: result.token.completedAt || new Date().toISOString()
       };
-      setTokens((prev) => {
-        const next = prev.map((t) => (t.id === mergedToken.id || t.tokenNumber === mergedToken.tokenNumber ? mergedToken : t));
-        safeSetItem('smilecare_tokens_list', JSON.stringify(next));
+      saveTokenToDb(updatedToken).catch(() => { });
+    });
+
+    // 3. Update Patient record: totalVisits + 1, lastVisit = today
+    if (patientId) {
+      setPatients((prev) => {
+        const next = prev.map((p) => {
+          if (p.id === patientId || (patientName && p.name.toLowerCase() === patientName.toLowerCase())) {
+            return {
+              ...p,
+              totalVisits: (p.totalVisits || 0) + 1,
+              lastVisit: todayStr,
+              status: p.status === 'New Patient' ? ('Active Treatment' as const) : p.status
+            };
+          }
+          return p;
+        });
+        safeSetItem('smilecare_patients_list', JSON.stringify(next));
         return next;
       });
-      saveTokenToDb(mergedToken).catch(() => { });
     }
+
+    // 4. Free any dental chairs occupied by this visit / token
+    setChairs((prev) =>
+      prev.map((c) => {
+        const matchesChair = 
+          (targetTokenId && c.currentToken === targetTokenId) ||
+          tokensToComplete.some((tc) => tc.tokenNumber === c.currentToken || tc.id === c.currentToken);
+        if (matchesChair) {
+          const updatedChair: DentalChair = {
+            ...c,
+            status: 'Available',
+            currentToken: undefined
+          };
+          saveChairToDb(updatedChair).catch(() => { });
+          return updatedChair;
+        }
+        return c;
+      })
+    );
+
     notifyCrossTabSync();
-    addToast('Checkout Complete! 👋', `Encounter closed for ${result.visit.patientName}.`, 'success');
+    addToast('Checkout Complete! 👋', `Encounter closed for ${completedVisit.patientName}.`, 'success');
   };
 
   const holdToken = async (tokenNumberOrId: string): Promise<void> => {

@@ -76,13 +76,13 @@ export interface ClinicSyncState {
 }
 
 function getLocalFallbackState(): ClinicSyncState {
-  let patients = SEED_PATIENTS;
-  let tokens = SEED_TOKENS;
-  let visits = SEED_VISITS;
-  let invoices = SEED_INVOICES;
-  let payments = SEED_PAYMENTS;
-  let prescriptions = SEED_PRESCRIPTIONS;
-  let feeApprovals = SEED_FEE_APPROVALS;
+  let patients: PatientRecord[] = [];
+  let tokens: QueueToken[] = [];
+  let visits: ClinicVisit[] = [];
+  let invoices: Invoice[] = [];
+  let payments: PaymentRecord[] = [];
+  let prescriptions: PrescriptionRecord[] = [];
+  let feeApprovals: FeeApprovalRecord[] = [];
   let medicines = SEED_MEDICINES;
   let appointments: Appointment[] = [];
   let enquiries: PatientEnquiry[] = [];
@@ -507,11 +507,11 @@ export const apiClient = {
     return json;
   },
 
-  async closeVisit(visitId: string, adminNotes?: string): Promise<{ visit: ClinicVisit; token?: QueueToken }> {
+  async closeVisit(visitId: string, adminNotes?: string, meta?: any): Promise<{ visit: ClinicVisit; token?: QueueToken }> {
     const res = await fetch(`/api/visits/${encodeURIComponent(visitId)}/close`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ adminNotes })
+      body: JSON.stringify({ adminNotes, ...(meta || {}) })
     });
     const json = await parseSafeJson(res);
     if (!res.ok) {
