@@ -627,6 +627,16 @@ export const saveInvoiceToDb = async (inv: Invoice): Promise<void> => {
   }
 };
 
+export const deleteInvoiceFromDb = async (invoiceId: string): Promise<void> => {
+  if (!isSupabaseAvailable() || !invoiceId) return;
+  try {
+    const { error } = await supabase.from('invoices').delete().eq('id', invoiceId);
+    if (error) handleSupabaseError('Error deleting invoice from Supabase:', error);
+  } catch (err) {
+    console.warn('Error deleting invoice from Supabase:', err);
+  }
+};
+
 export const fetchPaymentsFromDb = async (): Promise<PaymentRecord[]> => {
   if (!isSupabaseAvailable()) return [];
   const { data, error } = await supabase

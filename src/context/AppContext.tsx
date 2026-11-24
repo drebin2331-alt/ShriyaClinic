@@ -79,6 +79,7 @@ import {
   fetchPrescriptionsFromDb,
   savePrescriptionToDb,
   deletePrescriptionFromDb,
+  deleteInvoiceFromDb,
   fetchEnquiriesFromDb,
   saveEnquiryToDb,
   updateEnquiryStatusInDb,
@@ -350,6 +351,7 @@ interface AppContextType {
     referenceNumber?: string;
     notes?: string;
   }) => Promise<Invoice>;
+  deleteInvoice: (invoiceId: string) => Promise<void>;
   refreshState: () => Promise<void>;
   isSidebarCollapsed: boolean;
   toggleSidebar: () => void;
@@ -3023,6 +3025,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const tax = data.tax || 0;
     const total = Math.max(0, subtotal - discount + tax);
 
+    // Prevent duplicate: check if an unpaid invoice for this patient already exists with these items or visitId
+    const currentPatient = patients.find((p) => p.id === data.patientId);
+    const existingInvoices = [
+      ...(currentPatient?.invoices || []),
+      ...invoices.filter((i) => i.patientId === data.patientId)
+    ];
+    const incomingItemsSig = (data.items || []).map((it) => `${(it.description || '').toLowerCase().trim()}_${it.unitPrice}`).sort().join('|');
+
+    const matchingInvoice = existingInvoices.find((inv) => {
+      if (inv.status === 'Paid') return false;
+      if (data.visitId && inv.visitId === data.visitId) return true;
+      const invItemsSig = (inv.items || []).map((it) => `${(it.description || '').toLowerCase().trim()}_${it.unitPrice}`).sort().join('|');
+      return invItemsSig === incomingItemsSig;
+    });
+
+    if (matchingInvoice) {
+      addToast('Invoice Already Generated', `Invoice #${matchingInvoice.id} is already open for this visit. Duplicate invoice prevented.`, 'info');
+      return matchingInvoice;
+    }
+
     // Call fee approval API to ensure authorization and consistency
     const result = await apiClient.approveFee({
       visitId: data.visitId || `vis-${data.patientId}-${Date.now()}`,
@@ -3048,20 +3070,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     result.invoice = finalInvoice;
 
+    const itemNames = new Set((data.items || []).map((i) => (i.description || '').toLowerCase().trim()));
+
     setInvoices((prev) => [result.invoice, ...prev.filter((i) => i.id !== result.invoice.id)]);
     setPatients((prev) =>
       prev.map((p) => {
         if (p.id === result.invoice.patientId) {
           const updatedInvoices = [result.invoice, ...(p.invoices || []).filter((i) => i.id !== result.invoice.id)];
+          const updatedPlans = (p.treatmentPlans || []).map((tp) =>
+            itemNames.has((tp.procedure || '').toLowerCase().trim()) && tp.status !== 'Billed'
+              ? { ...tp, status: 'Billed' as const, invoiceId: result.invoice.id }
+              : tp
+          );
           return {
             ...p,
+            treatmentPlans: updatedPlans,
             invoices: updatedInvoices,
-            outstandingBalance: updatedInvoices.reduce((sum, inv) => sum + inv.balance, 0)
+            outstandingBalance: updatedInvoices.reduce((sum, inv) => sum + (inv.balance || 0), 0)
           };
         }
         return p;
       })
     );
+
+    setSelectedPatientForDetail((curr) => {
+      if (!curr) return null;
+      if (curr.id === result.invoice.patientId || (curr.opNumber && curr.opNumber === result.invoice.patientOpNumber)) {
+        const updatedInvoices = [result.invoice, ...(curr.invoices || []).filter((i) => i.id !== result.invoice.id)];
+        const updatedPlans = (curr.treatmentPlans || []).map((tp) =>
+          itemNames.has((tp.procedure || '').toLowerCase().trim()) && tp.status !== 'Billed'
+            ? { ...tp, status: 'Billed' as const, invoiceId: result.invoice.id }
+            : tp
+        );
+        return {
+          ...curr,
+          treatmentPlans: updatedPlans,
+          invoices: updatedInvoices,
+          outstandingBalance: updatedInvoices.reduce((sum, inv) => sum + (inv.balance || 0), 0)
+        };
+      }
+      return curr;
+    });
 
     saveInvoiceToDb(result.invoice).catch(() => { });
 
@@ -3080,6 +3129,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Refresh all state so billing hub, reports, and patient header reflect the new invoice immediately
     refreshState().catch(() => { });
     return result.invoice;
+  };
+
+  const deleteInvoice = async (invoiceId: string): Promise<void> => {
+    if (!invoiceId) return;
+
+    setInvoices((prev) => {
+      const next = prev.filter((inv) => inv.id !== invoiceId);
+      safeSetItem('smilecare_invoices_list', JSON.stringify(next));
+      return next;
+    });
+
+    setPatients((prev) =>
+      prev.map((p) => {
+        const hasInv = (p.invoices || []).some((inv) => inv.id === invoiceId);
+        if (hasInv) {
+          const nextInvoices = (p.invoices || []).filter((inv) => inv.id !== invoiceId);
+          const nextPlans = (p.treatmentPlans || []).map((tp) =>
+            tp.invoiceId === invoiceId ? { ...tp, status: 'Proposed' as const, invoiceId: undefined } : tp
+          );
+          return {
+            ...p,
+            treatmentPlans: nextPlans,
+            invoices: nextInvoices,
+            outstandingBalance: nextInvoices.reduce((sum, inv) => sum + (inv.balance || 0), 0)
+          };
+        }
+        return p;
+      })
+    );
+
+    setSelectedPatientForDetail((curr) => {
+      if (!curr) return null;
+      const hasInv = (curr.invoices || []).some((inv) => inv.id === invoiceId);
+      if (hasInv) {
+        const nextInvoices = (curr.invoices || []).filter((inv) => inv.id !== invoiceId);
+        const nextPlans = (curr.treatmentPlans || []).map((tp) =>
+          tp.invoiceId === invoiceId ? { ...tp, status: 'Proposed' as const, invoiceId: undefined } : tp
+        );
+        return {
+          ...curr,
+          treatmentPlans: nextPlans,
+          invoices: nextInvoices,
+          outstandingBalance: nextInvoices.reduce((sum, inv) => sum + (inv.balance || 0), 0)
+        };
+      }
+      return curr;
+    });
+
+    // Also remove from Supabase
+    deleteInvoiceFromDb(invoiceId).catch(() => {});
+    apiFetch(`/api/invoices/${encodeURIComponent(invoiceId)}`, { method: 'DELETE' }).catch(() => {});
+    notifyCrossTabSync();
   };
 
   // STAFF & USER CREDENTIALS HANDLERS (Admin-Controlled)
@@ -3409,6 +3510,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateStaffMember,
         deleteStaffMember,
         createInvoice,
+        deleteInvoice,
         userRole,
         setUserRole,
         reminders,

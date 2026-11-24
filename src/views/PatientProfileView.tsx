@@ -90,6 +90,7 @@ export const PatientProfileView: React.FC = () => {
     invoices: globalInvoices,
     payments: globalPayments,
     createInvoice,
+    deleteInvoice,
     recordPayment,
     addFollowUp,
     updateFollowUpStatus,
@@ -378,8 +379,41 @@ export const PatientProfileView: React.FC = () => {
     [...fromPatient, ...fromGlobal].forEach((inv) => {
       if (inv && inv.id) map.set(inv.id, inv);
     });
-    return Array.from(map.values());
-  }, [patient.id, patient.opNumber, patient.name, patient.invoices, globalInvoices]);
+    const all = Array.from(map.values());
+
+    // Deduplicate identical pending/unpaid invoices (e.g. from rapid double-clicks)
+    const seenSigs = new Set<string>();
+    const cleanInvoices: Invoice[] = [];
+    const duplicateIdsToDelete: string[] = [];
+
+    all.forEach((inv) => {
+      if (inv.status === 'Paid') {
+        cleanInvoices.push(inv);
+        return;
+      }
+      const itemsKey = (inv.items || [])
+        .map((it) => `${(it.description || (it as any).serviceName || '').toLowerCase().trim()}_${it.unitPrice}_${it.quantity}`)
+        .sort()
+        .join('|');
+      const sig = `${inv.patientId || patient.id}_${inv.total}_${itemsKey}`;
+      if (seenSigs.has(sig)) {
+        duplicateIdsToDelete.push(inv.id);
+        return;
+      }
+      seenSigs.add(sig);
+      cleanInvoices.push(inv);
+    });
+
+    if (duplicateIdsToDelete.length > 0) {
+      setTimeout(() => {
+        duplicateIdsToDelete.forEach((dupId) => {
+          deleteInvoice(dupId);
+        });
+      }, 0);
+    }
+
+    return cleanInvoices;
+  }, [patient.id, patient.opNumber, patient.name, patient.invoices, globalInvoices, deleteInvoice]);
 
   // Check for any doctor-approved fee on visits that has not yet been converted to an invoice
   const unbilledFeeApprovals = useMemo(() => {
@@ -1006,6 +1040,18 @@ export const PatientProfileView: React.FC = () => {
         discount: 0,
         tax: 0
       });
+
+      const itemNames = new Set(items.map((i) => (i.description || '').toLowerCase().trim()));
+      const updatedPlans = (patient.treatmentPlans || []).map((tp) =>
+        itemNames.has((tp.procedure || '').toLowerCase().trim()) && tp.status !== 'Billed'
+          ? { ...tp, status: 'Billed' as const, invoiceId: inv.id }
+          : tp
+      );
+      updatePatient({
+        ...patient,
+        treatmentPlans: updatedPlans
+      });
+
       addToast('Bill Generated', `Official invoice ${inv.id} created for ₹${formatINR(inv.total)}.`, 'success');
     } catch (err: any) {
       addToast('Billing Error', err.message || 'Could not generate bill.', 'danger');
@@ -2792,6 +2838,21 @@ export const PatientProfileView: React.FC = () => {
                       >
                         <Printer className="w-4 h-4" />
                       </button>
+                      {inv.status !== 'Paid' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`Are you sure you want to cancel / void invoice ${inv.id}?`)) {
+                              deleteInvoice(inv.id);
+                              addToast('Invoice Voided', `Invoice ${inv.id} has been removed.`, 'info');
+                            }
+                          }}
+                          className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 cursor-pointer transition-colors"
+                          title="Void / Delete invoice"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
 

@@ -139,18 +139,21 @@ export default function handler(req, res) {
 
   if (pathStr.startsWith('consultations/fee-approval')) {
     const total = (body.items || []).reduce((s, it) => s + (it.quantity * it.unitPrice), 0) + (body.consultationFee || 0);
+    const feeApprovalId = body.feeApprovalId || `FA-${body.visitId ? String(body.visitId).replace(/[^a-zA-Z0-9-]/g, '') : Date.now()}`;
+    const invoiceId = body.invoiceId || (body.visitId ? `INV-${String(body.visitId).replace(/[^a-zA-Z0-9-]/g, '')}` : `INV-${Date.now()}`);
     return res.status(200).json({
       feeApproval: {
-        id: body.feeApprovalId || `FA-${Date.now()}`,
+        id: feeApprovalId,
         visitId: body.visitId,
         patientId: body.patientId || 'PAT-TEMP',
         patientName: body.patientName || 'Patient',
+        invoiceId,
         status: 'Approved',
         date: todayStr,
         total
       },
       invoice: {
-        id: `INV-${Date.now()}`,
+        id: invoiceId,
         visitId: body.visitId,
         patientId: body.patientId || 'PAT-TEMP',
         patientName: body.patientName || 'Patient',
@@ -288,7 +291,11 @@ export default function handler(req, res) {
 
   // 7. Invoices
   if (pathStr.startsWith('invoices')) {
-    const invId = pathStr.includes('/') ? pathStr.split('/')[1] : `INV-${Date.now()}`;
+    const parts = pathStr.split('/');
+    if (req.method === 'DELETE') {
+      return res.status(200).json({ success: true, deletedInvoiceId: parts[1] || '' });
+    }
+    const invId = pathStr.includes('/') && parts[1] ? parts[1] : (body?.id || (body?.visitId ? `INV-${String(body.visitId).replace(/[^a-zA-Z0-9-]/g, '')}` : `INV-${Date.now()}`));
     return res.status(200).json({
       invoice: {
         id: invId,
