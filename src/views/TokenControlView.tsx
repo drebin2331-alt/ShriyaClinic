@@ -158,7 +158,13 @@ export const TokenControlView: React.FC = () => {
       notes: summaryNotes,
       diagnosis: summaryDiagnosis,
       treatmentPlan: summaryTreatment,
-      followUpDate: followUpDate || undefined
+      followUpDate: followUpDate || undefined,
+      tokenNumber: completingToken.tokenNumber,
+      tokenId: completingToken.id,
+      patientId: completingToken.patientId,
+      patientName: completingToken.patientName,
+      doctorId: completingToken.doctorId,
+      doctorName: completingToken.doctorName
     });
 
     addToast(

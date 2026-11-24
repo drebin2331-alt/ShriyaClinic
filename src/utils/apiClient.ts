@@ -359,6 +359,12 @@ export const apiClient = {
 
   async completeConsultation(data: {
     visitId: string;
+    tokenId?: string;
+    tokenNumber?: string;
+    patientId?: string;
+    patientName?: string;
+    doctorId?: string;
+    doctorName?: string;
     chiefComplaint?: string;
     diagnosis: string;
     clinicalFindings?: string;

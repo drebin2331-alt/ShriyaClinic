@@ -118,15 +118,26 @@ export default function handler(req, res) {
 
   if (pathStr.startsWith('consultations/complete')) {
     const visitId = body.visitId || body.visitIdOrToken || `VIS-${Date.now()}`;
+    const tokenNumber = body.tokenNumber || body.tokenId || visitId;
+    const tokenId = body.tokenId || (body.tokenNumber ? `tok-${body.tokenNumber}` : `tok-${Date.now()}`);
     return res.status(200).json({
       visit: {
         id: visitId,
+        patientId: body.patientId || 'PAT-TEMP',
+        patientName: body.patientName || 'Patient',
+        doctorId: body.doctorId || 'doc-1',
+        doctorName: body.doctorName || 'Consulting Doctor',
         status: 'Reception Follow-up',
-        consultationEndTime: nowIso
+        consultationEndTime: nowIso,
+        diagnosis: body.diagnosis || 'Clinical Dental Evaluation Completed',
+        treatmentPerformed: body.treatmentPerformed || 'Consultation & Procedure Completed',
+        doctorNotes: body.doctorNotes || body.chiefComplaint || '',
+        followUpDate: body.followUpDate,
+        followUpReason: body.followUpReason
       },
       token: {
-        id: body.tokenId || `tok-${Date.now()}`,
-        tokenNumber: body.tokenNumber || body.tokenId || visitId,
+        id: tokenId,
+        tokenNumber: tokenNumber,
         patientName: body.patientName || 'Patient',
         patientId: body.patientId || 'PAT-TEMP',
         doctorId: body.doctorId || 'doc-1',

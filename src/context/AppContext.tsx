@@ -203,6 +203,12 @@ interface AppContextType {
     treatmentPlan?: string;
     followUpDate?: string;
     followUpReason?: string;
+    tokenNumber?: string;
+    tokenId?: string;
+    patientId?: string;
+    patientName?: string;
+    doctorId?: string;
+    doctorName?: string;
   }) => Promise<void>;
   holdToken: (tokenNumberOrId: string) => Promise<void>;
   skipToken: (tokenNumberOrId: string, reason?: string) => Promise<void>;
@@ -964,8 +970,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Sync tokens directly from Supabase
         if (dbTokens.status === 'fulfilled') {
           const cleanTokens = (dbTokens.value || []).filter((t) => !isDemoPatientOrToken(t.patientName));
-          setTokens(cleanTokens);
-          safeSetItem('smilecare_tokens_list', JSON.stringify(cleanTokens));
+          setTokens((prev) => {
+            const mapped = cleanTokens.map((t) => {
+              const localMatch = prev.find((p) => p.id === t.id || p.tokenNumber === t.tokenNumber);
+              if (localMatch && localMatch.status === 'Reception Follow-up' && t.status === 'Completed') {
+                return { ...t, status: 'Reception Follow-up' as TokenStatus };
+              }
+              return t;
+            });
+            safeSetItem('smilecare_tokens_list', JSON.stringify(mapped));
+            return mapped;
+          });
         }
 
         // Sync invoices directly from Supabase
@@ -1971,12 +1986,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       treatmentPlan?: string;
       followUpDate?: string;
       followUpReason?: string;
+      tokenNumber?: string;
+      tokenId?: string;
+      patientId?: string;
+      patientName?: string;
+      doctorId?: string;
+      doctorName?: string;
     }
   ): Promise<void> => {
+    const nowIso = new Date().toISOString();
+    const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // 1. Resolve matching visit robustly
+    const existingVisit = visits.find((v) =>
+      v.id === visitIdOrToken ||
+      v.tokenId === visitIdOrToken ||
+      (summary?.tokenNumber && v.tokenId === summary.tokenNumber) ||
+      (summary?.patientId && v.patientId === summary.patientId && (v.status === 'In Consultation' || v.status === 'Called'))
+    );
+
+    // 2. Resolve matching tokens to update to 'Reception Follow-up'
+    const matchingTokens = tokens.filter((t) =>
+      t.status !== 'Completed' && t.status !== 'Cancelled' && (
+        t.id === visitIdOrToken ||
+        t.tokenNumber === visitIdOrToken ||
+        (summary?.tokenNumber && t.tokenNumber === summary.tokenNumber) ||
+        (summary?.tokenId && t.id === summary.tokenId) ||
+        (existingVisit && (t.visitId === existingVisit.id || t.tokenNumber === existingVisit.tokenId)) ||
+        (summary?.patientId && t.patientId === summary.patientId && (t.status === 'In Consultation' || t.status === 'Called')) ||
+        (existingVisit?.patientId && t.patientId === existingVisit.patientId && (t.status === 'In Consultation' || t.status === 'Called'))
+      )
+    );
+
+    const primaryToken = matchingTokens[0];
+    const targetTokenNumber = primaryToken?.tokenNumber || summary?.tokenNumber || existingVisit?.tokenId || (visitIdOrToken.startsWith('W-') || visitIdOrToken.startsWith('T-') ? visitIdOrToken : undefined);
+    const targetTokenId = primaryToken?.id || summary?.tokenId;
+    const targetPatientId = primaryToken?.patientId || existingVisit?.patientId || summary?.patientId;
+    const targetPatientName = primaryToken?.patientName || existingVisit?.patientName || summary?.patientName;
+    const targetDoctorId = primaryToken?.doctorId || existingVisit?.doctorId || summary?.doctorId;
+    const targetDoctorName = primaryToken?.doctorName || existingVisit?.doctorName || summary?.doctorName;
+
     let result: { visit: ClinicVisit; token?: QueueToken };
     try {
       result = await apiClient.completeConsultation({
-        visitId: visitIdOrToken,
+        visitId: existingVisit?.id || visitIdOrToken,
+        tokenId: targetTokenId,
+        tokenNumber: targetTokenNumber,
+        patientId: targetPatientId,
+        patientName: targetPatientName,
+        doctorId: targetDoctorId,
+        doctorName: targetDoctorName,
         chiefComplaint: summary?.notes,
         diagnosis: summary?.diagnosis || 'Clinical Dental Evaluation Completed',
         clinicalFindings: summary?.clinicalFindings || 'Examination complete.',
@@ -1987,14 +2046,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
     } catch {
       // Local Fallback:
-      const existingVisit = visits.find((v) => v.id === visitIdOrToken || v.tokenId === visitIdOrToken);
-      const existingToken = tokens.find((t) => t.visitId === existingVisit?.id || t.tokenNumber === visitIdOrToken || t.id === visitIdOrToken);
-      const nowIso = new Date().toISOString();
-      const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
       const updatedVisit: ClinicVisit = existingVisit ? {
         ...existingVisit,
-        status: 'Completed',
+        status: 'Reception Follow-up',
         consultationEndTime: nowIso,
         chiefComplaint: summary?.notes || existingVisit.chiefComplaint,
         diagnosis: summary?.diagnosis || existingVisit.diagnosis || 'Clinical Dental Evaluation Completed',
@@ -2007,25 +2061,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ...(existingVisit.timeline || []),
           {
             time: nowTimeStr,
-            event: `Consultation Finalized. Diagnosis: ${summary?.diagnosis || 'Dental Evaluation Completed'}. Ready for Checkout.`,
+            event: `Consultation Finalized. Diagnosis: ${summary?.diagnosis || 'Dental Evaluation Completed'}. Ready for Reception Checkout.`,
             actor: 'Doctor'
           }
         ]
       } : {
         id: visitIdOrToken,
-        patientId: existingToken?.patientId || 'PAT-TEMP',
-        patientName: existingToken?.patientName || 'Patient',
+        patientId: targetPatientId || 'PAT-TEMP',
+        patientName: targetPatientName || 'Patient',
         opNumber: 'OP-TEMP',
-        doctorId: existingToken?.doctorId || 'doc-1',
-        doctorName: existingToken?.doctorName || 'Consulting Doctor',
+        doctorId: targetDoctorId || 'doc-1',
+        doctorName: targetDoctorName || 'Consulting Doctor',
         visitDate: nowIso.split('T')[0],
-        status: 'Completed',
+        status: 'Reception Follow-up',
         consultationEndTime: nowIso,
         diagnosis: summary?.diagnosis || 'Clinical Dental Evaluation Completed'
       };
 
-      const updatedToken: QueueToken | undefined = existingToken ? {
-        ...existingToken,
+      const updatedToken: QueueToken | undefined = primaryToken ? {
+        ...primaryToken,
         status: 'Reception Follow-up',
         completedAt: nowIso
       } : undefined;
@@ -2034,42 +2088,60 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     setVisits((prev) => {
-      const next = prev.map((v) => (v.id === result.visit.id ? result.visit : v));
+      const next = prev.map((v) => (v.id === result.visit.id || (existingVisit && v.id === existingVisit.id) ? { ...v, ...result.visit, status: 'Reception Follow-up' } : v));
       safeSetItem('smilecare_visits_list', JSON.stringify(next));
       return next;
     });
 
     if (result.token) {
-      const existingToken = tokens.find(
-        (t) => t.id === result.token!.id || t.tokenNumber === result.token!.tokenNumber || t.visitId === result.visit.id
-      );
       const mergedToken: QueueToken = {
-        ...(existingToken || {}),
+        ...(primaryToken || {}),
         ...result.token,
-        patientName: result.token.patientName || existingToken?.patientName || result.visit.patientName || 'Patient',
-        patientId: result.token.patientId || existingToken?.patientId || result.visit.patientId || 'PAT-TEMP',
-        doctorId: result.token.doctorId || existingToken?.doctorId || result.visit.doctorId || 'doc-1',
-        doctorName: result.token.doctorName || existingToken?.doctorName || result.visit.doctorName || 'Doctor',
-        tokenNumber: result.token.tokenNumber || existingToken?.tokenNumber || result.visit.tokenId || result.token.id,
-        status: result.token.status || 'Reception Follow-up',
-        completedAt: result.token.completedAt || new Date().toISOString()
+        id: targetTokenId || primaryToken?.id || result.token.id,
+        tokenNumber: targetTokenNumber || primaryToken?.tokenNumber || result.token.tokenNumber,
+        patientName: targetPatientName || result.token.patientName || 'Patient',
+        patientId: targetPatientId || result.token.patientId || 'PAT-TEMP',
+        doctorId: targetDoctorId || result.token.doctorId || 'doc-1',
+        doctorName: targetDoctorName || result.token.doctorName || 'Doctor',
+        status: 'Reception Follow-up',
+        completedAt: result.token.completedAt || nowIso
       };
 
       setTokens((prev) => {
-        const next = prev.map((t) => (t.id === mergedToken.id || t.tokenNumber === mergedToken.tokenNumber ? mergedToken : t));
+        const next = prev.map((t) => {
+          const isMatch = (primaryToken && (t.id === primaryToken.id || t.tokenNumber === primaryToken.tokenNumber)) ||
+            matchingTokens.some((mt) => mt.id === t.id || mt.tokenNumber === t.tokenNumber) ||
+            t.id === mergedToken.id || t.tokenNumber === mergedToken.tokenNumber;
+          if (isMatch) {
+            return mergedToken;
+          }
+          return t;
+        });
         if (!next.some((t) => t.id === mergedToken.id || t.tokenNumber === mergedToken.tokenNumber)) {
           next.unshift(mergedToken);
         }
         safeSetItem('smilecare_tokens_list', JSON.stringify(next));
         return next;
       });
+
+      // Persist to Supabase
       saveTokenToDb(mergedToken).catch(() => { });
     }
+
+    // Persist all matching tokens to Supabase
+    matchingTokens.forEach((tok) => {
+      const updatedTok: QueueToken = {
+        ...tok,
+        status: 'Reception Follow-up',
+        completedAt: nowIso
+      };
+      saveTokenToDb(updatedTok).catch(() => { });
+    });
 
     // Free chair
     setChairs((prev) =>
       prev.map((c) =>
-        c.currentToken === visitIdOrToken || (result.token && c.currentToken === result.token.tokenNumber)
+        c.currentToken === visitIdOrToken || (targetTokenNumber && c.currentToken === targetTokenNumber) || (result.token && c.currentToken === result.token.tokenNumber)
           ? { ...c, status: 'Available', currentPatientName: undefined, currentToken: undefined }
           : c
       )
@@ -2834,7 +2906,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const completeCurrentPatient = () => {
     const current = tokens.find((t) => t.status === 'In Consultation');
     if (current) {
-      completeConsultation(current.visitId || current.tokenNumber);
+      completeConsultation(current.visitId || current.tokenNumber, {
+        tokenNumber: current.tokenNumber,
+        tokenId: current.id,
+        patientId: current.patientId,
+        patientName: current.patientName,
+        doctorId: current.doctorId,
+        doctorName: current.doctorName
+      });
     } else {
       addToast('No Active Consultation', 'No patient is currently in consultation.', 'warning');
     }

@@ -304,6 +304,8 @@ export const ReceptionCheckoutModal: React.FC<ReceptionCheckoutModalProps> = ({
         doctorName: currentVisit?.doctorName || visit?.doctorName
       });
       onClose();
+      setSelectedPatientForDetail(null);
+      setActiveView('token-control');
     } catch (err: any) {
       addToast('Error', err.message || 'Failed to close encounter.', 'danger');
     } finally {

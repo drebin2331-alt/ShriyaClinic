@@ -620,14 +620,20 @@ export const PatientProfileView: React.FC = () => {
   const [editNoteDoctorNotes, setEditNoteDoctorNotes] = useState('');
   const [editNoteNextVisit, setEditNoteNextVisit] = useState('');
 
-  const handleConfirmConsultationComplete = (openCheckoutAfter: boolean = false) => {
+  const handleConfirmConsultationComplete = async (openCheckoutAfter: boolean = false) => {
     const targetVisit = activeVisit || effectiveVisit;
     if (!targetVisit) return;
-    completeConsultation(targetVisit.id, {
+    await completeConsultation(targetVisit.id, {
       diagnosis: compDiagnosis || 'Consultation Completed',
       treatmentPlan: compTreatment || patient.currentTreatment,
       notes: compNotes || 'Clinical examination and care completed.',
-      followUpDate: compFollowUp || undefined
+      followUpDate: compFollowUp || undefined,
+      tokenNumber: activeToken?.tokenNumber || targetVisit.tokenId,
+      tokenId: activeToken?.id,
+      patientId: patient.id,
+      patientName: patient.name,
+      doctorId: defaultDoctorId,
+      doctorName: defaultDoctorName
     });
     setShowCompleteModal(false);
     if (openCheckoutAfter) {
@@ -637,6 +643,8 @@ export const PatientProfileView: React.FC = () => {
       setShowCheckoutModal(true);
     } else {
       addToast('Consultation Finalized! 🩺', `${patient.name} forwarded to front desk for checkout & billing.`, 'success');
+      setSelectedPatientForDetail(null);
+      setActiveView('token-control');
     }
   };
 
