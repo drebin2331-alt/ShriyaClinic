@@ -445,6 +445,11 @@ export const PatientProfileView: React.FC = () => {
     invoiceBalance + unbilledFeesBalance + unbilledVisitsBalance
   );
 
+  // Total value of planned treatments not yet billed/invoiced
+  const totalUnbilledTreatmentValue = useMemo(() => {
+    return unbilledTreatmentPlans.reduce((sum, tp) => sum + (Number(tp.estimatedCost) || 0), 0);
+  }, [unbilledTreatmentPlans]);
+
   // Queue Token Generation State
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [tokenDoctorId, setTokenDoctorId] = useState<string>(patient.assignedDoctorId || doctors[0]?.id || 'doc-1');
@@ -1047,7 +1052,35 @@ export const PatientProfileView: React.FC = () => {
             </div>
             <dl className="profile-masthead-facts">
               <div><dt>Doctor</dt><dd>{patient.assignedDoctorName || 'Unassigned'}</dd></div>
-              <div><dt>Ledger balance</dt><dd>₹{actualOutstandingBalance.toLocaleString()}</dd></div>
+              <div>
+                <dt>Ledger balance</dt>
+                <dd className="flex items-center gap-1.5">
+                  <span className={actualOutstandingBalance > 0 ? 'text-rose-700 font-bold' : ''}>
+                    ₹{actualOutstandingBalance.toLocaleString()}
+                  </span>
+                  {actualOutstandingBalance === 0 && (
+                    <span className="text-[10px] font-normal text-slate-400">
+                      (Billed Due)
+                    </span>
+                  )}
+                </dd>
+              </div>
+              {totalUnbilledTreatmentValue > 0 && (
+                <div>
+                  <dt>Planned Treatment</dt>
+                  <dd className="flex items-center gap-1.5">
+                    <span className="text-sky-700 font-bold font-mono">₹{totalUnbilledTreatmentValue.toLocaleString()}</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowFeeModal(true)}
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-100 hover:bg-sky-200 text-sky-800 transition-colors cursor-pointer"
+                      title="Click to approve and bill this treatment plan to ledger"
+                    >
+                      Bill to Ledger →
+                    </button>
+                  </dd>
+                </div>
+              )}
               {activeTab !== 'overview' && <>
                 <div><dt>Procedure</dt><dd>{patient.currentTreatment || 'None recorded'}</dd></div>
                 <div><dt>Phone</dt><dd>{patient.phone || '—'}</dd></div>
@@ -2073,6 +2106,24 @@ export const PatientProfileView: React.FC = () => {
               </button>
             </div>
 
+            {totalUnbilledTreatmentValue > 0 && (
+              <div className="bg-sky-50 border border-sky-200 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sky-900">Planned Procedures ({unbilledTreatmentPlans.length}):</span>
+                  <span className="font-mono font-black text-sky-900 text-sm">₹{totalUnbilledTreatmentValue.toLocaleString()}</span>
+                  <span className="text-sky-600 hidden sm:inline">• Clinical estimate (Not on billing ledger until approved)</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowFeeModal(true)}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer self-start sm:self-auto shrink-0"
+                >
+                  <DollarSign className="w-3.5 h-3.5" />
+                  <span>Approve Fees & Bill to Ledger</span>
+                </button>
+              </div>
+            )}
+
             <TreatmentPlanChart
               teeth={patient.dentalChart}
               treatmentPlans={patient.treatmentPlans}
@@ -2082,6 +2133,7 @@ export const PatientProfileView: React.FC = () => {
               onDeleteTreatmentPlan={handleDeleteTreatmentPlan}
               onEditTreatmentPlan={handleEditTreatmentPlan}
               onNavigateToBilling={() => handleTabChange('billing')}
+              onApproveFees={() => setShowFeeModal(true)}
               doctorName={patient.assignedDoctorName}
               patientId={patient.id}
             />
