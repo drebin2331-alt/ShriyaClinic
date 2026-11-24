@@ -8,6 +8,14 @@ import './mobile-workspace.css';
 import './utils/safeStorage';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
+// Auto-reload window when a new production deployment replaces JS chunk hashes
+if (typeof window !== 'undefined') {
+  window.addEventListener('vite:preloadError', (event) => {
+    event.preventDefault();
+    window.location.reload();
+  });
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>

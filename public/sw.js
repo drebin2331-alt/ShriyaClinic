@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shriya-clinic-v2';
+const CACHE_NAME = 'shriya-clinic-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
