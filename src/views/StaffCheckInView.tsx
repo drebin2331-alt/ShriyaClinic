@@ -69,10 +69,17 @@ export const StaffCheckInView: React.FC = () => {
     setShouldOpenCaseSheetOnProfile,
     sentToDoctorTokens,
     sendTokenToDoctor,
+    refreshState,
     addToast 
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<'queue' | 'scheduled' | 'enquiries' | 'returning' | 'checkout'>('queue');
+
+  useEffect(() => {
+    if (activeSubTab === 'enquiries' && refreshState) {
+      refreshState();
+    }
+  }, [activeSubTab, refreshState]);
   const [searchTerm, setSearchTerm] = useState('');
   const [doctorFilter, setDoctorFilter] = useState('ALL');
 
@@ -859,6 +866,18 @@ export const StaffCheckInView: React.FC = () => {
                     icon={<Search className="w-4 h-4 text-slate-400" />}
                   />
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    refreshState?.();
+                    addToast('Cloud Sync', 'Syncing online inquiries with cloud database...', 'info');
+                  }}
+                  className="px-3 py-2 text-xs font-bold text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                  title="Sync online inquiries with Supabase"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-teal-700" />
+                  <span className="hidden sm:inline">Sync</span>
+                </button>
                 {enquiries.length > 0 && (
                   <button
                     type="button"

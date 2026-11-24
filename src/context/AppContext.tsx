@@ -2114,7 +2114,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const total = Math.round(taxable + taxAmount);
       const nowIso = new Date().toISOString();
 
-      const feeApprovalId = data.feeApprovalId || `FA-2026-${String(feeApprovals.length + 1).padStart(4, '0')}`;
+      const existingInv = !data.isNewFee
+        ? invoices.find((i) => i.visitId === data.visitId || (data.feeApprovalId && i.feeApprovalId === data.feeApprovalId))
+        : undefined;
+
+      const invoiceId = existingInv ? existingInv.id : `INV-2026-${String(invoices.length + 1).padStart(4, '0')}`;
+
+      const existingFA = !data.isNewFee
+        ? feeApprovals.find((fa) => fa.id === data.feeApprovalId || fa.visitId === data.visitId)
+        : undefined;
+
+      const feeApprovalId = data.feeApprovalId || existingFA?.id || `FA-2026-${String(feeApprovals.length + 1).padStart(4, '0')}`;
       const feeApproval: FeeApprovalRecord = {
         id: feeApprovalId,
         visitId: data.visitId,
@@ -2137,7 +2147,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
 
       const invoice: Invoice = {
-        id: `INV-2026-${String(invoices.length + 1).padStart(4, '0')}`,
+        id: invoiceId,
         visitId: data.visitId,
         patientId: data.patientId || patient?.id || 'PAT-TEMP',
         patientName: data.patientName || patient?.name || 'Patient',
@@ -2160,10 +2170,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         discountReason: data.discountReason || '',
         tax: taxAmount,
         total,
-        paidAmount: 0,
-        balance: total,
-        status: 'Unpaid',
-        payments: []
+        paidAmount: existingInv?.paidAmount || existingInv?.paid || 0,
+        balance: Math.max(0, total - (existingInv?.paidAmount || existingInv?.paid || 0)),
+        status: (existingInv?.paidAmount || existingInv?.paid || 0) >= total ? 'Paid' : ((existingInv?.paidAmount || existingInv?.paid || 0) > 0 ? 'Partially Paid' : 'Unpaid'),
+        payments: existingInv?.payments || []
       };
 
       result = { feeApproval, invoice };
@@ -2181,7 +2191,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     result.invoice = enrichedInvoice;
 
-    setFeeApprovals((prev) => [result.feeApproval, ...prev]);
+    setFeeApprovals((prev) => [result.feeApproval, ...prev.filter((fa) => fa.id !== result.feeApproval.id && fa.visitId !== result.feeApproval.visitId)]);
     setInvoices((prev) => [result.invoice, ...prev.filter((i) => i.id !== result.invoice.id)]);
     if (result.visit) {
       setVisits((prev) => [result.visit!, ...prev.filter((v) => v.id !== result.visit!.id)]);
@@ -2195,13 +2205,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return {
             ...p,
             invoices: updatedInvoices,
-            outstandingBalance: updatedInvoices.reduce((sum, inv) => sum + inv.balance, 0),
+            outstandingBalance: updatedInvoices.reduce((sum, inv) => sum + (inv.balance || 0), 0),
             visits: result.visit ? [result.visit, ...(p.visits || []).filter((v) => v.id !== result.visit!.id)] : p.visits
           };
         }
         return p;
       })
     );
+
+    // Also immediately update selectedPatientForDetail so PatientProfileView updates seamlessly
+    setSelectedPatientForDetail((curr) => {
+      if (!curr) return null;
+      if (curr.id === result.invoice.patientId || (curr.opNumber && curr.opNumber === result.invoice.patientOpNumber)) {
+        const updatedInvoices = [result.invoice, ...(curr.invoices || []).filter((i) => i.id !== result.invoice.id)];
+        return {
+          ...curr,
+          invoices: updatedInvoices,
+          outstandingBalance: updatedInvoices.reduce((sum, inv) => sum + (inv.balance || 0), 0),
+          feeApprovals: [result.feeApproval, ...(curr.feeApprovals || []).filter((fa) => fa.id !== result.feeApproval.id && fa.visitId !== result.feeApproval.visitId)],
+          visits: result.visit ? [result.visit, ...(curr.visits || []).filter((v) => v.id !== result.visit!.id)] : curr.visits
+        };
+      }
+      return curr;
+    });
 
     notifyCrossTabSync();
     // Persist invoice to Supabase so it survives page reload

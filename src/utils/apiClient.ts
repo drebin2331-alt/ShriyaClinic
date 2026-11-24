@@ -150,6 +150,11 @@ function getLocalFallbackState(): ClinicSyncState {
       const parsed = JSON.parse(appts);
       if (Array.isArray(parsed)) appointments = parsed;
     }
+    const enqs = localStorage.getItem('smilecare_enquiries_list');
+    if (enqs) {
+      const parsed = JSON.parse(enqs);
+      if (Array.isArray(parsed) && parsed.length > 0) enquiries = parsed;
+    }
   } catch (e) {
     // Ignore storage parse errors
   }

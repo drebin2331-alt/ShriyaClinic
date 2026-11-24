@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { PatientRecord, ClinicVisit, FeeApprovalRecord, Invoice } from '../../types';
 import { ClayButton } from '../common/ClayButton';
-import { X, CheckCircle2, DollarSign, Plus, Trash2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { X, CheckCircle2, DollarSign, Plus, Trash2, ShieldCheck, AlertCircle, ShieldAlert } from 'lucide-react';
 
 interface DoctorFeeApprovalModalProps {
   isOpen: boolean;
@@ -44,10 +44,13 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
   const existingFeeApproval =
     resolvedVisit?.feeApproval ||
     (resolvedPatient?.feeApprovals && resolvedPatient.feeApprovals.find((f) => f.visitId === resolvedVisit?.id));
-  const isAlreadyApproved = Boolean(existingFeeApproval?.status === 'Approved' || resolvedVisit?.invoiceId);
+  const existingInvoice =
+    (resolvedPatient?.invoices || []).find((inv) => inv.visitId === resolvedVisit?.id || (resolvedVisit?.invoiceId && inv.id === resolvedVisit.invoiceId)) ||
+    (resolvedVisit?.invoiceId ? (patients.flatMap(p => p.invoices || []).find(inv => inv.id === resolvedVisit?.invoiceId)) : undefined);
+  const isAlreadyApproved = Boolean(existingFeeApproval?.status === 'Approved' || resolvedVisit?.invoiceId || existingInvoice);
 
-  // When a previous fee is already approved/invoiced, default to 'new' mode so the doctor can add the NEXT fee cleanly
-  const [mode, setMode] = useState<'new' | 'edit'>('new');
+  // If already approved/invoiced, default to 'edit' mode so doctor can adjust charges or concession without duplicating
+  const [mode, setMode] = useState<'new' | 'edit'>(isAlreadyApproved ? 'edit' : 'new');
 
   const [consultationFee, setConsultationFee] = useState<number>(0);
   const [items, setItems] = useState<Array<{ id: string; description: string; quantity: number; unitPrice: number }>>([
@@ -67,22 +70,40 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
   // Load mode-specific data
   const handleSwitchMode = (targetMode: 'new' | 'edit') => {
     setMode(targetMode);
-    if (targetMode === 'edit' && existingFeeApproval) {
-      setConsultationFee(Number(existingFeeApproval.consultationFee) || 0);
-      if (existingFeeApproval.items && existingFeeApproval.items.length > 0) {
-        setItems(
-          existingFeeApproval.items.map((it, idx) => ({
-            id: it.id || `item-${idx}`,
-            description: it.description,
-            quantity: it.quantity || 1,
-            unitPrice: Number(it.unitPrice) || 0
-          }))
-        );
+    if (targetMode === 'edit') {
+      if (existingFeeApproval) {
+        setConsultationFee(Number(existingFeeApproval.consultationFee) || 0);
+        if (existingFeeApproval.items && existingFeeApproval.items.length > 0) {
+          setItems(
+            existingFeeApproval.items.map((it, idx) => ({
+              id: it.id || `item-${idx}`,
+              description: it.description,
+              quantity: it.quantity || 1,
+              unitPrice: Number(it.unitPrice) || 0
+            }))
+          );
+        }
+        setDiscountType(existingFeeApproval.discountType || 'amount');
+        setDiscountValue(existingFeeApproval.discountValue || 0);
+        setDiscountReason(existingFeeApproval.discountReason || '');
+        setTaxRate(existingFeeApproval.tax || 0);
+      } else if (existingInvoice) {
+        setConsultationFee(0);
+        if (existingInvoice.items && existingInvoice.items.length > 0) {
+          setItems(
+            existingInvoice.items.map((it, idx) => ({
+              id: it.id || `item-${idx}`,
+              description: it.description || (it as any).serviceName || 'Procedure',
+              quantity: it.quantity || 1,
+              unitPrice: Number(it.unitPrice) || 0
+            }))
+          );
+        }
+        setDiscountType('amount');
+        setDiscountValue(Number(existingInvoice.discount) || 0);
+        setDiscountReason(existingInvoice.discountReason || '');
+        setTaxRate(Number(existingInvoice.tax) || 0);
       }
-      setDiscountType(existingFeeApproval.discountType || 'amount');
-      setDiscountValue(existingFeeApproval.discountValue || 0);
-      setDiscountReason(existingFeeApproval.discountReason || '');
-      setTaxRate(existingFeeApproval.tax || 0);
     } else {
       // Clean form for adding NEXT/NEW fee (do NOT show old billed or paid procedures)
       setConsultationFee(0);
@@ -140,9 +161,12 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    // By default, open in 'new' mode ready to add next fee
-    handleSwitchMode('new');
-  }, [isOpen, resolvedPatient?.id, resolvedVisit?.id]);
+    if (isAlreadyApproved) {
+      handleSwitchMode('edit');
+    } else {
+      handleSwitchMode('new');
+    }
+  }, [isOpen, resolvedPatient?.id, resolvedVisit?.id, isAlreadyApproved]);
 
   if (!isOpen) return null;
 
@@ -186,6 +210,11 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isAlreadyApproved && mode === 'new') {
+      addToast('Duplicate Fee Blocked', 'Fees for this visit have already been approved and invoiced. Please switch to Edit mode to modify charges or concessions.', 'warning');
+      return;
+    }
+
     if (calculatedDiscount > 0 && (!discountReason || !discountReason.trim())) {
       addToast('Discount Justification Required', 'Please provide a valid clinic authorization reason for the discount.', 'warning');
       return;
@@ -217,7 +246,7 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
         discountValue: Number(discountValue) || 0,
         discountReason: discountReason.trim() || 'None',
         taxRate: Number(taxRate) || 0,
-        feeApprovalId: mode === 'edit' ? existingFeeApproval?.id : undefined,
+        feeApprovalId: mode === 'edit' ? (existingFeeApproval?.id || existingInvoice?.feeApprovalId) : undefined,
         isNewFee: mode === 'new'
       });
 
@@ -270,53 +299,46 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
           </button>
         </div>
 
-        {isAlreadyApproved && existingFeeApproval && (
+        {isAlreadyApproved && (
           <div className="space-y-2">
             {mode === 'new' ? (
-              <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="p-3.5 bg-rose-50 border border-rose-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-2.5">
-                  <span className="p-1.5 rounded-lg bg-blue-100 text-blue-800 shrink-0">
-                    <CheckCircle2 className="w-4 h-4 text-blue-700" />
+                  <span className="p-1.5 rounded-lg bg-rose-100 text-rose-800 shrink-0">
+                    <ShieldAlert className="w-4 h-4 text-rose-700" />
                   </span>
                   <div>
-                    <span className="font-bold text-slate-900 block">
-                      Previous Fee (₹{Number(existingFeeApproval.finalPayable).toLocaleString()}) has already been sent to Billing &amp; Invoices (#{existingFeeApproval.invoiceId}).
+                    <span className="font-bold text-rose-950 block">
+                      Fee (₹{Number(existingFeeApproval?.finalPayable || existingInvoice?.total || 0).toLocaleString()}) Already Approved &amp; Invoiced (#{existingFeeApproval?.invoiceId || existingInvoice?.id}).
                     </span>
-                    <span className="text-[11px] text-slate-500 font-medium">
-                      Add new procedures below to authorize an additional fee for this or next visit.
+                    <span className="text-[11px] text-rose-800 font-medium">
+                      Duplicate fee creation is locked for this visit. Click 'Edit Existing Invoice' to adjust procedures, consultation fee, or concessions.
                     </span>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleSwitchMode('edit')}
-                  className="px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs shrink-0 cursor-pointer shadow-2xs self-start sm:self-auto"
+                  className="px-3.5 py-1.5 rounded-xl bg-white border border-rose-300 hover:bg-rose-100 text-rose-900 font-bold text-xs shrink-0 cursor-pointer shadow-2xs self-start sm:self-auto"
                 >
-                  Edit Previous Invoice #{existingFeeApproval.invoiceId}
+                  Edit Existing Invoice #{existingFeeApproval?.invoiceId || existingInvoice?.id}
                 </button>
               </div>
             ) : (
-              <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-2.5">
-                  <span className="p-1.5 rounded-lg bg-amber-100 text-amber-800 shrink-0">
-                    <ShieldCheck className="w-4 h-4 text-amber-700" />
+                  <span className="p-1.5 rounded-lg bg-emerald-100 text-emerald-800 shrink-0">
+                    <ShieldCheck className="w-4 h-4 text-emerald-700" />
                   </span>
                   <div>
-                    <span className="font-bold text-amber-950 block">
-                      Editing Existing Fee &amp; Invoice #{existingFeeApproval.invoiceId}
+                    <span className="font-bold text-emerald-950 block">
+                      Editing Authorized Fee &amp; Invoice #{existingFeeApproval?.invoiceId || existingInvoice?.id}
                     </span>
-                    <span className="text-[11px] text-amber-800 font-medium">
-                      Changes here will update the existing invoice in Billing &amp; Invoices.
+                    <span className="text-[11px] text-emerald-800 font-medium">
+                      Changes here will safely update the existing invoice in Billing &amp; Invoices without creating duplicate bills.
                     </span>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleSwitchMode('new')}
-                  className="px-3 py-1.5 rounded-xl bg-white border border-amber-300 text-amber-900 font-bold text-xs hover:bg-amber-100 shrink-0 cursor-pointer self-start sm:self-auto"
-                >
-                  ← Switch to Add New / Next Fee
-                </button>
               </div>
             )}
           </div>
@@ -330,7 +352,7 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
               </span>
               <div>
                 <span className="font-bold text-emerald-950 block">
-                  Previous Treatment Fee is Paid &amp; Settled (₹{resolvedPatient.invoices.filter((i) => i.status === 'Paid').reduce((sum, i) => sum + i.total, 0).toLocaleString()}).
+                  Previous Treatment Fee is Paid &amp; Settled (₹{resolvedPatient.invoices.filter((i) => i.status === 'Paid').reduce((sum, i) => sum + (Number(i.total) || 0), 0).toLocaleString()}).
                 </span>
                 <span className="text-[11px] text-emerald-700 font-medium">
                   Add new procedures below if authorizing additional fees for this visit.
@@ -471,7 +493,7 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
                         <div className="text-right shrink-0">
                           <span className="text-[10px] font-bold text-slate-500 block mb-0.5">Total</span>
                           <span className="font-mono font-bold text-slate-900 text-sm">
-                            ₹{(item.quantity * item.unitPrice).toLocaleString()}
+                            ₹{((Number(item.quantity) || 1) * (Number(item.unitPrice) || 0)).toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -517,7 +539,7 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
                         />
                       </div>
                       <div className="w-20 text-right font-mono font-bold text-slate-900 pr-1">
-                        ₹{(item.quantity * item.unitPrice).toLocaleString()}
+                        ₹{((Number(item.quantity) || 1) * (Number(item.unitPrice) || 0)).toLocaleString()}
                       </div>
                       <button
                         type="button"
@@ -625,17 +647,17 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
             <ClayButton
               variant="mint"
               type="submit"
-              disabled={isSubmitting || (calculatedDiscount > 0 && !discountReason.trim())}
+              disabled={isSubmitting || (calculatedDiscount > 0 && !discountReason.trim()) || (isAlreadyApproved && mode === 'new')}
               icon={<CheckCircle2 className="w-4 h-4" />}
               className="w-full sm:w-auto justify-center py-2.5 sm:py-2 text-xs"
             >
               {isSubmitting
                 ? 'Processing...'
-                : mode === 'edit'
-                  ? `Update Existing Invoice (₹${finalPayable.toLocaleString()})`
-                  : isAlreadyApproved
-                    ? `Authorize & Issue Next Fee (₹${finalPayable.toLocaleString()})`
-                    : `Authorize & Approve Fee (₹${finalPayable.toLocaleString()})`}
+                : isAlreadyApproved && mode === 'new'
+                  ? 'Fee Already Approved for this Visit ✓'
+                  : mode === 'edit'
+                    ? `Update Existing Invoice (₹${(Number(finalPayable) || 0).toLocaleString()})`
+                    : `Authorize & Approve Fee (₹${(Number(finalPayable) || 0).toLocaleString()})`}
             </ClayButton>
           </div>
         </form>

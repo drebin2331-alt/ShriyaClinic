@@ -415,8 +415,8 @@ export const ReceptionCheckoutModal: React.FC<ReceptionCheckoutModalProps> = ({
                     <tr>
                       <td data-label="Procedure / Service" className="py-1.5 font-semibold">Specialist Doctor Consultation</td>
                       <td data-label="Qty" className="py-1.5 text-center">1</td>
-                      <td data-label="Rate" className="py-1.5 text-right tabular-nums">₹{currentVisit.feeApproval!.consultationFee.toLocaleString()}</td>
-                      <td data-label="Amount" className="py-1.5 text-right tabular-nums font-bold">₹{currentVisit.feeApproval!.consultationFee.toLocaleString()}</td>
+                      <td data-label="Rate" className="py-1.5 text-right tabular-nums">₹{Number(currentVisit.feeApproval?.consultationFee || 0).toLocaleString()}</td>
+                      <td data-label="Amount" className="py-1.5 text-right tabular-nums font-bold">₹{Number(currentVisit.feeApproval?.consultationFee || 0).toLocaleString()}</td>
                     </tr>
                   )}
                   {(currentVisit.feeApproval?.items || linkedInvoice?.items || []).map((it: any, idx: number) => (
@@ -436,32 +436,32 @@ export const ReceptionCheckoutModal: React.FC<ReceptionCheckoutModalProps> = ({
           <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2 text-xs">
             <div className="flex justify-between text-slate-600">
               <span>Gross Subtotal (Consultation + Procedures):</span>
-              <span className="font-mono font-bold">₹{grossTotal.toLocaleString()}</span>
+              <span className="font-mono font-bold">₹{Number(grossTotal || 0).toLocaleString()}</span>
             </div>
 
-            {currentVisit.feeApproval && currentVisit.feeApproval.discountAmount > 0 && (
+            {currentVisit.feeApproval && (currentVisit.feeApproval.discountAmount || 0) > 0 && (
               <div className="flex justify-between text-emerald-700 font-semibold">
                 <span>Doctor Discount ({currentVisit.feeApproval.discountReason}):</span>
-                <span className="font-mono">- ₹{currentVisit.feeApproval.discountAmount.toLocaleString()}</span>
+                <span className="font-mono">- ₹{Number(currentVisit.feeApproval.discountAmount || 0).toLocaleString()}</span>
               </div>
             )}
 
-            {currentVisit.feeApproval && currentVisit.feeApproval.tax > 0 && (
+            {currentVisit.feeApproval && (currentVisit.feeApproval.tax || 0) > 0 && (
               <div className="flex justify-between text-slate-600">
                 <span>Applicable Tax:</span>
-                <span className="font-mono">+ ₹{currentVisit.feeApproval.tax.toLocaleString()}</span>
+                <span className="font-mono">+ ₹{Number(currentVisit.feeApproval.tax || 0).toLocaleString()}</span>
               </div>
             )}
 
             <div className="flex justify-between pt-1.5 border-t border-slate-200 font-black text-slate-900 text-sm">
               <span>Final Payable Amount:</span>
-              <span className="font-mono text-sky-900">₹{grossTotal.toLocaleString()}</span>
+              <span className="font-mono text-sky-900">₹{Number(grossTotal || 0).toLocaleString()}</span>
             </div>
 
             {alreadyPaid > 0 && (
               <div className="flex justify-between text-emerald-700 font-bold text-xs pt-1 border-t border-slate-200">
                 <span>Total Paid to Date:</span>
-                <span className="font-mono text-emerald-800">₹{alreadyPaid.toLocaleString()}</span>
+                <span className="font-mono text-emerald-800">₹{Number(alreadyPaid || 0).toLocaleString()}</span>
               </div>
             )}
           </div>
@@ -471,7 +471,7 @@ export const ReceptionCheckoutModal: React.FC<ReceptionCheckoutModalProps> = ({
             <div>
               <span className="text-[10px] font-bold text-slate-500 uppercase block">Remaining Outstanding Balance</span>
               <div className={`text-2xl font-black font-mono ${remainingBalance > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
-                ₹{remainingBalance.toLocaleString()}
+                ₹{Number(remainingBalance || 0).toLocaleString()}
               </div>
             </div>
 

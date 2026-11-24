@@ -70,6 +70,8 @@ import {
   Zap
 } from 'lucide-react';
 
+const formatINR = (val: any): string => (Number(val) || 0).toLocaleString();
+
 export const PatientProfileView: React.FC = () => {
   const {
     selectedPatientForDetail,
@@ -770,7 +772,7 @@ export const PatientProfileView: React.FC = () => {
       dentalChart: updatedChart,
       treatmentPlans: nextPlans
     });
-    addToast('Procedure Added', `${newItem.procedure} (₹${newItem.estimatedCost.toLocaleString()}) added to patient treatment plan.`, 'success');
+    addToast('Procedure Added', `${newItem.procedure} (₹${formatINR(newItem.estimatedCost)}) added to patient treatment plan.`, 'success');
   };
 
   const handleUpdateTreatmentStatus = (id: string, status: TreatmentPlanStatus) => {
@@ -1004,7 +1006,7 @@ export const PatientProfileView: React.FC = () => {
         discount: 0,
         tax: 0
       });
-      addToast('Bill Generated', `Official invoice ${inv.id} created for ₹${inv.total.toLocaleString()}.`, 'success');
+      addToast('Bill Generated', `Official invoice ${inv.id} created for ₹${formatINR(inv.total)}.`, 'success');
     } catch (err: any) {
       addToast('Billing Error', err.message || 'Could not generate bill.', 'danger');
     } finally {
@@ -1047,7 +1049,7 @@ export const PatientProfileView: React.FC = () => {
             </div>
             <dl className="profile-masthead-facts">
               <div><dt>Doctor</dt><dd>{patient.assignedDoctorName || 'Unassigned'}</dd></div>
-              <div><dt>Ledger balance</dt><dd>₹{actualOutstandingBalance.toLocaleString()}</dd></div>
+              <div><dt>Ledger balance</dt><dd>₹{formatINR(actualOutstandingBalance)}</dd></div>
               {activeTab !== 'overview' && <>
                 <div><dt>Procedure</dt><dd>{patient.currentTreatment || 'None recorded'}</dd></div>
                 <div><dt>Phone</dt><dd>{patient.phone || '—'}</dd></div>
@@ -1123,24 +1125,24 @@ export const PatientProfileView: React.FC = () => {
                     <button
                       onClick={() => setShowFeeModal(true)}
                       className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs shrink-0 whitespace-nowrap"
-                      title="Previous fee is fully paid and settled. Click to add next visit fee."
+                      title="Previous fee is fully paid and settled."
                     >
-                      <Plus className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>+ Add Fee</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Fee Settled</span>
                       <span className="text-[10px] bg-emerald-200/90 text-emerald-950 px-1.5 py-0.2 rounded font-black">
-                        ✓ Paid ₹{paidInvoicesAmount.toLocaleString()}
+                        ✓ Paid ₹{formatINR(paidInvoicesAmount)}
                       </span>
                     </button>
                   ) : hasAnyBilledFees ? (
                     <button
                       onClick={() => setShowFeeModal(true)}
-                      className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs shrink-0 whitespace-nowrap"
-                      title="Previous fee already sent to Billing & Invoices. Click to add next visit fee or review."
+                      className="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs shrink-0 whitespace-nowrap"
+                      title="Fee already approved for this visit. Click to view or adjust charges/concession."
                     >
-                      <Plus className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>+ Add Fee</span>
-                      <span className="text-[10px] bg-emerald-200/80 text-emerald-900 px-1.5 py-0.2 rounded font-black">
-                        ✓ Billed {approvedFeeAmount ? `₹${approvedFeeAmount.toLocaleString()}` : ''}
+                      <CheckCircle2 className="w-3.5 h-3.5 text-amber-700" />
+                      <span>View / Edit Fee</span>
+                      <span className="text-[10px] bg-amber-200/80 text-amber-950 px-1.5 py-0.2 rounded font-black">
+                        ✓ Approved {approvedFeeAmount ? `₹${formatINR(approvedFeeAmount)}` : ''}
                       </span>
                     </button>
                   ) : (
@@ -1275,7 +1277,7 @@ export const PatientProfileView: React.FC = () => {
                 </dl>
                 <dl className="profile-care-summary">
                   <div><dt>Active procedure</dt><dd>{patient.currentTreatment || 'None recorded'}</dd></div>
-                  <div><dt>Outstanding fee</dt><dd className={patient.outstandingBalance > 0 ? 'balance-due' : ''}>₹{patient.outstandingBalance.toLocaleString()}</dd></div>
+                  <div><dt>Outstanding fee</dt><dd className={patient.outstandingBalance > 0 ? 'balance-due' : ''}>₹{formatINR(patient.outstandingBalance)}</dd></div>
                   <div className="profile-token-row">
                     <dt>Queue token</dt>
                     <dd className="flex flex-wrap items-center gap-2">
@@ -2509,7 +2511,7 @@ export const PatientProfileView: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-slate-600">Total Due:</span>
                   <span className={`text-sm font-bold tabular-nums px-3 py-1 rounded-xl ${actualOutstandingBalance > 0 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                    ₹{actualOutstandingBalance.toLocaleString()}
+                    ₹{formatINR(actualOutstandingBalance)}
                   </span>
                 </div>
                 <ClayButton
@@ -2544,7 +2546,7 @@ export const PatientProfileView: React.FC = () => {
                           </span>
                         </div>
                         <h4 className="text-sm font-bold text-slate-900 mt-1">
-                          Doctor-Approved Treatment Charges: <span className="tabular-nums text-rose-800 font-bold">₹{fa.finalPayable.toLocaleString()}</span>
+                          Doctor-Approved Treatment Charges: <span className="tabular-nums text-rose-800 font-bold">₹{formatINR(fa.finalPayable)}</span>
                         </h4>
                       </div>
 
@@ -2561,7 +2563,7 @@ export const PatientProfileView: React.FC = () => {
                           }}
                           icon={<Receipt className="w-4 h-4" />}
                         >
-                          Settle & Collect Payment (₹{fa.finalPayable.toLocaleString()})
+                          Settle & Collect Payment (₹{formatINR(fa.finalPayable)})
                         </ClayButton>
                       </div>
                     </div>
@@ -2578,27 +2580,27 @@ export const PatientProfileView: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-slate-700">
-                          {fa.consultationFee > 0 && (
+                          {Number(fa.consultationFee) > 0 && (
                             <tr>
                               <td data-label="Procedure / Service Description" className="py-2 font-semibold">Specialist Doctor Consultation</td>
                               <td data-label="Qty" className="py-2 text-center">1</td>
-                              <td data-label="Price" className="py-2 text-right tabular-nums">₹{fa.consultationFee.toLocaleString()}</td>
-                              <td data-label="Amount" className="py-2 text-right tabular-nums font-bold">₹{fa.consultationFee.toLocaleString()}</td>
+                              <td data-label="Price" className="py-2 text-right tabular-nums">₹{formatINR(fa.consultationFee)}</td>
+                              <td data-label="Amount" className="py-2 text-right tabular-nums font-bold">₹{formatINR(fa.consultationFee)}</td>
                             </tr>
                           )}
-                          {fa.items.map((it) => (
+                          {(fa.items || []).map((it) => (
                             <tr key={it.id}>
                               <td data-label="Procedure / Service Description" className="py-2 font-semibold">{it.description}</td>
-                              <td data-label="Qty" className="py-2 text-center">{it.quantity}</td>
-                              <td data-label="Price" className="py-2 text-right tabular-nums">₹{it.unitPrice.toLocaleString()}</td>
-                              <td data-label="Amount" className="py-2 text-right tabular-nums font-bold">₹{it.total.toLocaleString()}</td>
+                              <td data-label="Qty" className="py-2 text-center">{it.quantity || 1}</td>
+                              <td data-label="Price" className="py-2 text-right tabular-nums">₹{formatINR(it.unitPrice)}</td>
+                              <td data-label="Amount" className="py-2 text-right tabular-nums font-bold">₹{formatINR(it.total || ((it.quantity || 1) * (it.unitPrice || 0)))}</td>
                             </tr>
                           ))}
                         </tbody>
                         <tfoot>
                           <tr className="border-t border-rose-200 font-bold text-slate-900">
                             <td colSpan={3} className="py-2 text-right">Net Payable Amount:</td>
-                            <td data-label="Qty" className="py-2 text-right tabular-nums text-sm text-rose-800 font-bold">₹{fa.finalPayable.toLocaleString()}</td>
+                            <td data-label="Qty" className="py-2 text-right tabular-nums text-sm text-rose-800 font-bold">₹{formatINR(fa.finalPayable)}</td>
                           </tr>
                         </tfoot>
                       </table>
@@ -2629,7 +2631,7 @@ export const PatientProfileView: React.FC = () => {
                           </span>
                         </div>
                         <h4 className="text-sm font-bold text-slate-900 mt-1">
-                          Consultation & Treatment Charges Due: <span className="tabular-nums text-rose-800 font-bold">₹{item.amount.toLocaleString()}</span>
+                          Consultation & Treatment Charges Due: <span className="tabular-nums text-rose-800 font-bold">₹{formatINR(item.amount)}</span>
                         </h4>
                       </div>
 
@@ -2645,7 +2647,7 @@ export const PatientProfileView: React.FC = () => {
                           }}
                           icon={<Receipt className="w-4 h-4" />}
                         >
-                          Settle & Collect Payment (₹{item.amount.toLocaleString()})
+                          Settle & Collect Payment (₹{formatINR(item.amount)})
                         </ClayButton>
 
                         <ClayButton
@@ -2672,19 +2674,19 @@ export const PatientProfileView: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-slate-700">
-                          {item.items.map((it, idx) => (
+                          {(item.items || []).map((it, idx) => (
                             <tr key={it.id || idx}>
                               <td data-label="Procedure / Service Description" className="py-2 font-semibold">{it.description}</td>
-                              <td data-label="Qty" className="py-2 text-center">{it.quantity}</td>
-                              <td data-label="Price" className="py-2 text-right tabular-nums">₹{it.unitPrice.toLocaleString()}</td>
-                              <td data-label="Amount" className="py-2 text-right tabular-nums font-bold">₹{(it.quantity * it.unitPrice).toLocaleString()}</td>
+                              <td data-label="Qty" className="py-2 text-center">{it.quantity || 1}</td>
+                              <td data-label="Price" className="py-2 text-right tabular-nums">₹{formatINR(it.unitPrice)}</td>
+                              <td data-label="Amount" className="py-2 text-right tabular-nums font-bold">₹{formatINR(it.total || ((it.quantity || 1) * (it.unitPrice || 0)))}</td>
                             </tr>
                           ))}
                         </tbody>
                         <tfoot>
                           <tr className="border-t border-amber-200 font-bold text-slate-900">
                             <td colSpan={3} className="py-2 text-right">Total Net Payable:</td>
-                            <td data-label="Qty" className="py-2 text-right tabular-nums text-sm text-rose-800 font-bold">₹{item.amount.toLocaleString()}</td>
+                            <td data-label="Qty" className="py-2 text-right tabular-nums text-sm text-rose-800 font-bold">₹{formatINR(item.amount)}</td>
                           </tr>
                         </tfoot>
                       </table>
@@ -2702,7 +2704,7 @@ export const PatientProfileView: React.FC = () => {
                     Doctor Treatment Plans Available
                   </span>
                   <h4 className="text-sm font-bold text-slate-900 mt-1">
-                    {unbilledTreatmentPlans.length} Planned Procedure{unbilledTreatmentPlans.length > 1 ? 's' : ''} • Est. Total: <span className="tabular-nums text-emerald-800">₹{unbilledTreatmentPlans.reduce((sum, p) => sum + (p.estimatedCost || 0), 0).toLocaleString()}</span>
+                    {unbilledTreatmentPlans.length} Planned Procedure{unbilledTreatmentPlans.length > 1 ? 's' : ''} • Est. Total: <span className="tabular-nums text-emerald-800">₹{formatINR(unbilledTreatmentPlans.reduce((sum, p) => sum + (p.estimatedCost || 0), 0))}</span>
                   </h4>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Procedures with amounts added during doctor consultation and dental charting. Click below to issue an invoice with discount and payment options.
@@ -2805,12 +2807,12 @@ export const PatientProfileView: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                        {inv.items.map((item) => (
+                        {(inv.items || []).map((item) => (
                           <tr key={item.id}>
-                            <td data-label="Description" className="py-2.5 font-bold text-slate-800">{item.description}</td>
-                            <td data-label="Qty" className="py-2.5 text-center">{item.quantity}</td>
-                            <td data-label="Unit Price" className="py-2.5 text-right tabular-nums">₹{item.unitPrice.toLocaleString()}</td>
-                            <td data-label="Amount" className="py-2.5 text-right tabular-nums font-bold">₹{item.total.toLocaleString()}</td>
+                            <td data-label="Description" className="py-2.5 font-bold text-slate-800">{item.description || (item as any).serviceName}</td>
+                            <td data-label="Qty" className="py-2.5 text-center">{item.quantity || 1}</td>
+                            <td data-label="Unit Price" className="py-2.5 text-right tabular-nums">₹{formatINR(item.unitPrice)}</td>
+                            <td data-label="Amount" className="py-2.5 text-right tabular-nums font-bold">₹{formatINR(item.total || ((item.quantity || 1) * (item.unitPrice || 0)))}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -2823,9 +2825,9 @@ export const PatientProfileView: React.FC = () => {
                     </div>
 
                     <div className="space-y-1 text-right mt-2 sm:mt-0">
-                      <div>Total: <strong className="tabular-nums text-slate-900">₹{inv.total.toLocaleString()}</strong></div>
-                      <div>Paid: <strong className="tabular-nums text-emerald-700">₹{inv.paid.toLocaleString()}</strong></div>
-                      <div>Balance: <strong className="tabular-nums text-rose-700 font-bold">₹{inv.balance.toLocaleString()}</strong></div>
+                      <div>Total: <strong className="tabular-nums text-slate-900">₹{formatINR(inv.total)}</strong></div>
+                      <div>Paid: <strong className="tabular-nums text-emerald-700">₹{formatINR(inv.paid || (inv as any).paidAmount)}</strong></div>
+                      <div>Balance: <strong className="tabular-nums text-rose-700 font-bold">₹{formatINR(inv.balance)}</strong></div>
                     </div>
                   </div>
 
@@ -2969,7 +2971,7 @@ export const PatientProfileView: React.FC = () => {
                               </span>
                             </td>
                             <td data-label="Amount Paid" className="py-3 text-right tabular-nums font-bold text-emerald-700">
-                              ₹{rec.amount.toLocaleString()}
+                              ₹{formatINR(rec.amount)}
                             </td>
                             <td data-label="Status" className="py-3 text-center">
                               <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
@@ -3401,7 +3403,7 @@ export const PatientProfileView: React.FC = () => {
               <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200 text-center">
                 <span className="text-xs font-semibold text-emerald-800">Amount Received</span>
                 <div className="text-3xl font-bold tabular-nums text-emerald-900 my-0.5">
-                  ₹{activeProfileReceipt.amount.toLocaleString()}
+                  ₹{formatINR(activeProfileReceipt?.amount)}
                 </div>
                 <span className="inline-block px-3 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
                   Settled & Credited to Patient Ledger

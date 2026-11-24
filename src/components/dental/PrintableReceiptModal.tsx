@@ -392,7 +392,7 @@ export const PrintableReceiptModal: React.FC<PrintableReceiptModalProps> = ({
                 Payment Received in this Transaction
               </span>
               <div style={{ fontSize: '26px', fontWeight: 900, fontFamily: 'monospace', color: '#064e3b', lineHeight: 1.1, marginTop: '2px' }}>
-                ₹{payment.amount.toLocaleString()}
+                ₹{(Number(payment.amount) || 0).toLocaleString()}
               </div>
               <span style={{ fontSize: '10px', fontWeight: 700, color: '#047857' }}>
                 Mode: {payment.paymentMethod} • Settled & Credited to Patient Ledger ✓
@@ -402,7 +402,7 @@ export const PrintableReceiptModal: React.FC<PrintableReceiptModalProps> = ({
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '11px', color: '#475569', marginBottom: '2px' }}>
                 {linkedInvoice && (
-                  <span>Invoice Total: <strong style={{ fontFamily: 'monospace', color: '#0f172a' }}>₹{linkedInvoice.total.toLocaleString()}</strong></span>
+                  <span>Invoice Total: <strong style={{ fontFamily: 'monospace', color: '#0f172a' }}>₹{(Number(linkedInvoice.total) || 0).toLocaleString()}</strong></span>
                 )}
               </div>
               <div style={{ fontSize: '12px', fontWeight: 800 }}>
@@ -415,7 +415,7 @@ export const PrintableReceiptModal: React.FC<PrintableReceiptModalProps> = ({
                     color: balanceDue > 0 ? '#b91c1c' : '#047857'
                   }}
                 >
-                  ₹{balanceDue.toLocaleString()} {balanceDue <= 0 ? '(Nil / Settled)' : ''}
+                  ₹{(Number(balanceDue) || 0).toLocaleString()} {balanceDue <= 0 ? '(Nil / Settled)' : ''}
                 </span>
               </div>
             </div>
