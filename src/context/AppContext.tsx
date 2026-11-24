@@ -875,9 +875,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       if (data.feeApprovals) setFeeApprovals(data.feeApprovals);
-      if (data.prescriptions) {
-        setPrescriptions(data.prescriptions);
-        safeSetItem('smilecare_prescriptions_list', JSON.stringify(data.prescriptions));
+      if (data.prescriptions && data.prescriptions.length > 0) {
+        setPrescriptions((prev) => {
+          const map = new Map<string, PrescriptionRecord>();
+          (prev || []).forEach((p) => map.set(p.id, p));
+          (data.prescriptions || []).forEach((p) => map.set(p.id, p));
+          const merged = Array.from(map.values());
+          safeSetItem('smilecare_prescriptions_list', JSON.stringify(merged));
+          return merged;
+        });
       }
       if (data.medicines && data.medicines.length > 0) {
         setMedicines((prev) => {
@@ -917,7 +923,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 2. Secondary Supabase Cloud Synchronization (Additive only — NEVER destructive)
     if (await probeSupabaseAvailability()) {
       try {
-        const [dbPatients, dbAppointments, dbTokens, dbInvoices, dbPayments, dbChairs, dbProfiles, dbEnquiries] = await Promise.allSettled([
+        const [
+          dbPatients, 
+          dbAppointments, 
+          dbTokens, 
+          dbInvoices, 
+          dbPayments, 
+          dbChairs, 
+          dbProfiles, 
+          dbEnquiries,
+          dbPrescriptions
+        ] = await Promise.allSettled([
           fetchPatientsFromDb(),
           fetchAppointmentsFromDb(),
           fetchTokensFromDb(),
@@ -925,7 +941,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           fetchPaymentsFromDb(),
           fetchChairsFromDb(),
           fetchProfilesFromDb(),
-          fetchEnquiriesFromDb()
+          fetchEnquiriesFromDb(),
+          fetchPrescriptionsFromDb()
         ]);
 
         // Sync patients directly from Supabase
@@ -961,6 +978,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const cleanPayments = (dbPayments.value || []).filter((p) => !isDemoPatientOrToken(p.patientName));
           setPayments(cleanPayments);
           safeSetItem('smilecare_payments_list', JSON.stringify(cleanPayments));
+        }
+
+        // Sync prescriptions directly from Supabase
+        if (dbPrescriptions.status === 'fulfilled' && dbPrescriptions.value && dbPrescriptions.value.length > 0) {
+          setPrescriptions((prev) => {
+            const map = new Map<string, PrescriptionRecord>();
+            (prev || []).forEach((p) => map.set(p.id, p));
+            (dbPrescriptions.value || []).forEach((p) => map.set(p.id, p));
+            const merged = Array.from(map.values()).sort(
+              (a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime()
+            );
+            safeSetItem('smilecare_prescriptions_list', JSON.stringify(merged));
+            return merged;
+          });
         }
 
         // Sync online enquiries directly from Supabase
@@ -2271,7 +2302,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Update patient in state
     setPatients((prev) =>
       prev.map((p) =>
-        p.id === data.patientId
+        p.id === data.patientId || (p.opNumber && p.opNumber === result.prescription.patientOpNumber)
           ? {
             ...p,
             prescriptions: [result.prescription, ...(p.prescriptions || []).filter((rx) => rx.id !== result.prescription.id)],
@@ -2280,6 +2311,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           : p
       )
     );
+
+    // Also immediately update selectedPatientForDetail so PatientProfileView re-renders
+    setSelectedPatientForDetail((curr) => {
+      if (!curr) return null;
+      if (curr.id === data.patientId || (curr.opNumber && curr.opNumber === result.prescription.patientOpNumber)) {
+        return {
+          ...curr,
+          prescriptions: [result.prescription, ...(curr.prescriptions || []).filter((rx) => rx.id !== result.prescription.id)],
+          visits: result.visit ? [result.visit, ...(curr.visits || []).filter((v) => v.id !== result.visit!.id)] : curr.visits
+        };
+      }
+      return curr;
+    });
 
     notifyCrossTabSync();
     if (result.prescription) {
@@ -2408,15 +2452,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Update patient state
     setPatients((prev) =>
       prev.map((p) => {
-        if (p.id === result.prescription.patientId) {
+        if (p.id === result.prescription.patientId || (p.opNumber && p.opNumber === result.prescription.patientOpNumber)) {
           return {
             ...p,
-            prescriptions: (p.prescriptions || []).map((rx) => (rx.id === id ? result.prescription : rx))
+            prescriptions: (p.prescriptions || []).map((rx) => (rx.id === id ? result.prescription : rx)),
+            visits: result.visit ? (p.visits || []).map((v) => (v.id === result.visit!.id ? result.visit! : v)) : p.visits
           };
         }
         return p;
       })
     );
+
+    // Also update selectedPatientForDetail
+    setSelectedPatientForDetail((curr) => {
+      if (!curr) return null;
+      if (curr.id === result.prescription.patientId || (curr.opNumber && curr.opNumber === result.prescription.patientOpNumber)) {
+        return {
+          ...curr,
+          prescriptions: (curr.prescriptions || []).map((rx) => (rx.id === id ? result.prescription : rx)),
+          visits: result.visit ? (curr.visits || []).map((v) => (v.id === result.visit!.id ? result.visit! : v)) : curr.visits
+        };
+      }
+      return curr;
+    });
 
     // Update visit state
     if (result.visit) {
