@@ -144,6 +144,7 @@ export default function handler(req, res) {
         id: body.feeApprovalId || `FA-${Date.now()}`,
         visitId: body.visitId,
         patientId: body.patientId || 'PAT-TEMP',
+        patientName: body.patientName || 'Patient',
         status: 'Approved',
         date: todayStr,
         total
@@ -152,8 +153,11 @@ export default function handler(req, res) {
         id: `INV-${Date.now()}`,
         visitId: body.visitId,
         patientId: body.patientId || 'PAT-TEMP',
+        patientName: body.patientName || 'Patient',
+        doctorName: body.doctorName || 'Consulting Doctor',
         status: 'Unpaid',
         date: todayStr,
+        subtotal: total,
         total,
         balance: total,
         items: body.items || []
@@ -269,6 +273,14 @@ export default function handler(req, res) {
       prescription: {
         id: rxId,
         date: todayStr,
+        patientName: body?.patientName || 'Patient',
+        patientOpNumber: body?.patientOpNumber || 'OP-TEMP',
+        doctorId: body?.doctorId || 'doc-1',
+        doctorName: body?.doctorName || 'Consulting Doctor',
+        diagnosis: body?.diagnosis || 'Dental Examination',
+        doctorNotes: body?.doctorNotes || '',
+        items: body?.items || [],
+        followUpDate: body?.followUpDate || null,
         ...body
       }
     });
@@ -281,9 +293,58 @@ export default function handler(req, res) {
       invoice: {
         id: invId,
         date: todayStr,
-        status: 'Paid',
+        patientName: body?.patientName || 'Patient',
+        doctorName: body?.doctorName || 'Consulting Doctor',
+        status: body?.status || 'Unpaid',
+        subtotal: Number(body?.subtotal) || Number(body?.total) || 0,
+        total: Number(body?.total) || 0,
+        balance: body?.balance !== undefined ? Number(body?.balance) : Number(body?.total) || 0,
+        items: body?.items || [],
         ...body
       }
+    });
+  }
+
+  // 7b. Payments
+  if (pathStr.startsWith('payments')) {
+    const payId = `PAY-${Date.now()}`;
+    const recNum = `REC-${Date.now()}`;
+    const amount = Number(body?.amount) || 0;
+    const payment = {
+      id: payId,
+      invoiceId: body?.invoiceId || `INV-${Date.now()}`,
+      patientId: body?.patientId || 'PAT-TEMP',
+      patientName: body?.patientName || 'Patient',
+      patientOpNumber: body?.patientOpNumber || 'OP-TEMP',
+      amount,
+      paymentDate: todayStr,
+      paymentMethod: body?.paymentMethod || 'Cash',
+      referenceNumber: body?.referenceNumber || '',
+      notes: body?.notes || '',
+      receiptNumber: recNum,
+      receivedBy: body?.receivedBy || 'Reception'
+    };
+    const invoice = {
+      id: body?.invoiceId || `INV-${Date.now()}`,
+      patientId: body?.patientId || 'PAT-TEMP',
+      patientName: body?.patientName || 'Patient',
+      doctorName: body?.doctorName || 'Doctor',
+      date: todayStr,
+      items: [],
+      subtotal: amount,
+      discount: 0,
+      tax: 0,
+      total: amount,
+      paidAmount: amount,
+      balance: 0,
+      status: 'Paid',
+      payments: [payment]
+    };
+    return res.status(200).json({
+      payment,
+      invoice,
+      receiptNumber: recNum,
+      remainingBalance: 0
     });
   }
 

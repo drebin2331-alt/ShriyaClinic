@@ -226,6 +226,10 @@ interface AppContextType {
   createPrescription: (data: {
     visitId: string;
     patientId: string;
+    patientName?: string;
+    patientOpNumber?: string;
+    doctorId?: string;
+    doctorName?: string;
     items: Array<{
       medicine: string;
       dosage: string;
@@ -241,6 +245,11 @@ interface AppContextType {
   updatePrescription: (
     id: string,
     data: {
+      patientName?: string;
+      patientOpNumber?: string;
+      doctorId?: string;
+      doctorName?: string;
+      patientId?: string;
       items: Array<{
         id?: string;
         medicine: string;
@@ -2129,6 +2138,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       result = { feeApproval, invoice };
     }
 
+    const patient = patients.find((p) => p.id === data.patientId);
+    const enrichedInvoice: Invoice = {
+      ...result.invoice,
+      patientId: result.invoice.patientId || data.patientId,
+      patientName: result.invoice.patientName || (data as any).patientName || patient?.name || 'Patient',
+      doctorName: result.invoice.doctorName || (data as any).doctorName || 'Consulting Doctor',
+      subtotal: result.invoice.subtotal || result.invoice.total || 0,
+      total: result.invoice.total || 0,
+      balance: result.invoice.balance !== undefined ? result.invoice.balance : result.invoice.total || 0
+    };
+    result.invoice = enrichedInvoice;
+
     setFeeApprovals((prev) => [result.feeApproval, ...prev]);
     setInvoices((prev) => [result.invoice, ...prev.filter((i) => i.id !== result.invoice.id)]);
     if (result.visit) {
@@ -2162,6 +2183,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const createPrescription = async (data: {
     visitId: string;
     patientId: string;
+    patientName?: string;
+    patientOpNumber?: string;
+    doctorId?: string;
+    doctorName?: string;
     items: Array<{
       medicine: string;
       dosage: string;
@@ -2187,10 +2212,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         id: rxId,
         visitId: data.visitId,
         patientId: data.patientId,
-        patientName: patient?.name || 'Patient',
-        patientOpNumber: patient?.opNumber || 'OP-TEMP',
-        doctorId: visit?.doctorId || 'doc-1',
-        doctorName: visit?.doctorName || 'Consulting Doctor',
+        patientName: data.patientName || patient?.name || 'Patient',
+        patientOpNumber: data.patientOpNumber || patient?.opNumber || 'OP-TEMP',
+        doctorId: data.doctorId || visit?.doctorId || 'doc-1',
+        doctorName: data.doctorName || visit?.doctorName || 'Consulting Doctor',
         date: nowIso.split('T')[0],
         diagnosis: data.diagnosis || visit?.diagnosis || 'Dental Examination',
         doctorNotes: data.doctorNotes || '',
@@ -2217,6 +2242,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       result = { prescription, visit: updatedVisit };
     }
+
+    // Ensure prescription has all vital metadata non-null
+    const patient = patients.find((p) => p.id === data.patientId);
+    const visit = visits.find((v) => v.id === data.visitId);
+    const enrichedPrescription: PrescriptionRecord = {
+      ...result.prescription,
+      patientId: result.prescription.patientId || data.patientId,
+      patientName: result.prescription.patientName || data.patientName || patient?.name || 'Patient',
+      patientOpNumber: result.prescription.patientOpNumber || data.patientOpNumber || patient?.opNumber || 'OP-TEMP',
+      doctorId: result.prescription.doctorId || data.doctorId || visit?.doctorId || 'doc-1',
+      doctorName: result.prescription.doctorName || data.doctorName || visit?.doctorName || 'Consulting Doctor',
+      diagnosis: result.prescription.diagnosis || data.diagnosis || visit?.diagnosis || 'Dental Examination',
+      doctorNotes: result.prescription.doctorNotes || data.doctorNotes || '',
+      followUpDate: result.prescription.followUpDate || data.followUpDate
+    };
+    result.prescription = enrichedPrescription;
 
     setPrescriptions((prev) => {
       const next = [result.prescription, ...prev.filter((p) => p.id !== result.prescription.id)];
@@ -2277,6 +2318,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updatePrescription = async (
     id: string,
     data: {
+      patientName?: string;
+      patientOpNumber?: string;
+      doctorId?: string;
+      doctorName?: string;
+      patientId?: string;
       items: Array<{
         id?: string;
         medicine: string;
@@ -2298,6 +2344,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const existing = prescriptions.find((p) => p.id === id);
       const updatedPrescription: PrescriptionRecord = existing ? {
         ...existing,
+        patientName: data.patientName || existing.patientName || 'Patient',
+        patientOpNumber: data.patientOpNumber || existing.patientOpNumber || 'OP-TEMP',
+        doctorId: data.doctorId || existing.doctorId || 'doc-1',
+        doctorName: data.doctorName || existing.doctorName || 'Consulting Doctor',
         diagnosis: data.diagnosis !== undefined ? data.diagnosis : existing.diagnosis,
         doctorNotes: data.doctorNotes !== undefined ? data.doctorNotes : existing.doctorNotes,
         followUpDate: data.followUpDate !== undefined ? data.followUpDate : existing.followUpDate,
@@ -2313,11 +2363,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } : {
         id,
         visitId: 'VIS-TEMP',
-        patientId: 'PAT-TEMP',
-        patientName: 'Patient',
-        patientOpNumber: 'OP-TEMP',
-        doctorId: 'doc-1',
-        doctorName: 'Consulting Doctor',
+        patientId: data.patientId || 'PAT-TEMP',
+        patientName: data.patientName || 'Patient',
+        patientOpNumber: data.patientOpNumber || 'OP-TEMP',
+        doctorId: data.doctorId || 'doc-1',
+        doctorName: data.doctorName || 'Consulting Doctor',
         date: new Date().toISOString().split('T')[0],
         diagnosis: data.diagnosis || 'Clinical Dental Evaluation',
         doctorNotes: data.doctorNotes || '',
@@ -2334,6 +2384,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
       result = { prescription: updatedPrescription };
     }
+
+    const existing = prescriptions.find((p) => p.id === id);
+    const enrichedPrescription: PrescriptionRecord = {
+      ...result.prescription,
+      patientId: result.prescription.patientId || data.patientId || existing?.patientId || 'PAT-TEMP',
+      patientName: result.prescription.patientName || data.patientName || existing?.patientName || 'Patient',
+      patientOpNumber: result.prescription.patientOpNumber || data.patientOpNumber || existing?.patientOpNumber || 'OP-TEMP',
+      doctorId: result.prescription.doctorId || data.doctorId || existing?.doctorId || 'doc-1',
+      doctorName: result.prescription.doctorName || data.doctorName || existing?.doctorName || 'Consulting Doctor',
+      diagnosis: result.prescription.diagnosis || data.diagnosis || existing?.diagnosis || 'Dental Examination',
+      doctorNotes: result.prescription.doctorNotes || data.doctorNotes || existing?.doctorNotes || '',
+      followUpDate: result.prescription.followUpDate || data.followUpDate || existing?.followUpDate
+    };
+    result.prescription = enrichedPrescription;
 
     setPrescriptions((prev) => {
       const next = prev.map((p) => (p.id === id ? result.prescription : p));
@@ -2885,6 +2949,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       discountValue: discount,
       discountReason: discount > 0 ? (data.notes || 'Standard approved clinic billing concession') : 'None'
     });
+
+    const finalInvoice: Invoice = {
+      ...result.invoice,
+      patientId: result.invoice.patientId || data.patientId,
+      patientName: result.invoice.patientName || data.patientName || 'Patient',
+      doctorName: result.invoice.doctorName || data.doctorName || 'Consulting Doctor',
+      subtotal: result.invoice.subtotal || subtotal,
+      discount: result.invoice.discount !== undefined ? result.invoice.discount : discount,
+      tax: result.invoice.tax !== undefined ? result.invoice.tax : tax,
+      total: result.invoice.total || total,
+      balance: result.invoice.balance !== undefined ? result.invoice.balance : total,
+      status: result.invoice.status || 'Pending'
+    };
+    result.invoice = finalInvoice;
 
     setInvoices((prev) => [result.invoice, ...prev.filter((i) => i.id !== result.invoice.id)]);
     setPatients((prev) =>

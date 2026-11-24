@@ -405,6 +405,10 @@ export const apiClient = {
   async createPrescription(data: {
     visitId: string;
     patientId: string;
+    patientName?: string;
+    patientOpNumber?: string;
+    doctorId?: string;
+    doctorName?: string;
     items: Array<{
       medicine: string;
       dosage: string;
@@ -432,6 +436,11 @@ export const apiClient = {
   async updatePrescription(
     id: string,
     data: {
+      patientId?: string;
+      patientName?: string;
+      patientOpNumber?: string;
+      doctorId?: string;
+      doctorName?: string;
       items: Array<{
         id?: string;
         medicine: string;

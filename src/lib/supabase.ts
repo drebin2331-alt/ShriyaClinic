@@ -353,24 +353,29 @@ export const fetchAppointmentsFromDb = async (): Promise<Appointment[]> => {
 };
 
 export const saveAppointmentToDb = async (apt: Appointment): Promise<void> => {
-  if (!isSupabaseAvailable()) return;
+  if (!isSupabaseAvailable() || !apt) return;
+
+  let patientName = apt.patientName?.trim() || 'Patient';
+  let doctorName = apt.doctorName?.trim() || 'Consulting Doctor';
+  let doctorId = apt.doctorId || 'doc-1';
+
   const payload = {
     id: apt.id,
     token_id: apt.tokenId || null,
     patient_id: apt.patientId || null,
-    patient_name: apt.patientName,
-    patient_phone: apt.patientPhone,
+    patient_name: patientName,
+    patient_phone: apt.patientPhone || '0000000000',
     patient_age: apt.patientAge || null,
     patient_gender: apt.patientGender || null,
     patient_email: apt.patientEmail || null,
-    doctor_id: apt.doctorId,
-    doctor_name: apt.doctorName,
-    date: apt.date,
-    time_slot: apt.timeSlot,
+    doctor_id: doctorId,
+    doctor_name: doctorName,
+    date: apt.date || new Date().toISOString().split('T')[0],
+    time_slot: apt.timeSlot || '10:00 AM',
     reason_for_visit: apt.reasonForVisit || null,
     status: apt.status || 'Confirmed',
     appointment_status: apt.appointmentStatus || 'CONFIRMED',
-    amount: apt.amount || 0,
+    amount: Number(apt.amount) || 0,
     notes: apt.notes || null
   };
 
@@ -570,7 +575,28 @@ export const fetchInvoicesFromDb = async (): Promise<Invoice[]> => {
 };
 
 export const saveInvoiceToDb = async (inv: Invoice): Promise<void> => {
-  if (!isSupabaseAvailable()) return;
+  if (!isSupabaseAvailable() || !inv) return;
+
+  let patientName = inv.patientName?.trim();
+  let patientId = inv.patientId;
+  let doctorName = inv.doctorName?.trim();
+
+  // If patientName or doctorName is missing, resolve from localStorage/patients
+  if (!patientName && patientId) {
+    try {
+      const stored = localStorage.getItem('smilecare_patients_list');
+      if (stored) {
+        const patients = JSON.parse(stored);
+        const match = patients.find((p: any) => p.id === patientId);
+        if (match) {
+          patientName = patientName || match.name?.trim();
+        }
+      }
+    } catch { }
+  }
+
+  patientName = patientName || 'Patient';
+  doctorName = doctorName || 'Consulting Doctor';
 
   // Supabase constraint `invoices_status_check` accepts: 'PAID', 'PARTIALLY_PAID', 'UNPAID', 'CANCELLED'
   const dbStatus =
@@ -581,16 +607,16 @@ export const saveInvoiceToDb = async (inv: Invoice): Promise<void> => {
   const payload: Record<string, any> = {
     id: inv.id,
     visit_id: inv.visitId || null,
-    patient_id: inv.patientId,
-    patient_name: inv.patientName,
-    doctor_name: inv.doctorName,
+    patient_id: patientId || null,
+    patient_name: patientName,
+    doctor_name: doctorName,
     items: inv.items || [],
-    subtotal: inv.subtotal,
-    discount: inv.discount || 0,
-    tax: inv.tax || 0,
-    total: inv.total,
-    paid: inv.paid || 0,
-    balance: inv.balance,
+    subtotal: Number(inv.subtotal) || 0,
+    discount: Number(inv.discount) || 0,
+    tax: Number(inv.tax) || 0,
+    total: Number(inv.total) || 0,
+    paid: Number(inv.paid) || 0,
+    balance: Number(inv.balance) || 0,
     status: dbStatus,
     due_date: inv.dueDate || null
   };
@@ -630,19 +656,37 @@ export const fetchPaymentsFromDb = async (): Promise<PaymentRecord[]> => {
 };
 
 export const savePaymentToDb = async (pay: PaymentRecord): Promise<void> => {
-  if (!isSupabaseAvailable()) return;
+  if (!isSupabaseAvailable() || !pay) return;
+
+  let patientName = pay.patientName?.trim();
+  let patientId = pay.patientId;
+
+  if (!patientName && patientId) {
+    try {
+      const stored = localStorage.getItem('smilecare_patients_list');
+      if (stored) {
+        const patients = JSON.parse(stored);
+        const match = patients.find((p: any) => p.id === patientId);
+        if (match) {
+          patientName = patientName || match.name?.trim();
+        }
+      }
+    } catch { }
+  }
+  patientName = patientName || 'Patient';
+
   const payload = {
     id: pay.id,
     invoice_id: pay.invoiceId,
-    patient_id: pay.patientId || null,
-    patient_name: pay.patientName,
-    amount: pay.amount,
-    payment_method: pay.paymentMethod,
+    patient_id: patientId || null,
+    patient_name: patientName,
+    amount: Number(pay.amount) || 0,
+    payment_method: pay.paymentMethod || 'Cash',
     reference_number: pay.referenceNumber || null,
-    receipt_number: pay.receiptNumber,
+    receipt_number: pay.receiptNumber || `REC-${Date.now()}`,
     notes: pay.notes || null,
-    received_by: pay.receivedBy || null,
-    date: pay.date
+    received_by: pay.receivedBy || 'Receptionist',
+    date: pay.date || (pay as any).paymentDate || new Date().toISOString().split('T')[0]
   };
 
   const { error } = await supabase.from('payments').upsert(payload);
@@ -731,13 +775,36 @@ export const fetchPrescriptionsFromDb = async (): Promise<PrescriptionRecord[]> 
 };
 
 export const savePrescriptionToDb = async (rx: PrescriptionRecord): Promise<void> => {
-  if (!isSupabaseAvailable()) return;
+  if (!isSupabaseAvailable() || !rx) return;
+
+  let patientName = rx.patientName?.trim();
+  let patientId = rx.patientId || null;
+  let doctorName = rx.doctorName?.trim();
+
+  // If patientName or doctorName is missing, resolve from localStorage/patients
+  if (!patientName || !doctorName) {
+    try {
+      const stored = localStorage.getItem('smilecare_patients_list');
+      if (stored) {
+        const patients = JSON.parse(stored);
+        const match = patients.find((p: any) => p.id === patientId);
+        if (match) {
+          patientName = patientName || match.name?.trim();
+        }
+      }
+    } catch { }
+  }
+
+  // Safe non-null fallbacks to strictly satisfy PostgreSQL NOT NULL constraints
+  patientName = patientName || 'Patient';
+  doctorName = doctorName || 'Consulting Doctor';
+
   const payload = {
     id: rx.id,
     visit_id: rx.visitId || null,
-    patient_id: rx.patientId,
-    patient_name: rx.patientName,
-    doctor_name: rx.doctorName,
+    patient_id: patientId,
+    patient_name: patientName,
+    doctor_name: doctorName,
     items: rx.items || [],
     diagnosis: rx.diagnosis || null,
     doctor_notes: rx.doctorNotes || null,

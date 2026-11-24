@@ -425,6 +425,11 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
       if (editingRxId) {
         // UPDATE EXISTING PRESCRIPTION
         const result = await updatePrescription(editingRxId, {
+          patientId: finalPatientId,
+          patientName: sheetData.patientName,
+          patientOpNumber: sheetData.patientOpNumber,
+          doctorId: currentDoctorId || 'doc-1',
+          doctorName: sheetData.doctorName,
           items: items.filter((it) => it.medicine.trim()),
           diagnosis,
           doctorNotes,
@@ -436,6 +441,10 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
         const result = await createPrescription({
           visitId: finalVisitId || `vis-${finalPatientId}-${new Date().toISOString().split('T')[0]}`,
           patientId: finalPatientId,
+          patientName: sheetData.patientName,
+          patientOpNumber: sheetData.patientOpNumber,
+          doctorId: currentDoctorId || 'doc-1',
+          doctorName: sheetData.doctorName,
           items: items.filter((it) => it.medicine.trim()),
           diagnosis,
           doctorNotes,
