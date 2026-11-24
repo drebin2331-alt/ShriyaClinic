@@ -403,8 +403,7 @@ const isDemoPatientOrToken = (nameOrToken?: string): boolean => {
 
 const isPhantomToken = (t: QueueToken): boolean => {
   const genericPatient = !t.patientName || t.patientName === 'Patient' || t.patientName === 'PAT-TEMP';
-  const genericDoctor = !t.doctorName || t.doctorName === 'Consulting Doctor';
-  if (genericPatient && genericDoctor) return true;
+  // Only drop synthetic visit-ID tokens (VIS-...) with generic fallback names — never drop real W-/T- tokens
   if (genericPatient && (t.tokenNumber?.startsWith('VIS-') || t.id?.startsWith('VIS-'))) return true;
   return false;
 };

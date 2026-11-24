@@ -177,8 +177,8 @@ export const StaffCheckInView: React.FC = () => {
     const today = new Date().toISOString().split('T')[0];
     const seen = new Set<string>();
     return tokens.filter((t) => {
-      // Exclude phantom fallback tokens
-      if ((!t.patientName || t.patientName === 'Patient') && (!t.doctorName || t.doctorName === 'Consulting Doctor')) {
+      // Exclude synthetic VIS- phantom fallback tokens
+      if ((!t.patientName || t.patientName === 'Patient') && (t.tokenNumber?.startsWith('VIS-') || t.id?.startsWith('VIS-'))) {
         return false;
       }
       // Exclude tokens from past dates
@@ -217,24 +217,28 @@ export const StaffCheckInView: React.FC = () => {
   const checkoutTokensBridge: ClinicVisit[] = tokens
     .filter((t) => {
       if (t.status !== 'Reception Follow-up' || !t.patientId || t.patientId === 'PAT-TEMP') return false;
-      if (!t.patientName || t.patientName === 'Patient') return false;
+      if (t.tokenNumber?.startsWith('VIS-') || t.id?.startsWith('VIS-')) return false;
       if (seenCheckoutPatients.has(t.patientId)) return false;
       seenCheckoutPatients.add(t.patientId);
       return true;
     })
-    .map((t) => ({
-      id: t.visitId || `visit-from-${t.id}`,
-      patientId: t.patientId!,
-      patientName: t.patientName || 'Patient',
-      patientPhone: t.patientPhone,
-      opNumber: t.opNumber || '',
-      doctorId: t.doctorId || '',
-      doctorName: t.doctorName || '',
-      visitDate: t.date || new Date().toISOString().split('T')[0],
-      status: 'Reception Follow-up' as const,
-      tokenId: t.tokenNumber,
-      consultationEndTime: t.completedAt,
-    }));
+    .map((t) => {
+      const realPatient = patients.find((p) => p.id === t.patientId);
+      const realDoctor = doctors.find((d) => d.id === t.doctorId);
+      return {
+        id: t.visitId || `visit-from-${t.id}`,
+        patientId: t.patientId!,
+        patientName: (t.patientName && t.patientName !== 'Patient' ? t.patientName : realPatient?.name) || 'Patient',
+        patientPhone: t.patientPhone || realPatient?.phone,
+        opNumber: t.opNumber || realPatient?.opNumber || '',
+        doctorId: t.doctorId || '',
+        doctorName: (t.doctorName && t.doctorName !== 'Consulting Doctor' ? t.doctorName : realDoctor?.name) || '',
+        visitDate: t.date || new Date().toISOString().split('T')[0],
+        status: 'Reception Follow-up' as const,
+        tokenId: t.tokenNumber,
+        consultationEndTime: t.completedAt,
+      };
+    });
   const checkoutVisits = [...checkoutVisitsFromVisits, ...checkoutTokensBridge];
   const arrivedCount = waitingTokensCount || appointments.filter((a) => a.status === 'Waiting').length;
 

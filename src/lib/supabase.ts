@@ -404,27 +404,39 @@ export const fetchTokensFromDb = async (): Promise<QueueToken[]> => {
     return [];
   }
 
-  return (data || []).map((row: any) => ({
-    id: row.id,
-    tokenNumber: row.token_number,
-    visitId: row.visit_id,
-    appointmentId: row.appointment_id,
-    patientId: row.patient_id,
-    patientName: row.patient_name,
-    patientPhone: row.patient_phone,
-    doctorId: row.doctor_id,
-    doctorName: row.doctor_name,
-    chairId: row.chair_id,
-    status: row.status,
-    priority: row.priority || 'Normal',
-    reasonForVisit: row.reason_for_visit,
-    estimatedWaitMinutes: row.estimated_wait_minutes || 15,
-    calledAt: row.called_at,
-    startedAt: row.started_at,
-    completedAt: row.completed_at,
-    createdAt: row.created_at,
-    date: row.date || (row.created_at && row.created_at.includes('T') ? row.created_at.split('T')[0] : new Date().toISOString().split('T')[0])
-  }));
+  return (data || []).map((row: any) => {
+    const rawReason: string | undefined = row.reason_for_visit || undefined;
+    const isReceptionCheckout =
+      row.status === 'Completed' &&
+      typeof rawReason === 'string' &&
+      rawReason.startsWith('[RECEPTION_CHECKOUT]');
+    const cleanReason =
+      typeof rawReason === 'string'
+        ? rawReason.replace(/^\[RECEPTION_CHECKOUT\]\s*/, '').trim() || undefined
+        : undefined;
+
+    return {
+      id: row.id,
+      tokenNumber: row.token_number,
+      visitId: row.visit_id,
+      appointmentId: row.appointment_id,
+      patientId: row.patient_id,
+      patientName: row.patient_name,
+      patientPhone: row.patient_phone,
+      doctorId: row.doctor_id,
+      doctorName: row.doctor_name,
+      chairId: row.chair_id,
+      status: isReceptionCheckout ? 'Reception Follow-up' : row.status,
+      priority: row.priority || 'Normal',
+      reasonForVisit: cleanReason,
+      estimatedWaitMinutes: row.estimated_wait_minutes || 15,
+      calledAt: row.called_at,
+      startedAt: row.started_at,
+      completedAt: row.completed_at,
+      createdAt: row.created_at,
+      date: row.date || (row.created_at && row.created_at.includes('T') ? row.created_at.split('T')[0] : new Date().toISOString().split('T')[0])
+    };
+  });
 };
 
 export const saveTokenToDb = async (token: QueueToken): Promise<void> => {
@@ -481,9 +493,15 @@ export const saveTokenToDb = async (token: QueueToken): Promise<void> => {
 
   // Map status strictly to PostgreSQL allowed values:
   // ('Waiting', 'Called', 'In Consultation', 'Completed', 'Cancelled', 'On Hold', 'Skipped')
+  // Encode 'Reception Follow-up' in reason_for_visit so Reception user sees it across browsers/reloads!
   let dbStatus: string = token.status;
+  const rawReason = String(token.reasonForVisit || (token as any).reason_for_visit || '')
+    .replace(/^\[RECEPTION_CHECKOUT\]\s*/, '')
+    .trim();
+  let dbReasonForVisit: string | null = rawReason || null;
   if (dbStatus === 'Reception Follow-up') {
     dbStatus = 'Completed';
+    dbReasonForVisit = rawReason ? `[RECEPTION_CHECKOUT] ${rawReason}` : '[RECEPTION_CHECKOUT]';
   } else if (dbStatus === 'Hold') {
     dbStatus = 'On Hold';
   } else if (dbStatus === 'Confirmed') {
@@ -513,7 +531,7 @@ export const saveTokenToDb = async (token: QueueToken): Promise<void> => {
     chair_id: token.chairId || (token as any).chair_id || null,
     status: dbStatus,
     priority: dbPriority,
-    reason_for_visit: token.reasonForVisit || (token as any).reason_for_visit || null,
+    reason_for_visit: dbReasonForVisit,
     estimated_wait_minutes: token.estimatedWaitMinutes || (token as any).estimated_wait_minutes || 15,
     called_at: toValidTimestampTz(token.calledAt || (token as any).called_at, token.date || (token as any).date),
     started_at: toValidTimestampTz(token.startedAt || (token as any).started_at || (token as any).consultationStartedAt, token.date || (token as any).date),
