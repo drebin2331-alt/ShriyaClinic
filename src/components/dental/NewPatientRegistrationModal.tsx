@@ -1,7 +1,8 @@
 import { ModalLayer } from '../common/ModalLayer';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { PatientRecord } from '../../types';
+import { useAuth } from '../../context/AuthContext';
+import { PatientRecord, Doctor } from '../../types';
 import { ClayButton } from '../common/ClayButton';
 import { 
   X, 
@@ -29,17 +30,60 @@ interface NewPatientRegistrationModalProps {
   onClose: () => void;
   onRegisterPatient?: (patient: PatientRecord) => void;
   initialData?: InitialPatientData | null;
+  existingPatientCount?: number;
 }
 
 export const NewPatientRegistrationModal: React.FC<NewPatientRegistrationModalProps> = ({
   isOpen,
   onClose,
   onRegisterPatient,
-  initialData = null
+  initialData = null,
+  existingPatientCount
 }) => {
   const { patients, doctors, registerNewPatient, checkInPatient, setSelectedPatientForDetail, setActiveView, setShouldOpenCaseSheetOnProfile, addToast } = useApp();
+  const { currentUser } = useAuth();
 
   const [submitting, setSubmitting] = useState(false);
+
+  // Fallback doctors list ensuring there is always at least one valid doctor
+  const availableDoctors: Doctor[] = useMemo(() => {
+    if (doctors && doctors.length > 0) {
+      return doctors;
+    }
+    if (currentUser && (currentUser.role === 'doctor' || currentUser.role === 'admin')) {
+      const docName = currentUser.name.startsWith('Dr.') ? currentUser.name : `Dr. ${currentUser.name}`;
+      return [{
+        id: currentUser.doctorId || currentUser.id || 'doc-1',
+        name: docName,
+        title: currentUser.title || 'Dental Surgeon',
+        qualification: 'BDS, MDS',
+        specialization: currentUser.title || 'General Dentistry',
+        experience: '5+ Years',
+        rating: 5.0,
+        reviewsCount: 0,
+        avatar: currentUser.avatar || '',
+        availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+        slots: ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '04:00 PM'],
+        bio: `${docName} — Consulting Dental Surgeon`,
+        roomNumber: 'Cabin 1'
+      }];
+    }
+    return [{
+      id: 'doc-1',
+      name: 'Duty Dental Surgeon',
+      title: 'Consulting Dental Surgeon',
+      qualification: 'BDS',
+      specialization: 'General Dentistry',
+      experience: '5+ Years',
+      rating: 5.0,
+      reviewsCount: 0,
+      avatar: '',
+      availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+      slots: ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '04:00 PM'],
+      bio: 'Duty Dental Surgeon',
+      roomNumber: 'Cabin 1'
+    }];
+  }, [doctors, currentUser]);
 
   // Identity & Demographics (Front Desk Personal Details Only)
   const [name, setName] = useState(initialData?.name || '');
@@ -51,7 +95,12 @@ export const NewPatientRegistrationModal: React.FC<NewPatientRegistrationModalPr
   const [email, setEmail] = useState(initialData?.email || '');
   const [address, setAddress] = useState('');
   const [referralSource, setReferralSource] = useState('');
-  const [assignedDoctorId, setAssignedDoctorId] = useState(initialData?.assignedDoctorId || doctors[0]?.id || 'doc-1');
+
+  const initialDoctorId = initialData?.assignedDoctorId ||
+    (currentUser?.role === 'doctor' ? (currentUser.doctorId || currentUser.id) : undefined) ||
+    availableDoctors[0]?.id ||
+    'doc-1';
+  const [assignedDoctorId, setAssignedDoctorId] = useState(initialDoctorId);
   const [initialReason, setInitialReason] = useState(initialData?.currentComplaint || 'New Patient Examination & Consultation');
 
   // Emergency contact
@@ -80,8 +129,12 @@ export const NewPatientRegistrationModal: React.FC<NewPatientRegistrationModalPr
       if (initialData.gender) setGender(initialData.gender);
       if (initialData.currentComplaint) setInitialReason(initialData.currentComplaint);
       if (initialData.assignedDoctorId) setAssignedDoctorId(initialData.assignedDoctorId);
+    } else if (currentUser?.role === 'doctor') {
+      setAssignedDoctorId(currentUser.doctorId || currentUser.id || availableDoctors[0]?.id || 'doc-1');
+    } else if (availableDoctors.length > 0 && !assignedDoctorId) {
+      setAssignedDoctorId(availableDoctors[0].id);
     }
-  }, [initialData]);
+  }, [initialData, currentUser, availableDoctors]);
 
   // Sync Age and DOB
   const handleDobChange = (newDob: string) => {
@@ -145,7 +198,14 @@ export const NewPatientRegistrationModal: React.FC<NewPatientRegistrationModalPr
     setSubmitting(true);
 
     try {
-      const selectedDoctor = doctors.find((d) => d.id === assignedDoctorId) || doctors[0];
+      const selectedDoctor = availableDoctors.find((d) => d.id === assignedDoctorId) || availableDoctors[0] || {
+        id: assignedDoctorId || 'doc-1',
+        name: currentUser?.role === 'doctor' ? (currentUser.name.startsWith('Dr.') ? currentUser.name : `Dr. ${currentUser.name}`) : 'Duty Dental Surgeon',
+        specialization: 'General Dentistry'
+      };
+
+      const doctorIdToUse = selectedDoctor.id || 'doc-1';
+      const doctorNameToUse = selectedDoctor.name || 'Duty Dental Surgeon';
 
       // Front desk registration (personal info & OP generation)
       const result = await registerNewPatient({
@@ -163,8 +223,8 @@ export const NewPatientRegistrationModal: React.FC<NewPatientRegistrationModalPr
           phone: emergencyPhone.trim(),
           relation: emergencyRelation.trim()
         } : undefined,
-        assignedDoctorId: selectedDoctor.id,
-        assignedDoctorName: selectedDoctor.name,
+        assignedDoctorId: doctorIdToUse,
+        assignedDoctorName: doctorNameToUse,
         reasonForVisit: initialReason.trim() || 'New Patient Examination',
         allowDuplicate: ignoreDuplicateWarning
       });
@@ -175,7 +235,7 @@ export const NewPatientRegistrationModal: React.FC<NewPatientRegistrationModalPr
         try {
           const checkInRes = await checkInPatient({
             patientId: result.patient.id,
-            doctorId: selectedDoctor.id,
+            doctorId: doctorIdToUse,
             reasonForVisit: initialReason.trim() || 'New Patient Examination',
             isWalkIn: true
           });
@@ -193,14 +253,14 @@ export const NewPatientRegistrationModal: React.FC<NewPatientRegistrationModalPr
         patient: result.patient,
         opNumber: result.opNumber,
         tokenNumber: tokenNumber || (autoCheckInAndQueue ? 'Assigned in Queue' : undefined),
-        doctorName: selectedDoctor.name,
+        doctorName: doctorNameToUse,
         isSentToDoctor: autoCheckInAndQueue
       });
 
       if (autoCheckInAndQueue) {
         addToast(
           'Patient Sent to Doctor! 🎟️',
-          `${name.trim()} queued with ${selectedDoctor.name}. Queue Token: ${tokenNumber || 'Active'}. Detailed clinical intake will be conducted inside the Doctor cabin.`,
+          `${name.trim()} queued with ${doctorNameToUse}. Queue Token: ${tokenNumber || 'Active'}. Detailed clinical intake will be conducted inside the Doctor cabin.`,
           'success'
         );
       } else {
@@ -494,7 +554,7 @@ export const NewPatientRegistrationModal: React.FC<NewPatientRegistrationModalPr
                       onChange={(e) => setAssignedDoctorId(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-slate-50 border border-slate-300"
                     >
-                      {doctors.map((d) => (
+                      {availableDoctors.map((d) => (
                         <option key={d.id} value={d.id}>
                           {d.name} — {d.specialization}
                         </option>

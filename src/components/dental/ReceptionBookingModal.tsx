@@ -1,7 +1,8 @@
 import { ModalLayer } from '../common/ModalLayer';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Appointment, PatientRecord } from '../../types';
+import { useAuth } from '../../context/AuthContext';
+import { Appointment, PatientRecord, Doctor } from '../../types';
 import { 
   X, 
   Calendar as CalendarIcon, 
@@ -92,6 +93,44 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
     sendAppointmentWhatsApp, 
     addToast 
   } = useApp();
+  const { currentUser } = useAuth();
+
+  const availableDoctors: Doctor[] = useMemo(() => {
+    if (doctors && doctors.length > 0) return doctors;
+    if (currentUser && (currentUser.role === 'doctor' || currentUser.role === 'admin')) {
+      const docName = currentUser.name.startsWith('Dr.') ? currentUser.name : `Dr. ${currentUser.name}`;
+      return [{
+        id: currentUser.doctorId || currentUser.id || 'doc-1',
+        name: docName,
+        title: currentUser.title || 'Dental Surgeon',
+        qualification: 'BDS, MDS',
+        specialization: currentUser.title || 'General Dentistry',
+        experience: '5+ Years',
+        rating: 5.0,
+        reviewsCount: 0,
+        avatar: currentUser.avatar || '',
+        availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+        slots: ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '04:00 PM'],
+        bio: `${docName} — Consulting Dental Specialist`,
+        roomNumber: 'Cabin 1'
+      }];
+    }
+    return [{
+      id: 'doc-1',
+      name: 'Duty Dental Specialist',
+      title: 'Consulting Dental Surgeon',
+      qualification: 'BDS',
+      specialization: 'General Dentistry',
+      experience: '5+ Years',
+      rating: 5.0,
+      reviewsCount: 0,
+      avatar: '',
+      availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+      slots: ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '04:00 PM'],
+      bio: 'Duty Dental Specialist',
+      roomNumber: 'Cabin 1'
+    }];
+  }, [doctors, currentUser]);
 
   const [mode, setMode] = useState<'new' | 'existing'>('new');
   const [patientSearch, setPatientSearch] = useState('');
@@ -121,18 +160,18 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
         setPhone(initialData.phone || '');
         setEmail(initialData.email || '');
         if (initialData.doctorId) setDoctorId(initialData.doctorId);
-        else if (doctors.length > 0) setDoctorId(doctors[0].id);
+        else if (availableDoctors.length > 0) setDoctorId(availableDoctors[0].id);
         if (initialData.reason) setReason(initialData.reason);
         if (initialData.date) setDate(initialData.date);
         if (initialData.timeSlot) setTimeSlot(initialData.timeSlot);
         setMode('new');
       } else {
-        if (doctors.length > 0 && !doctorId) {
-          setDoctorId(doctors[0].id);
+        if (!doctorId && availableDoctors.length > 0) {
+          setDoctorId(availableDoctors[0].id);
         }
       }
     }
-  }, [isOpen, initialData, doctors]);
+  }, [isOpen, initialData, availableDoctors]);
 
   if (!isOpen) return null;
 
@@ -164,7 +203,7 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
     setDate(targetDate.toISOString().split('T')[0]);
   };
 
-  const selectedDoctorObj = doctors.find((d) => d.id === doctorId) || doctors[0];
+  const selectedDoctorObj = availableDoctors.find((d) => d.id === doctorId) || availableDoctors[0];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,14 +214,15 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      const selectedDoc = doctors.find((d) => d.id === doctorId) || doctors[0];
+      const selectedDoc = availableDoctors.find((d) => d.id === doctorId) || availableDoctors[0];
+      const docIdToUse = selectedDoc?.id || doctorId || 'doc-1';
       const newApt = await addAppointment({
         patientName: patientName.trim(),
         patientPhone: phone.trim(),
         patientEmail: email.trim() || undefined,
         patientAge: age || 28,
         patientGender: gender,
-        doctorId: selectedDoc.id,
+        doctorId: docIdToUse,
         date,
         timeSlot,
         reasonForVisit: reason.trim()
@@ -536,7 +576,7 @@ export const ReceptionBookingModal: React.FC<ReceptionBookingModalProps> = ({
                 </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {doctors.map((doc) => {
+                  {availableDoctors.map((doc) => {
                     const isSelected = doctorId === doc.id;
                     const cabinInfo = doc.roomNumber || (doc as any).cabin || 'Cabin 101';
                     return (

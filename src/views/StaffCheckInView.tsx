@@ -226,7 +226,7 @@ export const StaffCheckInView: React.FC = () => {
     try {
       const res = await checkInPatient({
         patientId: returningPatientTarget.id,
-        doctorId: returningDoctorId,
+        doctorId: returningDoctorId || returningPatientTarget.assignedDoctorId || doctors[0]?.id || 'doc-1',
         priority: returningPriority,
         reasonForVisit: returningReason || 'Regular Consultation',
         isWalkIn: true
@@ -258,7 +258,7 @@ export const StaffCheckInView: React.FC = () => {
         patientPhone: walkInPhone,
         patientAge: parseInt(walkInAge, 10) || 30,
         patientGender: walkInGender,
-        doctorId: walkInDoctorId,
+        doctorId: walkInDoctorId || doctors[0]?.id || 'doc-1',
         reasonForVisit: walkInReason,
         priority: walkInPriority
       });

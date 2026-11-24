@@ -40,7 +40,7 @@ export const IssueTokenModal: React.FC<IssueTokenModalProps> = ({
   // Sync state when patient or open state changes
   useEffect(() => {
     if (patient && isOpen) {
-      setSelectedDoctorId(patient.assignedDoctorId || doctors[0]?.id || 'staff-1792653030970');
+      setSelectedDoctorId(patient.assignedDoctorId || doctors[0]?.id || 'doc-1');
       setPriority('Normal');
       setReason(patient.currentTreatment || 'General Dental Consultation & Examination');
       setIssuedToken(null);
@@ -79,7 +79,7 @@ export const IssueTokenModal: React.FC<IssueTokenModalProps> = ({
     try {
       const res = await checkInPatient({
         patientId: patient.id,
-        doctorId: selectedDoctorId || patient.assignedDoctorId || doctors[0]?.id || 'staff-1792653030970',
+        doctorId: selectedDoctorId || patient.assignedDoctorId || doctors[0]?.id || 'doc-1',
         priority,
         reasonForVisit: reason.trim() || 'General Dental Consultation & Examination',
         appointmentId: todayApt?.id,
@@ -249,11 +249,17 @@ export const IssueTokenModal: React.FC<IssueTokenModalProps> = ({
                 required
                 className="w-full px-3 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 cursor-pointer text-xs"
               >
-                {doctors.map((doc) => (
-                  <option key={doc.id} value={doc.id}>
-                    {doc.name} ({doc.specialty || doc.specialization || 'Dental Specialist'})
+                {doctors.length > 0 ? (
+                  doctors.map((doc) => (
+                    <option key={doc.id} value={doc.id}>
+                      {doc.name} ({doc.specialty || doc.specialization || 'Dental Specialist'})
+                    </option>
+                  ))
+                ) : (
+                  <option value={selectedDoctorId || 'doc-1'}>
+                    {patient.assignedDoctorName || 'Duty Dental Surgeon (General Dentistry)'}
                   </option>
-                ))}
+                )}
               </select>
             </div>
 

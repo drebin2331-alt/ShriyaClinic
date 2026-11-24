@@ -1247,7 +1247,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     reasonForVisit: string;
     amount?: number;
   }): Promise<Appointment> => {
-    const doc = doctors.find((d) => d.id === data.doctorId) || doctors[0];
+    const doc = doctors.find((d) => d.id === data.doctorId) || doctors[0] || {
+      id: data.doctorId || 'doc-1',
+      name: 'Duty Dental Surgeon',
+      specialization: 'General Dentistry'
+    };
     const generatedAptId = `APT-2026-${Math.floor(100000 + Math.random() * 900000)}`;
 
     let patient = patients.find(
