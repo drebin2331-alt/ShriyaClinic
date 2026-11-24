@@ -307,7 +307,8 @@ export const PatientManagementView: React.FC = () => {
                                       (t.patientName && patient.name && t.patientName.toLowerCase() === patient.name.toLowerCase()) ||
                                       (num && t.patientPhone && t.patientPhone.replace(/\D/g, '') === num)) &&
                                     t.status !== 'Completed' &&
-                                    t.status !== 'Cancelled'
+                                    t.status !== 'Cancelled' &&
+                                    t.status !== 'Reception Follow-up'
                                 );
                                 if (activeToken) {
                                   return (

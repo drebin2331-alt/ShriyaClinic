@@ -2094,11 +2094,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     if (result.token) {
+      // Build the canonical merged token, preferring the real local token's id/tokenNumber
       const mergedToken: QueueToken = {
         ...(primaryToken || {}),
         ...result.token,
-        id: targetTokenId || primaryToken?.id || result.token.id,
-        tokenNumber: targetTokenNumber || primaryToken?.tokenNumber || result.token.tokenNumber,
+        // Always keep the real local identifiers so we don't create a phantom new entry
+        id: primaryToken?.id || targetTokenId || result.token.id,
+        tokenNumber: primaryToken?.tokenNumber || targetTokenNumber || result.token.tokenNumber,
         patientName: targetPatientName || result.token.patientName || 'Patient',
         patientId: targetPatientId || result.token.patientId || 'PAT-TEMP',
         doctorId: targetDoctorId || result.token.doctorId || 'doc-1',
@@ -2108,15 +2110,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
 
       setTokens((prev) => {
+        // De-duplicate: replace all matching tokens (by id OR tokenNumber) with the merged one
+        const updatedIds = new Set<string>();
         const next = prev.map((t) => {
-          const isMatch = (primaryToken && (t.id === primaryToken.id || t.tokenNumber === primaryToken.tokenNumber)) ||
+          const isMatch =
+            (primaryToken && (t.id === primaryToken.id || t.tokenNumber === primaryToken.tokenNumber)) ||
             matchingTokens.some((mt) => mt.id === t.id || mt.tokenNumber === t.tokenNumber) ||
-            t.id === mergedToken.id || t.tokenNumber === mergedToken.tokenNumber;
+            t.id === mergedToken.id ||
+            t.tokenNumber === mergedToken.tokenNumber;
           if (isMatch) {
-            return mergedToken;
+            if (!updatedIds.has(mergedToken.id)) {
+              updatedIds.add(mergedToken.id);
+              return mergedToken;
+            }
+            // Skip duplicate — filter it out by returning null, then we filter below
+            return null;
           }
           return t;
-        });
+        }).filter(Boolean) as typeof prev;
+
         if (!next.some((t) => t.id === mergedToken.id || t.tokenNumber === mergedToken.tokenNumber)) {
           next.unshift(mergedToken);
         }

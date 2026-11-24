@@ -120,7 +120,12 @@ export const TokenControlView: React.FC = () => {
       return a.createdAt.localeCompare(b.createdAt);
     });
 
-  const followUpQueue = activeTokens.filter((t) => t.status === 'Reception Follow-up');
+  // Deduplicate followUpQueue: same patient should appear only once (keep the most recent)
+  const followUpQueueRaw = activeTokens.filter((t) => t.status === 'Reception Follow-up');
+  const followUpQueue = followUpQueueRaw.filter((t, idx, arr) => {
+    const key = t.patientId || t.patientName?.toLowerCase() || t.tokenNumber;
+    return arr.findIndex((x) => (x.patientId || x.patientName?.toLowerCase() || x.tokenNumber) === key) === idx;
+  });
   const completedQueue = activeTokens.filter((t) => t.status === 'Completed');
 
   const handleOpenPatientProfile = (patientId: string, forceOpenIntake = false) => {
