@@ -393,6 +393,11 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
       resolvedVisit?.id ||
       targetVisitId ||
       (finalPatientId ? `vis-${finalPatientId}-${new Date().toISOString().split('T')[0]}` : undefined);
+    const finalDoctorId =
+      resolvedVisit?.doctorId ||
+      resolvedPatient?.assignedDoctorId ||
+      currentUser?.id ||
+      'doc-1';
 
     if (!finalPatientId) {
       addToast('Error', 'Missing patient record for prescription.', 'danger');
@@ -428,7 +433,7 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
           patientId: finalPatientId,
           patientName: sheetData.patientName,
           patientOpNumber: sheetData.patientOpNumber,
-          doctorId: currentDoctorId || 'doc-1',
+          doctorId: finalDoctorId,
           doctorName: sheetData.doctorName,
           items: items.filter((it) => it.medicine.trim()),
           diagnosis,
@@ -443,7 +448,7 @@ export const DoctorPrescriptionModal: React.FC<DoctorPrescriptionModalProps> = (
           patientId: finalPatientId,
           patientName: sheetData.patientName,
           patientOpNumber: sheetData.patientOpNumber,
-          doctorId: currentDoctorId || 'doc-1',
+          doctorId: finalDoctorId,
           doctorName: sheetData.doctorName,
           items: items.filter((it) => it.medicine.trim()),
           diagnosis,
