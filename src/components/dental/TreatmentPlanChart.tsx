@@ -29,7 +29,6 @@ interface TreatmentPlanChartProps {
   onDeleteTreatmentPlan: (id: string) => void;
   onEditTreatmentPlan?: (item: TreatmentPlanItem) => void;
   onNavigateToBilling?: () => void;
-  onApproveFees?: () => void;
   doctorName?: string;
   patientId: string;
 }
@@ -43,7 +42,6 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
   onDeleteTreatmentPlan,
   onEditTreatmentPlan,
   onNavigateToBilling,
-  onApproveFees,
   doctorName = 'Consulting Doctor',
   patientId
 }) => {
@@ -304,14 +302,14 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {(onApproveFees || onNavigateToBilling) && treatmentPlans.length > 0 && (
+            {onNavigateToBilling && treatmentPlans.length > 0 && (
               <ClayButton
-                variant="primary"
+                variant="secondary"
                 size="sm"
-                onClick={onApproveFees || onNavigateToBilling}
-                icon={<DollarSign className="w-4 h-4" />}
+                onClick={onNavigateToBilling}
+                icon={<DollarSign className="w-4 h-4 text-emerald-600" />}
               >
-                Approve & Bill to Ledger
+                Bill treatments
               </ClayButton>
             )}
             <ClayButton
