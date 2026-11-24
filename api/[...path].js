@@ -188,7 +188,7 @@ export default function handler(req, res) {
         outstandingBalance: 0,
         ...body
       };
-      return res.status(201).json({ patient });
+      return res.status(201).json({ patient, opNumber: patient.opNumber });
     }
     if (req.method === 'PUT' && parts[1]) {
       return res.status(200).json({ patient: { id: parts[1], ...body } });

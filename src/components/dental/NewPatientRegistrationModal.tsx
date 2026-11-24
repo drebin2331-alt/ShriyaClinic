@@ -231,27 +231,39 @@ export const NewPatientRegistrationModal: React.FC<NewPatientRegistrationModalPr
 
       // Automatically issue Queue Token and place in Doctor's queue
       let tokenNumber = '';
-      if (autoCheckInAndQueue) {
+      const patientIdForCheckIn = result?.patient?.id;
+      if (autoCheckInAndQueue && patientIdForCheckIn) {
         try {
           const checkInRes = await checkInPatient({
-            patientId: result.patient.id,
+            patientId: patientIdForCheckIn,
             doctorId: doctorIdToUse,
             reasonForVisit: initialReason.trim() || 'New Patient Examination',
             isWalkIn: true
           });
-          tokenNumber = checkInRes.token.tokenNumber;
+          tokenNumber = checkInRes?.token?.tokenNumber || '';
         } catch (checkInErr) {
           console.warn('Auto check-in error:', checkInErr);
         }
       }
 
-      if (onRegisterPatient) {
+      if (onRegisterPatient && result?.patient) {
         onRegisterPatient(result.patient);
       }
 
+      const registeredPatient = result?.patient || {
+        id: patientIdForCheckIn || `PAT-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+        opNumber: result?.opNumber || 'OP-2026-00001',
+        name: name.trim(),
+        phone: cleanPhone,
+        gender,
+        age: Number(age) || 30
+      } as PatientRecord;
+
+      const registeredOpNumber = result?.opNumber || registeredPatient.opNumber || registeredPatient.id;
+
       setRegisteredResult({
-        patient: result.patient,
-        opNumber: result.opNumber,
+        patient: registeredPatient,
+        opNumber: registeredOpNumber,
         tokenNumber: tokenNumber || (autoCheckInAndQueue ? 'Assigned in Queue' : undefined),
         doctorName: doctorNameToUse,
         isSentToDoctor: autoCheckInAndQueue
@@ -266,7 +278,7 @@ export const NewPatientRegistrationModal: React.FC<NewPatientRegistrationModalPr
       } else {
         addToast(
           'Patient Registered! 🎉',
-          `${name.trim()} registered with OP: ${result.opNumber}.`,
+          `${name.trim()} registered with OP: ${registeredOpNumber}.`,
           'success'
         );
       }

@@ -1134,8 +1134,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     try {
       const result = await apiClient.registerPatient(data);
-      resultPatient = result.patient;
-      opNumber = result.opNumber;
+      resultPatient = result?.patient || (result as any);
+      opNumber = result?.opNumber || resultPatient?.opNumber || resultPatient?.id || `OP-2026-${String(patients.length + 1).padStart(5, '0')}`;
+      if (!resultPatient || !resultPatient.id) {
+        throw new Error('API did not return a valid patient record');
+      }
     } catch (e) {
       // Direct local/Supabase creation
       const count = patients.length + 1;
@@ -1184,7 +1187,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     await savePatientToDb(resultPatient);
-    setPatients((prev) => [resultPatient, ...prev.filter((p) => p.id !== resultPatient.id)]);
+    setPatients((prev) => [resultPatient, ...prev.filter((p) => p && p.id && p.id !== resultPatient.id)]);
     setSelectedPatientForDetail(resultPatient);
     notifyCrossTabSync();
     addToast('New Patient Registered! 🎉', `${resultPatient.name} (${opNumber}) registered successfully.`, 'success');
@@ -1194,13 +1197,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addPatient = async (newPat: PatientRecord): Promise<PatientRecord> => {
     try {
       await savePatientToDb(newPat);
-      setPatients((prev) => [newPat, ...prev.filter((p) => p.id !== newPat.id)]);
+      setPatients((prev) => [newPat, ...prev.filter((p) => p && p.id && p.id !== newPat.id)]);
       setSelectedPatientForDetail(newPat);
       notifyCrossTabSync();
       addToast('Patient Saved', `${newPat.name} saved to database.`, 'success');
       return newPat;
     } catch (err: any) {
-      setPatients((prev) => [newPat, ...prev.filter((p) => p.id !== newPat.id)]);
+      setPatients((prev) => [newPat, ...prev.filter((p) => p && p.id && p.id !== newPat.id)]);
       setSelectedPatientForDetail(newPat);
       addToast('Saved Locally', `${newPat.name} saved in current session.`, 'info');
       return newPat;

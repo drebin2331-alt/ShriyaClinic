@@ -110,7 +110,6 @@ export const Header: React.FC<HeaderProps> = ({
   const handleNavClick = (view: ViewMode) => {
     setActiveView(view);
     setMobileMenuOpen(false);
-    setQuickActionOpen(false);
   };
 
   const handleAdminRoute = () => {
