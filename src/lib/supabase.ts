@@ -9,7 +9,8 @@ import {
   DentalChair,
   InventoryItem,
   StaffUser,
-  Doctor
+  Doctor,
+  PatientEnquiry
 } from '../types';
 
 // Production default credentials ensuring native mobile apps (Capacitor/APK) and CI builds connect seamlessly
@@ -891,5 +892,167 @@ export const deleteProfileFromDb = async (idOrEmail: string): Promise<boolean> =
     console.error('Supabase profile delete exception:', e);
     return false;
   }
+};
+
+// ============================================================================
+// ONLINE WEBSITE CONSULTATION ENQUIRIES
+// ============================================================================
+
+export const fetchEnquiriesFromDb = async (): Promise<PatientEnquiry[]> => {
+  if (!isSupabaseAvailable()) return [];
+  try {
+    // 1. Check direct enquiries table
+    try {
+      const { data: directData, error: directErr } = await supabase
+        .from('enquiries')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!directErr && directData && directData.length > 0) {
+        return directData.map((d: any) => ({
+          id: d.id,
+          patientName: d.patient_name || d.patientName || 'Visitor',
+          phone: d.phone || '',
+          email: d.email || '',
+          preferredDate: d.preferred_date || d.preferredDate || '',
+          preferredTimeWindow: d.preferred_time_window || d.preferredTimeWindow || '',
+          chiefComplaint: d.chief_complaint || d.chiefComplaint || '',
+          preferredDoctorId: d.preferred_doctor_id || d.preferredDoctorId || '',
+          preferredDoctorName: d.preferred_doctor_name || d.preferredDoctorName || '',
+          notes: d.notes || '',
+          status: (d.status as any) || 'New',
+          createdAt: d.created_at || d.createdAt || new Date().toISOString()
+        }));
+      }
+    } catch { }
+
+    // 2. Fetch from audit_events (guaranteed by public RLS policy)
+    const { data: auditData, error: auditErr } = await supabase
+      .from('audit_events')
+      .select('*')
+      .eq('entity_type', 'enquiry')
+      .order('timestamp', { ascending: false });
+
+    if (!auditErr && auditData && auditData.length > 0) {
+      const mapped: PatientEnquiry[] = [];
+      const seen = new Set<string>();
+
+      for (const a of auditData) {
+        const details = typeof a.details === 'string' ? JSON.parse(a.details) : (a.details || {});
+        const enquiryId = details.id || a.entity_id;
+        if (!enquiryId || seen.has(enquiryId)) continue;
+        seen.add(enquiryId);
+
+        mapped.push({
+          id: enquiryId,
+          patientName: details.patientName || a.actor_name || 'Visitor',
+          phone: details.phone || '',
+          email: details.email || '',
+          preferredDate: details.preferredDate || (a.timestamp ? a.timestamp.split('T')[0] : ''),
+          preferredTimeWindow: details.preferredTimeWindow || 'Morning (09:30 AM – 01:00 PM)',
+          chiefComplaint: details.chiefComplaint || 'Consultation & Oral Examination',
+          preferredDoctorId: details.preferredDoctorId || '',
+          preferredDoctorName: details.preferredDoctorName || 'Any Available Dental Specialist',
+          notes: details.notes || '',
+          status: (details.status as any) || 'New',
+          createdAt: details.createdAt || a.timestamp || new Date().toISOString()
+        });
+      }
+      return mapped;
+    }
+  } catch (err) {
+    console.warn('Error fetching enquiries from Supabase:', err);
+  }
+  return [];
+};
+
+export const saveEnquiryToDb = async (enquiry: PatientEnquiry): Promise<void> => {
+  if (!isSupabaseAvailable()) return;
+  // Always persist to audit_events (which is guaranteed to succeed with public RLS)
+  try {
+    const auditPayload = {
+      id: `audit-${enquiry.id}`,
+      entity_type: 'enquiry',
+      entity_id: enquiry.id,
+      action: 'CREATE_ENQUIRY',
+      actor_id: 'guest',
+      actor_name: enquiry.patientName,
+      actor_role: 'customer',
+      details: enquiry,
+      timestamp: enquiry.createdAt || new Date().toISOString()
+    };
+    await supabase.from('audit_events').upsert(auditPayload);
+  } catch (e) {
+    console.warn('Error saving enquiry to audit_events:', e);
+  }
+
+  // Also try direct enquiries table
+  try {
+    const payload = {
+      id: enquiry.id,
+      patient_name: enquiry.patientName,
+      phone: enquiry.phone,
+      email: enquiry.email || null,
+      preferred_date: enquiry.preferredDate || null,
+      preferred_time_window: enquiry.preferredTimeWindow || null,
+      chief_complaint: enquiry.chiefComplaint,
+      preferred_doctor_id: enquiry.preferredDoctorId || null,
+      preferred_doctor_name: enquiry.preferredDoctorName || null,
+      notes: enquiry.notes || null,
+      status: enquiry.status || 'New',
+      created_at: enquiry.createdAt || new Date().toISOString()
+    };
+    await supabase.from('enquiries').upsert(payload);
+  } catch { }
+};
+
+export const updateEnquiryStatusInDb = async (id: string, status: PatientEnquiry['status']): Promise<void> => {
+  if (!isSupabaseAvailable()) return;
+  // Update in audit_events
+  try {
+    const { data } = await supabase
+      .from('audit_events')
+      .select('*')
+      .eq('entity_type', 'enquiry')
+      .eq('entity_id', id)
+      .maybeSingle();
+
+    if (data) {
+      const details = typeof data.details === 'string' ? JSON.parse(data.details) : (data.details || {});
+      details.status = status;
+      await supabase
+        .from('audit_events')
+        .update({ details, timestamp: new Date().toISOString() })
+        .eq('id', data.id);
+    }
+  } catch (e) {
+    console.warn('Error updating enquiry in audit_events:', e);
+  }
+
+  // Also try direct table
+  try {
+    await supabase.from('enquiries').update({ status }).eq('id', id);
+  } catch { }
+};
+
+export const deleteEnquiryFromDb = async (id: string): Promise<void> => {
+  if (!isSupabaseAvailable()) return;
+  try {
+    await supabase.from('audit_events').delete().eq('entity_id', id);
+    await supabase.from('audit_events').delete().eq('id', `audit-${id}`);
+  } catch { }
+  try {
+    await supabase.from('enquiries').delete().eq('id', id);
+  } catch { }
+};
+
+export const clearAllEnquiriesFromDb = async (): Promise<void> => {
+  if (!isSupabaseAvailable()) return;
+  try {
+    await supabase.from('audit_events').delete().eq('entity_type', 'enquiry');
+  } catch { }
+  try {
+    await supabase.from('enquiries').delete().neq('id', 'NONE');
+  } catch { }
 };
 

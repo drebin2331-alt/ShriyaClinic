@@ -8,6 +8,8 @@ export default function handler(req, res) {
     return res.status(200).end();
   }
 
+  global.__GLOBAL_ENQUIRIES__ = global.__GLOBAL_ENQUIRIES__ || [];
+
   const data = {
     patients: [],
     tokens: [],
@@ -17,7 +19,7 @@ export default function handler(req, res) {
     prescriptions: [],
     feeApprovals: [],
     appointments: [],
-    enquiries: [],
+    enquiries: global.__GLOBAL_ENQUIRIES__,
     auditEvents: [],
     serverTime: new Date().toISOString()
   };

@@ -198,23 +198,32 @@ export default function handler(req, res) {
 
   // 5. Enquiries
   if (pathStr.startsWith('enquiries')) {
+    global.__GLOBAL_ENQUIRIES__ = global.__GLOBAL_ENQUIRIES__ || [];
     const parts = pathStr.split('/');
     if (req.method === 'POST') {
       const enquiry = {
-        id: `ENQ-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-        createdAt: nowIso,
+        id: body.id || `ENQ-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+        createdAt: body.createdAt || nowIso,
         status: 'New',
         ...body
       };
+      global.__GLOBAL_ENQUIRIES__ = [enquiry, ...global.__GLOBAL_ENQUIRIES__.filter((e) => e.id !== enquiry.id)];
       return res.status(201).json(enquiry);
     }
-    if (req.method === 'PUT' && parts[1]) {
-      return res.status(200).json({ enquiry: { id: parts[1], ...body } });
+    if ((req.method === 'PUT' || req.method === 'PATCH') && parts[1]) {
+      const id = parts[1];
+      global.__GLOBAL_ENQUIRIES__ = global.__GLOBAL_ENQUIRIES__.map((e) => (e.id === id ? { ...e, ...body } : e));
+      return res.status(200).json({ enquiry: { id, ...body } });
     }
     if (req.method === 'DELETE') {
-      return res.status(200).json({ success: true, message: 'Enquiries cleared' });
+      if (parts[1]) {
+        global.__GLOBAL_ENQUIRIES__ = global.__GLOBAL_ENQUIRIES__.filter((e) => e.id !== parts[1]);
+      } else {
+        global.__GLOBAL_ENQUIRIES__ = [];
+      }
+      return res.status(200).json({ success: true, message: 'Enquiries updated' });
     }
-    return res.status(200).json({ enquiries: [] });
+    return res.status(200).json({ enquiries: global.__GLOBAL_ENQUIRIES__ });
   }
 
   // 6. Prescriptions

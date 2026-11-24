@@ -78,7 +78,12 @@ import {
   deleteProfileFromDb,
   fetchPrescriptionsFromDb,
   savePrescriptionToDb,
-  deletePrescriptionFromDb
+  deletePrescriptionFromDb,
+  fetchEnquiriesFromDb,
+  saveEnquiryToDb,
+  updateEnquiryStatusInDb,
+  deleteEnquiryFromDb,
+  clearAllEnquiriesFromDb
 } from '../lib/supabase';
 import { safeSetItem } from '../utils/safeStorage';
 
@@ -875,10 +880,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       if (data.auditEvents) setAuditEvents(data.auditEvents);
 
-      // Sync enquiries from backend
-      if (data.enquiries && Array.isArray(data.enquiries)) {
-        setEnquiries(() => {
-          const merged = [...data.enquiries!].sort(
+      // Sync enquiries from backend (Additive only - NEVER wipe with empty array)
+      if (data.enquiries && Array.isArray(data.enquiries) && data.enquiries.length > 0) {
+        setEnquiries((prev) => {
+          const map = new Map<string, PatientEnquiry>();
+          (prev || []).forEach((e) => map.set(e.id, e));
+          (data.enquiries || []).forEach((e) => map.set(e.id, e));
+          const merged = Array.from(map.values()).sort(
             (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
           safeSetItem('smilecare_enquiries_list', JSON.stringify(merged));
@@ -900,14 +908,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 2. Secondary Supabase Cloud Synchronization (Additive only — NEVER destructive)
     if (await probeSupabaseAvailability()) {
       try {
-        const [dbPatients, dbAppointments, dbTokens, dbInvoices, dbPayments, dbChairs, dbProfiles] = await Promise.allSettled([
+        const [dbPatients, dbAppointments, dbTokens, dbInvoices, dbPayments, dbChairs, dbProfiles, dbEnquiries] = await Promise.allSettled([
           fetchPatientsFromDb(),
           fetchAppointmentsFromDb(),
           fetchTokensFromDb(),
           fetchInvoicesFromDb(),
           fetchPaymentsFromDb(),
           fetchChairsFromDb(),
-          fetchProfilesFromDb()
+          fetchProfilesFromDb(),
+          fetchEnquiriesFromDb()
         ]);
 
         // Sync patients directly from Supabase
@@ -943,6 +952,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const cleanPayments = (dbPayments.value || []).filter((p) => !isDemoPatientOrToken(p.patientName));
           setPayments(cleanPayments);
           safeSetItem('smilecare_payments_list', JSON.stringify(cleanPayments));
+        }
+
+        // Sync online enquiries directly from Supabase
+        if (dbEnquiries.status === 'fulfilled' && dbEnquiries.value && dbEnquiries.value.length > 0) {
+          setEnquiries((prev) => {
+            const map = new Map<string, PatientEnquiry>();
+            (prev || []).forEach((e) => map.set(e.id, e));
+            (dbEnquiries.value || []).forEach((e) => map.set(e.id, e));
+            const merged = Array.from(map.values()).sort(
+              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            safeSetItem('smilecare_enquiries_list', JSON.stringify(merged));
+            return merged;
+          });
         }
 
         if (dbChairs.status === 'fulfilled' && dbChairs.value && dbChairs.value.length > 0) {
@@ -1026,6 +1049,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, () => refreshState())
           .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => refreshState())
           .on('postgres_changes', { event: '*', schema: 'public', table: 'dental_chairs' }, () => refreshState())
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_events' }, () => refreshState())
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'enquiries' }, () => refreshState())
           .subscribe((status) => {
             if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
               cleanupRealtime();
@@ -1434,28 +1459,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setEnquiries((prev) => {
-      const updated = [newEnquiry, ...prev];
+      const updated = [newEnquiry, ...prev.filter((e) => e.id !== newEnquiry.id)];
       safeSetItem('smilecare_enquiries_list', JSON.stringify(updated));
       return updated;
     });
+
+    // Save directly to Supabase cloud database so any Receptionist device sees it instantly
+    await saveEnquiryToDb(newEnquiry);
 
     // Also persist to backend JSON database asynchronously
     apiFetch('/api/enquiries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((serverEnquiry) => {
-        if (serverEnquiry && serverEnquiry.id) {
-          setEnquiries((prev) => {
-            const mapped = prev.map((e) => (e.id === newEnquiry.id ? serverEnquiry : e));
-            safeSetItem('smilecare_enquiries_list', JSON.stringify(mapped));
-            return mapped;
-          });
-        }
-      })
-      .catch(() => { });
+      body: JSON.stringify(newEnquiry)
+    }).catch(() => { });
 
     notifyCrossTabSync();
     addToast('Enquiry Received! 📋', `Thank you ${newEnquiry.patientName}. Our reception team will contact you shortly.`, 'success');
@@ -1468,6 +1485,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       safeSetItem('smilecare_enquiries_list', JSON.stringify(updated));
       return updated;
     });
+
+    updateEnquiryStatusInDb(id, status).catch(() => { });
 
     // Also update backend JSON database asynchronously
     apiFetch(`/api/enquiries/${id}`, {
@@ -1486,6 +1505,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return updated;
     });
 
+    deleteEnquiryFromDb(id).catch(() => { });
+
     try {
       await apiFetch(`/api/enquiries/${id}`, { method: 'DELETE' });
     } catch { }
@@ -1497,6 +1518,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const clearAllEnquiries = async () => {
     setEnquiries([]);
     safeSetItem('smilecare_enquiries_list', JSON.stringify([]));
+
+    clearAllEnquiriesFromDb().catch(() => { });
 
     try {
       await apiFetch('/api/enquiries', { method: 'DELETE' });
