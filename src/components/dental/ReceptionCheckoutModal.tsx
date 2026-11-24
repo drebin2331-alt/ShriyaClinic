@@ -294,13 +294,14 @@ export const ReceptionCheckoutModal: React.FC<ReceptionCheckoutModalProps> = ({
   const handleCompleteCheckout = async () => {
     setIsClosing(true);
     try {
-      await closeVisit(currentVisit.id, adminNotes, {
-        patientId: currentPatient?.id,
-        patientName: currentPatient?.name,
-        tokenId: currentVisit?.tokenId,
-        tokenNumber: currentVisit?.tokenId,
-        doctorId: currentVisit?.doctorId,
-        doctorName: currentVisit?.doctorName
+      const targetVisitId = currentVisit?.id || currentVisit?.tokenId || visit?.id || 'VIS-TEMP';
+      await closeVisit(targetVisitId, adminNotes, {
+        patientId: currentPatient?.id || patient?.id,
+        patientName: currentPatient?.name || patient?.name,
+        tokenId: currentVisit?.tokenId || visit?.tokenId,
+        tokenNumber: currentVisit?.tokenId || visit?.tokenId,
+        doctorId: currentVisit?.doctorId || visit?.doctorId,
+        doctorName: currentVisit?.doctorName || visit?.doctorName
       });
       onClose();
     } catch (err: any) {
@@ -696,6 +697,15 @@ export const ReceptionCheckoutModal: React.FC<ReceptionCheckoutModalProps> = ({
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Print Receipt 🖨️</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCompleteCheckout}
+                  disabled={isClosing}
+                  className="px-3 py-1.5 rounded-lg bg-sky-800 hover:bg-sky-900 text-white font-black text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{isClosing ? 'Closing...' : 'Close Encounter Now ✓'}</span>
                 </button>
               </div>
             </div>

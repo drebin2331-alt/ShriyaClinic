@@ -4,6 +4,18 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/api/state",
+      "destination": "/api/state.js"
+    },
+    {
+      "source": "/api/check-in",
+      "destination": "/api/check-in.js"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/handler.js?path=$1"
+    },
+    {
       "source": "/((?!api/|api$).*)",
       "destination": "/index.html"
     }

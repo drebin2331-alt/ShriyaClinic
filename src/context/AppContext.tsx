@@ -2511,9 +2511,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Update visits state and persistent storage
     setVisits((prev) => {
-      const exists = prev.some((v) => v.id === completedVisit.id);
+      const exists = prev.some((v) => v.id === completedVisit.id || (targetTokenId && v.tokenId === targetTokenId));
       const next = exists
-        ? prev.map((v) => (v.id === completedVisit.id ? completedVisit : v))
+        ? prev.map((v) => (v.id === completedVisit.id || (targetTokenId && v.tokenId === targetTokenId) ? completedVisit : v))
         : [completedVisit, ...prev];
       safeSetItem('smilecare_visits_list', JSON.stringify(next));
       return next;
