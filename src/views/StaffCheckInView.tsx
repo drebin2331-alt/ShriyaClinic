@@ -172,13 +172,22 @@ export const StaffCheckInView: React.FC = () => {
     );
   }, [patients, returningSearchTerm]);
 
-  // Today's Active Tokens in Clinic (Filtered strictly by Today's Date)
+  // Today's Active Tokens in Clinic (Filtered strictly by Today's Date, deduplicated by tokenNumber)
   const todayActiveTokens = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
+    const seen = new Set<string>();
     return tokens.filter((t) => {
+      // Exclude phantom fallback tokens
+      if ((!t.patientName || t.patientName === 'Patient') && (!t.doctorName || t.doctorName === 'Consulting Doctor')) {
+        return false;
+      }
       // Exclude tokens from past dates
       const tokenDate = t.date || (t.createdAt && t.createdAt.includes('T') ? t.createdAt.split('T')[0] : today);
       if (tokenDate !== today) return false;
+
+      const dedupKey = t.tokenNumber || t.id;
+      if (seen.has(dedupKey)) return false;
+      seen.add(dedupKey);
 
       const matchesSearch =
         !searchTerm.trim() ||
@@ -195,7 +204,38 @@ export const StaffCheckInView: React.FC = () => {
   ).length;
 
   // Patients waiting for receptionist checkout (Phase 8)
-  const checkoutVisits = visits.filter((v) => v.status === 'Reception Follow-up');
+  // Primary: visits with Reception Follow-up status (deduplicated by patientId)
+  const seenCheckoutPatients = new Set<string>();
+  const checkoutVisitsFromVisits = visits.filter((v) => {
+    if (v.status !== 'Reception Follow-up') return false;
+    if (!v.patientName || v.patientName === 'Patient' || v.patientName === 'PAT-TEMP') return false;
+    if (seenCheckoutPatients.has(v.patientId)) return false;
+    seenCheckoutPatients.add(v.patientId);
+    return true;
+  });
+  // Bridge fallback: tokens in Reception Follow-up whose patient isn't already in a checkout visit
+  const checkoutTokensBridge: ClinicVisit[] = tokens
+    .filter((t) => {
+      if (t.status !== 'Reception Follow-up' || !t.patientId || t.patientId === 'PAT-TEMP') return false;
+      if (!t.patientName || t.patientName === 'Patient') return false;
+      if (seenCheckoutPatients.has(t.patientId)) return false;
+      seenCheckoutPatients.add(t.patientId);
+      return true;
+    })
+    .map((t) => ({
+      id: t.visitId || `visit-from-${t.id}`,
+      patientId: t.patientId!,
+      patientName: t.patientName || 'Patient',
+      patientPhone: t.patientPhone,
+      opNumber: t.opNumber || '',
+      doctorId: t.doctorId || '',
+      doctorName: t.doctorName || '',
+      visitDate: t.date || new Date().toISOString().split('T')[0],
+      status: 'Reception Follow-up' as const,
+      tokenId: t.tokenNumber,
+      consultationEndTime: t.completedAt,
+    }));
+  const checkoutVisits = [...checkoutVisitsFromVisits, ...checkoutTokensBridge];
   const arrivedCount = waitingTokensCount || appointments.filter((a) => a.status === 'Waiting').length;
 
   // Open check-in modal

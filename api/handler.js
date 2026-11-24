@@ -117,16 +117,22 @@ export default function handler(req, res) {
   }
 
   if (pathStr.startsWith('consultations/complete')) {
+    // Use the EXACT visitId and tokenId sent by the client so they match local state
     const visitId = body.visitId || body.visitIdOrToken || `VIS-${Date.now()}`;
     const tokenNumber = body.tokenNumber || body.tokenId || visitId;
-    const tokenId = body.tokenId || (body.tokenNumber ? `tok-${body.tokenNumber}` : `tok-${Date.now()}`);
+    // Critical: preserve the caller's tokenId exactly — never generate a new one from tokenNumber
+    const tokenId = body.tokenId || `tok-${Date.now()}`;
+    const todayDate = nowIso.split('T')[0];
     return res.status(200).json({
       visit: {
         id: visitId,
         patientId: body.patientId || 'PAT-TEMP',
         patientName: body.patientName || 'Patient',
+        opNumber: body.opNumber || '',
         doctorId: body.doctorId || 'doc-1',
         doctorName: body.doctorName || 'Consulting Doctor',
+        visitDate: todayDate,
+        date: todayDate,
         status: 'Reception Follow-up',
         consultationEndTime: nowIso,
         diagnosis: body.diagnosis || 'Clinical Dental Evaluation Completed',
@@ -142,6 +148,7 @@ export default function handler(req, res) {
         patientId: body.patientId || 'PAT-TEMP',
         doctorId: body.doctorId || 'doc-1',
         doctorName: body.doctorName || 'Consulting Doctor',
+        date: todayDate,
         status: 'Reception Follow-up',
         completedAt: nowIso
       }

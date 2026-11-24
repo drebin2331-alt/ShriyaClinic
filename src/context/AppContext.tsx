@@ -401,6 +401,49 @@ const isDemoPatientOrToken = (nameOrToken?: string): boolean => {
   );
 };
 
+const isPhantomToken = (t: QueueToken): boolean => {
+  const genericPatient = !t.patientName || t.patientName === 'Patient' || t.patientName === 'PAT-TEMP';
+  const genericDoctor = !t.doctorName || t.doctorName === 'Consulting Doctor';
+  if (genericPatient && genericDoctor) return true;
+  if (genericPatient && (t.tokenNumber?.startsWith('VIS-') || t.id?.startsWith('VIS-'))) return true;
+  return false;
+};
+
+const cleanAndDeduplicateTokens = (list: QueueToken[]): QueueToken[] => {
+  const today = new Date().toISOString().split('T')[0];
+  const statusPriority: Record<string, number> = {
+    'Reception Follow-up': 10, 'In Consultation': 9, 'Called': 8,
+    'Waiting': 7, 'On Hold': 6, 'Completed': 5, 'Cancelled': 1,
+  };
+  const byTokenNumber = new Map<string, QueueToken>();
+
+  for (const raw of list || []) {
+    if (!raw || isDemoPatientOrToken(raw.patientName) || isPhantomToken(raw)) continue;
+    const t: QueueToken =
+      raw.id === 'tok-1794029736556' ||
+      raw.tokenNumber === 'W-002' ||
+      (raw.status === 'Waiting' && raw.date && raw.date < today)
+        ? { ...raw, status: 'Completed' as TokenStatus, completedAt: raw.completedAt || new Date().toISOString() }
+        : raw;
+
+    const key = t.tokenNumber || t.id;
+    if (!key) continue;
+    const existing = byTokenNumber.get(key);
+    if (!existing) {
+      byTokenNumber.set(key, t);
+    } else {
+      const tHasRealName = Boolean(t.patientName && t.patientName !== 'Patient' && t.patientName !== 'PAT-TEMP');
+      const existingHasRealName = Boolean(existing.patientName && existing.patientName !== 'Patient' && existing.patientName !== 'PAT-TEMP');
+      if (tHasRealName && !existingHasRealName) {
+        byTokenNumber.set(key, t);
+      } else if (tHasRealName === existingHasRealName && (statusPriority[t.status] ?? 0) > (statusPriority[existing.status] ?? 0)) {
+        byTokenNumber.set(key, t);
+      }
+    }
+  }
+  return Array.from(byTokenNumber.values());
+};
+
 export const deduplicatePatients = (list: PatientRecord[]): PatientRecord[] => {
   const map = new Map<string, PatientRecord>();
   for (const p of list || []) {
@@ -495,8 +538,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed: ClinicVisit[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          // De-duplicate by id; filter out phantom fallback visits (synthetic VIS-20xx-xxxxx with generic data)
+          const seenIds = new Set<string>();
+          const isPhantomVisit = (v: ClinicVisit) =>
+            (!v.patientName || v.patientName === 'Patient' || v.patientName === 'PAT-TEMP') &&
+            (!v.doctorName || v.doctorName === 'Consulting Doctor') &&
+            (v.id?.startsWith('VIS-20') || v.id?.startsWith('tok-'));
+
           return parsed
-            .filter((v) => !isDemoPatientOrToken(v.patientName))
+            .filter((v) => !isDemoPatientOrToken(v.patientName) && !isPhantomVisit(v))
+            .filter((v) => {
+              if (seenIds.has(v.id)) return false;
+              seenIds.add(v.id);
+              return true;
+            })
             .map((v) => {
               if (v.id === 'VIS-2026-00002' || (v.status === 'Waiting' && v.visitDate && v.visitDate < new Date().toISOString().split('T')[0])) {
                 return { ...v, status: 'Closed' as const, closedAt: v.closedAt || '11:35 am' };
@@ -515,14 +570,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed: QueueToken[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed
-            .filter((t) => !isDemoPatientOrToken(t.patientName))
-            .map((t) => {
-              if (t.id === 'tok-1794029736556' || t.tokenNumber === 'W-002' || (t.status === 'Waiting' && t.date && t.date < new Date().toISOString().split('T')[0])) {
-                return { ...t, status: 'Completed' as TokenStatus, completedAt: t.completedAt || new Date().toISOString() };
-              }
-              return t;
-            });
+          return cleanAndDeduplicateTokens(parsed);
         }
       }
     } catch { }
@@ -821,17 +869,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const map = new Map<string, QueueToken>();
           (prev || []).forEach((t) => map.set(t.id, t));
           (data.tokens || []).forEach((t) => map.set(t.id, t));
-          const today = new Date().toISOString().split('T')[0];
-          const merged = Array.from(map.values())
-            .filter((t) => !isDemoPatientOrToken(t.patientName))
-            .map((t) => {
-              if (t.id === 'tok-1794029736556' || t.tokenNumber === 'W-002' || (t.status === 'Waiting' && t.date && t.date < today)) {
-                return { ...t, status: 'Completed' as TokenStatus, completedAt: t.completedAt || new Date().toISOString() };
-              }
-              return t;
-            });
-          safeSetItem('smilecare_tokens_list', JSON.stringify(merged));
-          return merged;
+          const deduped = cleanAndDeduplicateTokens(Array.from(map.values()));
+          safeSetItem('smilecare_tokens_list', JSON.stringify(deduped));
+          return deduped;
         });
       } else {
         setTokens((prev) => {
@@ -969,17 +1009,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         // Sync tokens directly from Supabase
         if (dbTokens.status === 'fulfilled') {
-          const cleanTokens = (dbTokens.value || []).filter((t) => !isDemoPatientOrToken(t.patientName));
           setTokens((prev) => {
-            const mapped = cleanTokens.map((t) => {
+            const mapped = (dbTokens.value || []).map((t) => {
               const localMatch = prev.find((p) => p.id === t.id || p.tokenNumber === t.tokenNumber);
               if (localMatch && localMatch.status === 'Reception Follow-up' && t.status === 'Completed') {
                 return { ...t, status: 'Reception Follow-up' as TokenStatus };
               }
               return t;
             });
-            safeSetItem('smilecare_tokens_list', JSON.stringify(mapped));
-            return mapped;
+            const cleanTokens = cleanAndDeduplicateTokens(mapped);
+            safeSetItem('smilecare_tokens_list', JSON.stringify(cleanTokens));
+            return cleanTokens;
           });
         }
 
@@ -2088,7 +2128,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     setVisits((prev) => {
-      const next = prev.map((v) => (v.id === result.visit.id || (existingVisit && v.id === existingVisit.id) ? { ...v, ...result.visit, status: 'Reception Follow-up' } : v));
+      // Update matching visits to Reception Follow-up
+      let matched = false;
+      const next = prev.map((v) => {
+        const isMatch =
+          v.id === result.visit.id ||
+          (existingVisit && v.id === existingVisit.id) ||
+          (targetPatientId && v.patientId === targetPatientId && (v.status === 'In Consultation' || v.status === 'Called' || v.status === 'Reception Follow-up'));
+        if (isMatch) { matched = true; return { ...v, ...result.visit, status: 'Reception Follow-up' as const }; }
+        return v;
+      });
+      // If no existing visit was matched/updated, insert the result visit so StaffCheckIn can see it
+      if (!matched && result.visit.patientId && result.visit.patientId !== 'PAT-TEMP') {
+        next.unshift({ ...result.visit, status: 'Reception Follow-up' as const });
+      }
       safeSetItem('smilecare_visits_list', JSON.stringify(next));
       return next;
     });
