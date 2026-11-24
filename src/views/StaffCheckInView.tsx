@@ -216,18 +216,19 @@ export const StaffCheckInView: React.FC = () => {
   // Bridge fallback: tokens in Reception Follow-up whose patient isn't already in a checkout visit
   const checkoutTokensBridge: ClinicVisit[] = tokens
     .filter((t) => {
-      if (t.status !== 'Reception Follow-up' || !t.patientId || t.patientId === 'PAT-TEMP') return false;
+      if (t.status !== 'Reception Follow-up') return false;
       if (t.tokenNumber?.startsWith('VIS-') || t.id?.startsWith('VIS-')) return false;
-      if (seenCheckoutPatients.has(t.patientId)) return false;
-      seenCheckoutPatients.add(t.patientId);
+      const dedupKey = t.patientId && t.patientId !== 'PAT-TEMP' ? t.patientId : (t.tokenNumber || t.id);
+      if (seenCheckoutPatients.has(dedupKey)) return false;
+      seenCheckoutPatients.add(dedupKey);
       return true;
     })
     .map((t) => {
-      const realPatient = patients.find((p) => p.id === t.patientId);
+      const realPatient = patients.find((p) => p.id === t.patientId || (t.patientName && t.patientName !== 'Patient' && p.name?.toLowerCase() === t.patientName.toLowerCase()));
       const realDoctor = doctors.find((d) => d.id === t.doctorId);
       return {
         id: t.visitId || `visit-from-${t.id}`,
-        patientId: t.patientId!,
+        patientId: (t.patientId && t.patientId !== 'PAT-TEMP' ? t.patientId : realPatient?.id) || t.id,
         patientName: (t.patientName && t.patientName !== 'Patient' ? t.patientName : realPatient?.name) || 'Patient',
         patientPhone: t.patientPhone || realPatient?.phone,
         opNumber: t.opNumber || realPatient?.opNumber || '',
