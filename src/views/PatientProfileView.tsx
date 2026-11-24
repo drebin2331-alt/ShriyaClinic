@@ -686,21 +686,22 @@ export const PatientProfileView: React.FC = () => {
 
   // Helper updates
   const handleUpdateTeeth = (updatedTeeth: ToothData[]) => {
+    const freshPatient = patients.find((p) => p.id === patient.id) || patient;
     updatePatient({
-      ...patient,
+      ...freshPatient,
       dentalChart: updatedTeeth
     });
   };
 
-  const handleAddTreatmentPlan = (item: Partial<TreatmentPlanItem>) => {
+  const handleAddTreatmentPlan = (item: Partial<TreatmentPlanItem>, explicitChart?: ToothData[]) => {
     const newItem: TreatmentPlanItem = {
-      id: `tp-${Date.now()}`,
+      id: `tp-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       patientId: patient.id,
       toothNumbers: item.toothNumbers || [],
       diagnosis: item.diagnosis || 'Clinical Diagnosis',
       procedure: item.procedure || 'Dental Treatment',
       priority: item.priority || 'Medium',
-      estimatedCost: item.estimatedCost ?? 0,
+      estimatedCost: Number(item.estimatedCost) || 0,
       status: item.status || 'Proposed',
       doctorId: defaultDoctorId,
       doctorName: defaultDoctorName,
@@ -710,7 +711,8 @@ export const PatientProfileView: React.FC = () => {
     };
 
     // Auto-update dentalChart tooth conditions to reflect the new treatment plan
-    const updatedChart = [...(patient.dentalChart || [])];
+    const currentBaseChart = explicitChart || patient.dentalChart || [];
+    const updatedChart = [...currentBaseChart];
     if (newItem.toothNumbers && newItem.toothNumbers.length > 0) {
       const procLower = (newItem.procedure || '').toLowerCase();
       const diagLower = (newItem.diagnosis || '').toLowerCase();
@@ -759,12 +761,16 @@ export const PatientProfileView: React.FC = () => {
       });
     }
 
+    const freshPatient = patients.find((p) => p.id === patient.id) || patient;
+    const existingPlans = Array.isArray(freshPatient.treatmentPlans) ? freshPatient.treatmentPlans : [];
+    const nextPlans = [newItem, ...existingPlans.filter((p) => p.id !== newItem.id)];
+
     updatePatient({
-      ...patient,
+      ...freshPatient,
       dentalChart: updatedChart,
-      treatmentPlans: [newItem, ...patient.treatmentPlans]
+      treatmentPlans: nextPlans
     });
-    addToast('Procedure Added', `${newItem.procedure} added to patient treatment plan.`, 'success');
+    addToast('Procedure Added', `${newItem.procedure} (₹${newItem.estimatedCost.toLocaleString()}) added to patient treatment plan.`, 'success');
   };
 
   const handleUpdateTreatmentStatus = (id: string, status: TreatmentPlanStatus) => {
@@ -2020,15 +2026,20 @@ export const PatientProfileView: React.FC = () => {
                 }}
                 isOpen={!!selectedToothForModal}
                 onClose={() => setSelectedToothForModal(null)}
-                onSaveTooth={(updated) => {
+                onSaveTooth={(updated, newTreatment) => {
                   const currentTeeth = Array.isArray(patient.dentalChart) ? patient.dentalChart : [];
                   const exists = currentTeeth.some((t) => t.toothNumber === updated.toothNumber);
                   const updatedChart = exists
                     ? currentTeeth.map((t) => (t.toothNumber === updated.toothNumber ? updated : t))
                     : [...currentTeeth, updated];
-                  handleUpdateTeeth(updatedChart);
+                  if (newTreatment) {
+                    handleAddTreatmentPlan(newTreatment, updatedChart);
+                  } else {
+                    handleUpdateTeeth(updatedChart);
+                  }
                 }}
                 onAddTreatmentPlanItem={handleAddTreatmentPlan}
+                existingTreatments={patient.treatmentPlans?.filter((t) => t.toothNumbers.includes(selectedToothForModal))}
               />
             )}
           </div>

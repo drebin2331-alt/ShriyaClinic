@@ -453,7 +453,12 @@ export const TreatmentPlanChart: React.FC<TreatmentPlanChartProps> = ({
           }}
           isOpen={!!selectedTooth}
           onClose={() => setSelectedTooth(null)}
-          onSaveTooth={handleSaveSingleTooth}
+          onSaveTooth={(updated, newTreatment) => {
+            handleSaveSingleTooth(updated);
+            if (newTreatment && onAddTreatmentPlan) {
+              onAddTreatmentPlan(newTreatment);
+            }
+          }}
           onAddTreatmentPlanItem={onAddTreatmentPlan}
           existingTreatments={treatmentPlans.filter((t) => t.toothNumbers.includes(selectedTooth))}
         />

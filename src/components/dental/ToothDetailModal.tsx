@@ -12,7 +12,7 @@ interface ToothDetailModalProps {
   tooth: ToothData;
   isOpen: boolean;
   onClose: () => void;
-  onSaveTooth: (updatedTooth: ToothData) => void;
+  onSaveTooth: (updatedTooth: ToothData, newTreatmentItem?: Partial<TreatmentPlanItem>) => void;
   onAddTreatmentPlanItem?: (item: Partial<TreatmentPlanItem>) => void;
   existingTreatments?: TreatmentPlanItem[];
 }
@@ -83,6 +83,10 @@ export const CONDITION_PROCEDURE_PRESETS: Record<ToothCondition, ConditionProced
     { name: 'Comprehensive Oral Prophylaxis & Polishing', diagnosis: 'Routine Preventive Oral Care', cost: 800 },
     { name: 'Pit & Fissure Sealant Application', diagnosis: 'Deep Occlusal Grooves at Risk of Caries', cost: 600 },
     { name: 'Topical Fluoride Remineralization Therapy', diagnosis: 'Enamel Demineralization Prevention', cost: 500 }
+  ],
+  Other: [
+    { name: 'Specialist Dental Procedure', diagnosis: 'Dental Clinical Finding', cost: 1000 },
+    { name: 'Oral Biopsy / Soft Tissue Excision', diagnosis: 'Pathological Soft Tissue Lesion', cost: 2500 }
   ]
 };
 
@@ -106,13 +110,14 @@ export const ToothDetailModal: React.FC<ToothDetailModalProps> = ({
   const [treatmentCode, setTreatmentCode] = useState<string>(tooth.treatmentCode || '');
   const [treatmentStatus, setTreatmentStatus] = useState<TreatmentPlanStatus>(tooth.treatmentStatus || 'Proposed');
 
-  // Treatment plan form states - initialized dynamically based on tooth condition
-  const [showAddTreatment, setShowAddTreatment] = useState(false);
+  // Treatment plan form states - open by default and cost initialized from preset
+  const [showAddTreatment, setShowAddTreatment] = useState(true);
   const [procName, setProcName] = useState(defaultPreset?.name || '');
   const [procDiagnosis, setProcDiagnosis] = useState(defaultPreset?.diagnosis || '');
-  const [procCost, setProcCost] = useState<number | string>('');
+  const [procCost, setProcCost] = useState<number | string>(defaultPreset?.cost || 1000);
   const [isCustomProc, setIsCustomProc] = useState(false);
   const [procPriority, setProcPriority] = useState<'High' | 'Medium' | 'Low'>('High');
+  const [hasAddedTreatmentPlan, setHasAddedTreatmentPlan] = useState(false);
 
   // Prosthetic options
   const [showProsthetics, setShowProsthetics] = useState(false);
@@ -163,8 +168,71 @@ export const ToothDetailModal: React.FC<ToothDetailModalProps> = ({
       if (rec && !isCustomProc) {
         setProcName(rec.name);
         setProcDiagnosis(rec.diagnosis);
+        setProcCost(rec.cost);
+      }
+      if (cond === 'Crown') {
+        setShowProsthetics(true);
       }
     }
+  };
+
+  const handleCreateTreatmentPlan = () => {
+    const finalCost = Number(procCost) > 0
+      ? Number(procCost)
+      : ((CONDITION_PROCEDURE_PRESETS[condition] || [])[0]?.cost || 1000);
+
+    const planItem: Partial<TreatmentPlanItem> = {
+      toothNumbers: [tooth.toothNumber],
+      diagnosis: procDiagnosis || `${condition} on Tooth #${tooth.toothNumber}`,
+      procedure: procName || `${condition} Treatment`,
+      priority: procPriority,
+      estimatedCost: finalCost,
+      status: treatmentStatus || 'Proposed',
+      notes: notes || undefined,
+      prostheticDesign: (showProsthetics || condition === 'Crown' || procName.toLowerCase().includes('crown')) ? {
+        restorationType,
+        material,
+        shade,
+        ponticDesign,
+        collarDesign,
+        marginDesign: 'Shoulder / Chamfer',
+        labInstructions: `Custom shade ${shade} match for Tooth #${tooth.toothNumber}`
+      } : undefined
+    };
+
+    if (onAddTreatmentPlanItem) {
+      onAddTreatmentPlanItem(planItem);
+    }
+    setHasAddedTreatmentPlan(true);
+
+    // Synchronize tooth condition with this planned treatment
+    const procLower = procName.toLowerCase();
+    const diagLower = procDiagnosis.toLowerCase();
+    let newCond: ToothCondition = condition;
+    let newCode = treatmentCode || getCodeForCondition(condition);
+
+    if (procLower.includes('root canal') || procLower.includes('rct') || diagLower.includes('pulpitis')) {
+      newCond = 'Root Canal';
+      newCode = 'R';
+    } else if (procLower.includes('crown') || restorationType === 'Crown') {
+      newCond = 'Crown';
+      newCode = 'CR';
+    } else if (procLower.includes('filling') || procLower.includes('restoration')) {
+      newCond = 'Filling';
+      newCode = 'F';
+    } else if (procLower.includes('extract')) {
+      newCond = 'Missing';
+      newCode = 'X';
+    } else if (procLower.includes('implant')) {
+      newCond = 'Implant';
+      newCode = 'I';
+    } else if (procLower.includes('caries') || diagLower.includes('caries')) {
+      newCond = 'Caries';
+      newCode = 'C';
+    }
+
+    setCondition(newCond);
+    setTreatmentCode(newCode);
   };
 
   const handleSave = () => {
@@ -191,21 +259,29 @@ export const ToothDetailModal: React.FC<ToothDetailModalProps> = ({
       treatmentCode: effectiveCode,
       treatmentStatus: treatmentStatus
     };
-    onSaveTooth(updated);
-    onClose();
-  };
 
-  const handleCreateTreatmentPlan = () => {
-    if (onAddTreatmentPlanItem) {
-      onAddTreatmentPlanItem({
+    let planItemToSave: Partial<TreatmentPlanItem> | undefined = undefined;
+
+    // AUTO-CREATE TREATMENT PLAN IF NOT ALREADY ADDED:
+    // If the tooth is marked with any active dental condition or code,
+    // automatically generate and bundle the treatment plan item with its estimated cost!
+    if (!hasAddedTreatmentPlan && (effectiveCondition !== 'Healthy' || effectiveCode || treatmentStatus !== 'Proposed')) {
+      const finalCost = Number(procCost) > 0 
+        ? Number(procCost) 
+        : ((CONDITION_PROCEDURE_PRESETS[effectiveCondition] || [])[0]?.cost || 1000);
+
+      const finalProcName = procName || (CONDITION_PROCEDURE_PRESETS[effectiveCondition] || [])[0]?.name || `${effectiveCondition} Procedure`;
+      const finalDiag = procDiagnosis || (CONDITION_PROCEDURE_PRESETS[effectiveCondition] || [])[0]?.diagnosis || `${effectiveCondition} on Tooth #${tooth.toothNumber}`;
+
+      planItemToSave = {
         toothNumbers: [tooth.toothNumber],
-        diagnosis: procDiagnosis,
-        procedure: procName,
+        diagnosis: finalDiag,
+        procedure: finalProcName,
         priority: procPriority,
-        estimatedCost: Number(procCost) || 0,
-        status: 'Proposed',
+        estimatedCost: finalCost,
+        status: treatmentStatus || 'Proposed',
         notes: notes || undefined,
-        prostheticDesign: showProsthetics ? {
+        prostheticDesign: (effectiveCondition === 'Crown' || showProsthetics || finalProcName.toLowerCase().includes('crown')) ? {
           restorationType,
           material,
           shade,
@@ -214,57 +290,11 @@ export const ToothDetailModal: React.FC<ToothDetailModalProps> = ({
           marginDesign: 'Shoulder / Chamfer',
           labInstructions: `Custom shade ${shade} match for Tooth #${tooth.toothNumber}`
         } : undefined
-      });
-
-      // Synchronize tooth condition with this planned treatment
-      const procLower = procName.toLowerCase();
-      const diagLower = procDiagnosis.toLowerCase();
-      let newCond: ToothCondition = 'Root Canal';
-      let newCode = 'R';
-
-      if (procLower.includes('root canal') || procLower.includes('rct') || diagLower.includes('pulpitis')) {
-        newCond = 'Root Canal';
-        newCode = 'R';
-      } else if (procLower.includes('crown') || restorationType === 'Crown') {
-        newCond = 'Crown';
-        newCode = 'CR';
-      } else if (procLower.includes('filling') || procLower.includes('restoration')) {
-        newCond = 'Filling';
-        newCode = 'F';
-      } else if (procLower.includes('extract')) {
-        newCond = 'Missing';
-        newCode = 'X';
-      } else if (procLower.includes('implant')) {
-        newCond = 'Implant';
-        newCode = 'I';
-      } else if (procLower.includes('caries') || diagLower.includes('caries')) {
-        newCond = 'Caries';
-        newCode = 'C';
-      } else if (procLower.includes('fractur') || diagLower.includes('fractur')) {
-        newCond = 'Fracture';
-        newCode = 'FR';
-      } else if (procLower.includes('mobility') || procLower.includes('splint') || diagLower.includes('mobility')) {
-        newCond = 'Mobility';
-        newCode = 'M';
-      } else if (procLower.includes('sensitiv') || procLower.includes('desens') || diagLower.includes('sensitiv')) {
-        newCond = 'Sensitivity';
-        newCode = 'S';
-      }
-
-      setCondition(newCond);
-      setTreatmentCode(newCode);
-
-      onSaveTooth({
-        ...tooth,
-        condition: newCond,
-        surfaces,
-        notes,
-        treatmentCode: newCode,
-        treatmentStatus: 'Proposed'
-      });
-
-      setShowAddTreatment(false);
+      };
     }
+
+    onSaveTooth(updated, planItemToSave);
+    onClose();
   };
 
   return (
@@ -321,6 +351,7 @@ export const ToothDetailModal: React.FC<ToothDetailModalProps> = ({
                       if (rec && !isCustomProc) {
                         setProcName(rec.name);
                         setProcDiagnosis(rec.diagnosis);
+                        setProcCost(rec.cost);
                         if (cond === 'Crown') {
                           setShowProsthetics(true);
                           setRestorationType('Crown');
@@ -361,7 +392,33 @@ export const ToothDetailModal: React.FC<ToothDetailModalProps> = ({
               </label>
               <select
                 value={treatmentCode}
-                onChange={(e) => setTreatmentCode(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setTreatmentCode(val);
+                  let matchedCond: ToothCondition | null = null;
+                  if (val === 'CR') matchedCond = 'Crown';
+                  else if (val === 'R') matchedCond = 'Root Canal';
+                  else if (val === 'C') matchedCond = 'Caries';
+                  else if (val === 'F') matchedCond = 'Filling';
+                  else if (val === 'I') matchedCond = 'Implant';
+                  else if (val === 'X' || val === 'E') matchedCond = 'Extraction Required';
+                  else if (val === 'FR') matchedCond = 'Fracture';
+                  else if (val === 'M') matchedCond = 'Mobility';
+                  else if (val === 'S') matchedCond = 'Sensitivity';
+                  if (matchedCond) {
+                    setCondition(matchedCond);
+                    const rec = (CONDITION_PROCEDURE_PRESETS[matchedCond] || CONDITION_PROCEDURE_PRESETS['Filling'])[0];
+                    if (rec && !isCustomProc) {
+                      setProcName(rec.name);
+                      setProcDiagnosis(rec.diagnosis);
+                      setProcCost(rec.cost);
+                      if (matchedCond === 'Crown') {
+                        setShowProsthetics(true);
+                        setRestorationType('Crown');
+                      }
+                    }
+                  }
+                }}
                 className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-white border border-slate-300 focus:ring-2 focus:ring-sky-500"
               >
                 <option value="">None (Standard View)</option>
@@ -434,6 +491,38 @@ export const ToothDetailModal: React.FC<ToothDetailModalProps> = ({
               </button>
             </div>
 
+            {existingTreatments && existingTreatments.length > 0 && (
+              <div className="mb-3 p-3 bg-white rounded-xl border border-sky-300 shadow-2xs">
+                <span className="text-[11px] font-extrabold text-sky-950 block mb-1.5 flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Existing Treatment Plan for Tooth #{tooth.toothNumber}:</span>
+                </span>
+                <div className="space-y-1">
+                  {existingTreatments.map((t) => (
+                    <div key={t.id} className="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-lg border border-slate-200">
+                      <div>
+                        <span className="font-bold text-slate-800">{t.procedure}</span>
+                        <span className="text-[10px] text-slate-500 block">{t.diagnosis} • Status: <strong>{t.status}</strong></span>
+                      </div>
+                      <span className="font-mono font-black text-emerald-700 text-sm">₹{(t.estimatedCost || 0).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {hasAddedTreatmentPlan && (
+              <div className="mb-3 p-2.5 rounded-xl bg-emerald-50 border border-emerald-300 text-xs text-emerald-900 font-bold flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  <span>Procedure added to Treatment Plan: <strong>{procName}</strong> (₹{Number(procCost).toLocaleString()})</span>
+                </span>
+                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-800">
+                  Ready to Save ✓
+                </span>
+              </div>
+            )}
+
             {showAddTreatment && (
               <div className="mt-3 pt-3 border-t border-sky-200/80 space-y-3 animate-in fade-in">
                 {/* Condition-Tailored Recommended Procedures Picker */}
@@ -481,6 +570,7 @@ export const ToothDetailModal: React.FC<ToothDetailModalProps> = ({
                             setIsCustomProc(false);
                             setProcName(preset.name);
                             setProcDiagnosis(preset.diagnosis);
+                            setProcCost(preset.cost);
                             if (condition === 'Crown' || preset.name.toLowerCase().includes('crown') || preset.name.toLowerCase().includes('bridge')) {
                               setShowProsthetics(true);
                             }
@@ -491,7 +581,7 @@ export const ToothDetailModal: React.FC<ToothDetailModalProps> = ({
                               : 'bg-slate-50 hover:bg-sky-50 text-slate-700 border border-slate-200'
                           }`}
                         >
-                          <span>{preset.name}</span>
+                          <span>{preset.name} (₹{preset.cost.toLocaleString()})</span>
                         </button>
                       );
                     })}
@@ -519,6 +609,7 @@ export const ToothDetailModal: React.FC<ToothDetailModalProps> = ({
                           const found = CONDITION_PROCEDURE_PRESETS[condKey]?.find((p) => p.name === chosenName);
                           if (found) {
                             setProcDiagnosis(found.diagnosis);
+                            setProcCost(found.cost);
                             if (chosenName.toLowerCase().includes('crown') || chosenName.toLowerCase().includes('bridge')) {
                               setShowProsthetics(true);
                             }
@@ -696,13 +787,17 @@ export const ToothDetailModal: React.FC<ToothDetailModalProps> = ({
                   )}
                 </div>
 
-                <div className="flex justify-end pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-sky-100">
+                  <span className="text-xs font-bold text-slate-600">
+                    Estimated Procedure Fee: <strong className="text-emerald-800 font-mono text-sm">₹{Number(procCost || 0).toLocaleString()}</strong>
+                  </span>
                   <button
                     type="button"
                     onClick={handleCreateTreatmentPlan}
-                    className="px-4 py-2 rounded-xl bg-sky-600 text-white font-bold text-xs hover:bg-sky-700 shadow-sm cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-sky-600 text-white font-bold text-xs hover:bg-sky-700 shadow-sm cursor-pointer flex items-center gap-1.5"
                   >
-                    Confirm & Add to Patient Treatment Plan
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>{hasAddedTreatmentPlan ? 'Update in Treatment Plan' : `Add to Treatment Plan (₹${Number(procCost || 0).toLocaleString()})`}</span>
                   </button>
                 </div>
               </div>
@@ -725,7 +820,7 @@ export const ToothDetailModal: React.FC<ToothDetailModalProps> = ({
             onClick={handleSave}
             icon={<Check className="w-4 h-4" />}
           >
-            Save Tooth Changes
+            Save Tooth & Plan Changes
           </ClayButton>
         </div>
       </div>
