@@ -3,7 +3,7 @@ import { PrioritySelector } from '../components/common/PrioritySelector';
 import './clinic-modules.css';
 import { SectionPicker, WorkspaceHeading } from '../components/common/WorkspaceControls';
 import { ModalLayer } from '../components/common/ModalLayer';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { ClayCard } from '../components/common/ClayCard';
 import { ClayButton } from '../components/common/ClayButton';
