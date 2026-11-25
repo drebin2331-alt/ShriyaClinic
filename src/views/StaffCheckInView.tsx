@@ -53,6 +53,7 @@ export const StaffCheckInView: React.FC = () => {
     doctors, 
     visits,
     tokens,
+    invoices = [],
     enquiries = [],
     updateEnquiryStatus,
     deleteEnquiry,
@@ -76,7 +77,7 @@ export const StaffCheckInView: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'queue' | 'scheduled' | 'enquiries' | 'returning' | 'checkout'>('queue');
 
   useEffect(() => {
-    if (activeSubTab === 'enquiries' && refreshState) {
+    if ((activeSubTab === 'enquiries' || activeSubTab === 'checkout') && refreshState) {
       refreshState();
     }
   }, [activeSubTab, refreshState]);
@@ -213,11 +214,29 @@ export const StaffCheckInView: React.FC = () => {
     seenCheckoutPatients.add(v.patientId);
     return true;
   });
-  // Bridge fallback: tokens in Reception Follow-up whose patient isn't already in a checkout visit
+  // Bridge fallback: tokens in Reception Follow-up, OR today's Completed tokens with an unpaid today invoice
+  const todayStr = new Date().toISOString().split('T')[0];
+  const unpaidTodayPatientIds = new Set(
+    invoices
+      .filter((inv) => (inv.status === 'Pending' || inv.status === 'Partial') && (inv.balance ?? inv.total) > 0 && (!inv.date || inv.date === todayStr))
+      .map((inv) => inv.patientId)
+  );
+  const closedTokenNumbers = new Set(
+    visits.filter((v) => v.status === 'Completed' || v.status === 'Closed').map((v) => v.tokenId).filter(Boolean)
+  );
+
   const checkoutTokensBridge: ClinicVisit[] = tokens
     .filter((t) => {
-      if (t.status !== 'Reception Follow-up') return false;
       if (t.tokenNumber?.startsWith('VIS-') || t.id?.startsWith('VIS-')) return false;
+      const isFollowUp = t.status === 'Reception Follow-up';
+      const tokenDate = t.date || (t.createdAt && t.createdAt.includes('T') ? t.createdAt.split('T')[0] : todayStr);
+      const isCompletedWithUnpaidToday =
+        t.status === 'Completed' &&
+        tokenDate === todayStr &&
+        t.patientId &&
+        unpaidTodayPatientIds.has(t.patientId) &&
+        !closedTokenNumbers.has(t.tokenNumber);
+      if (!isFollowUp && !isCompletedWithUnpaidToday) return false;
       const dedupKey = t.patientId && t.patientId !== 'PAT-TEMP' ? t.patientId : (t.tokenNumber || t.id);
       if (seenCheckoutPatients.has(dedupKey)) return false;
       seenCheckoutPatients.add(dedupKey);
