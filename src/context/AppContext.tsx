@@ -410,9 +410,11 @@ const isPhantomToken = (t: QueueToken): boolean => {
 
 const cleanAndDeduplicateTokens = (list: QueueToken[]): QueueToken[] => {
   const today = new Date().toISOString().split('T')[0];
+  // Completed/Cancelled are terminal states for a given date+tokenNumber so stale Waiting rows never resurrect closed tokens
   const statusPriority: Record<string, number> = {
+    'Completed': 12, 'Cancelled': 11,
     'Reception Follow-up': 10, 'In Consultation': 9, 'Called': 8,
-    'Waiting': 7, 'On Hold': 6, 'Completed': 5, 'Cancelled': 1,
+    'Waiting': 7, 'On Hold': 6,
   };
   const byTokenNumber = new Map<string, QueueToken>();
 
@@ -425,7 +427,8 @@ const cleanAndDeduplicateTokens = (list: QueueToken[]): QueueToken[] => {
         ? { ...raw, status: 'Completed' as TokenStatus, completedAt: raw.completedAt || new Date().toISOString() }
         : raw;
 
-    const key = t.tokenNumber || t.id;
+    const tokenDate = t.date || (t.createdAt && t.createdAt.includes('T') ? t.createdAt.split('T')[0] : today);
+    const key = t.tokenNumber ? `${tokenDate}::${t.tokenNumber}` : t.id;
     if (!key) continue;
     const existing = byTokenNumber.get(key);
     if (!existing) {
@@ -433,9 +436,12 @@ const cleanAndDeduplicateTokens = (list: QueueToken[]): QueueToken[] => {
     } else {
       const tHasRealName = Boolean(t.patientName && t.patientName !== 'Patient' && t.patientName !== 'PAT-TEMP');
       const existingHasRealName = Boolean(existing.patientName && existing.patientName !== 'Patient' && existing.patientName !== 'PAT-TEMP');
-      if (tHasRealName && !existingHasRealName) {
-        byTokenNumber.set(key, t);
-      } else if (tHasRealName === existingHasRealName && (statusPriority[t.status] ?? 0) > (statusPriority[existing.status] ?? 0)) {
+      const tPrio = statusPriority[t.status] ?? 0;
+      const ePrio = statusPriority[existing.status] ?? 0;
+      if (tPrio > ePrio) {
+        // Keep real patient name if the Completed row had a generic name
+        byTokenNumber.set(key, !tHasRealName && existingHasRealName ? { ...t, patientName: existing.patientName, patientId: existing.patientId, patientPhone: existing.patientPhone || t.patientPhone } : t);
+      } else if (tPrio === ePrio && tHasRealName && !existingHasRealName) {
         byTokenNumber.set(key, t);
       }
     }

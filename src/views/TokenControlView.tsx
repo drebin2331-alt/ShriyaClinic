@@ -81,6 +81,18 @@ export const TokenControlView: React.FC = () => {
   const [showAllDatesHistory, setShowAllDatesHistory] = useState(false);
   const todayDateStr = new Date().toISOString().split('T')[0];
 
+  // Resolve the logged-in doctor's canonical record (handles missing currentUser.doctorId)
+  const matchedDoctorRecord = currentUser.role === 'doctor'
+    ? doctors.find((d) =>
+        (currentUser.doctorId && d.id === currentUser.doctorId) ||
+        d.id === currentUser.id ||
+        (currentUser.email && d.email?.toLowerCase() === currentUser.email.toLowerCase()) ||
+        (currentUser.name && d.name?.toLowerCase() === currentUser.name.toLowerCase())
+      )
+    : undefined;
+  const myDoctorId = currentUser.doctorId || matchedDoctorRecord?.id || currentUser.id;
+  const myDoctorName = (matchedDoctorRecord?.name || currentUser.name || '').toLowerCase().trim();
+
   // Filter tokens: only checked-in patients for TODAY'S clinic queue (unless user explicitly toggles history)
   const activeTokens = tokens
     .filter((t) => {
@@ -90,8 +102,16 @@ export const TokenControlView: React.FC = () => {
           return false;
         }
       }
-      if (currentUser.role === 'doctor' && currentUser.doctorId) {
-        return t.doctorId === currentUser.doctorId;
+      if (currentUser.role === 'doctor') {
+        const docNameLower = (t.doctorName || '').toLowerCase().trim();
+        const isUnassignedDoctor = !docNameLower || docNameLower === 'consulting doctor' || docNameLower === 'doctor' || docNameLower === 'any';
+        if (isUnassignedDoctor && (!t.doctorId || t.doctorId === 'doc-1')) {
+          return true; // Unassigned tokens are visible to all doctors
+        }
+        return (
+          (myDoctorId && t.doctorId === myDoctorId) ||
+          (myDoctorName && docNameLower === myDoctorName)
+        );
       }
       if (doctorFilter !== 'ALL') {
         return t.doctorId === doctorFilter;
@@ -111,7 +131,7 @@ export const TokenControlView: React.FC = () => {
         (inv) => (inv.status === 'Paid' || (inv.balance <= 0 && inv.total > 0)) &&
           (inv.id.includes(`vis-${t.tokenNumber}-`) || (t.visitId && inv.visitId === t.visitId))
       );
-      const effectiveStatus = (t.status === 'In Consultation' || t.status === 'Reception Follow-up') && (isAlreadyClosedVisit || isAlreadyPaidTokenInvoice)
+      const effectiveStatus = (t.status === 'Waiting' || t.status === 'Called' || t.status === 'In Consultation' || t.status === 'Reception Follow-up') && (isAlreadyClosedVisit || isAlreadyPaidTokenInvoice)
         ? ('Completed' as const)
         : t.status;
 
