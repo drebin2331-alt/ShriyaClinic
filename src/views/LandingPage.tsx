@@ -474,14 +474,7 @@ export const LandingPage: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block leading-none">Duration</span>
-                      <span className="text-xs font-extrabold text-slate-700">{srv.duration}</span>
-                    </div>
-                  </div>
+                <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-end">
                   <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/70">
                     Specialist Care
                   </span>

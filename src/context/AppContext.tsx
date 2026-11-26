@@ -1979,20 +1979,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return next;
     });
 
-    if (result.token) {
-      const existingToken = tokens.find(
-        (t) => t.id === result.token!.id || t.tokenNumber === result.token!.tokenNumber || t.visitId === result.visit.id
-      );
+    const resolvedToken = result.token || existingToken;
+    if (resolvedToken || existingToken) {
+      const baseToken = existingToken || resolvedToken!;
       const mergedToken: QueueToken = {
-        ...(existingToken || {}),
-        ...result.token,
-        patientName: result.token.patientName || existingToken?.patientName || result.visit.patientName || 'Patient',
-        patientId: result.token.patientId || existingToken?.patientId || result.visit.patientId || 'PAT-TEMP',
-        doctorId: result.token.doctorId || existingToken?.doctorId || result.visit.doctorId || 'doc-1',
-        doctorName: result.token.doctorName || existingToken?.doctorName || result.visit.doctorName || 'Doctor',
-        tokenNumber: result.token.tokenNumber || existingToken?.tokenNumber || result.visit.tokenId || result.token.id,
+        ...baseToken,
+        ...(result.token || {}),
+        id: baseToken.id,
+        tokenNumber: baseToken.tokenNumber || result.token?.tokenNumber || result.visit.tokenId || baseToken.id,
+        patientName: (baseToken.patientName && baseToken.patientName !== 'Patient' ? baseToken.patientName : result.token?.patientName) || result.visit.patientName || 'Patient',
+        patientId: (baseToken.patientId && baseToken.patientId !== 'PAT-TEMP' ? baseToken.patientId : result.token?.patientId) || result.visit.patientId || 'PAT-TEMP',
+        doctorId: baseToken.doctorId || result.token?.doctorId || result.visit.doctorId || 'doc-1',
+        doctorName: (baseToken.doctorName && baseToken.doctorName !== 'Consulting Doctor' ? baseToken.doctorName : result.token?.doctorName) || result.visit.doctorName || 'Doctor',
         status: 'In Consultation',
-        startedAt: result.token.startedAt || (result.token as any).consultationStartedAt || new Date().toISOString()
+        startedAt: result.token?.startedAt || (result.token as any)?.consultationStartedAt || new Date().toISOString()
       };
 
       setTokens((prev) => {
@@ -2006,7 +2006,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       saveTokenToDb(mergedToken).catch(() => { });
     }
 
-    const pat = patients.find((p) => p.id === result.visit.patientId);
+    const targetPatId = existingToken?.patientId || existingVisit?.patientId || result.visit.patientId;
+    const pat = patients.find((p) => p.id === targetPatId);
     if (pat) {
       setSelectedPatientForDetail(pat);
     }
@@ -2045,20 +2046,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 
     // 2. Resolve matching tokens to update to 'Reception Follow-up'
-    const matchingTokens = tokens.filter((t) =>
+    const embeddedTokenMatch = visitIdOrToken.match(/\b([WT]-\d+)\b/i);
+    const extractedTokenNum = embeddedTokenMatch ? embeddedTokenMatch[1].toUpperCase() : undefined;
+
+    let matchingTokens = tokens.filter((t) =>
       t.status !== 'Completed' && t.status !== 'Cancelled' && (
         t.id === visitIdOrToken ||
         t.tokenNumber === visitIdOrToken ||
+        (extractedTokenNum && t.tokenNumber === extractedTokenNum) ||
         (summary?.tokenNumber && t.tokenNumber === summary.tokenNumber) ||
         (summary?.tokenId && t.id === summary.tokenId) ||
+        (summary?.patientId && (t.id === summary.patientId || t.tokenNumber === summary.patientId)) ||
         (existingVisit && (t.visitId === existingVisit.id || t.tokenNumber === existingVisit.tokenId)) ||
         (summary?.patientId && t.patientId === summary.patientId && (t.status === 'In Consultation' || t.status === 'Called')) ||
         (existingVisit?.patientId && t.patientId === existingVisit.patientId && (t.status === 'In Consultation' || t.status === 'Called'))
       )
     );
 
+    // Fallback: if doctor finalized a Walk-in Patient consultation without a linked patientId, match the active In Consultation token for that doctor
+    if (matchingTokens.length === 0) {
+      matchingTokens = tokens.filter((t) =>
+        t.status === 'In Consultation' &&
+        (!summary?.doctorId || t.doctorId === summary.doctorId)
+      );
+    }
+
     const primaryToken = matchingTokens[0];
-    const targetTokenNumber = primaryToken?.tokenNumber || summary?.tokenNumber || existingVisit?.tokenId || (visitIdOrToken.startsWith('W-') || visitIdOrToken.startsWith('T-') ? visitIdOrToken : undefined);
+    const targetTokenNumber = primaryToken?.tokenNumber || summary?.tokenNumber || extractedTokenNum || existingVisit?.tokenId || (visitIdOrToken.startsWith('W-') || visitIdOrToken.startsWith('T-') ? visitIdOrToken : undefined);
     const targetTokenId = primaryToken?.id || summary?.tokenId;
     const targetPatientId = primaryToken?.patientId || existingVisit?.patientId || summary?.patientId;
     const targetPatientName = primaryToken?.patientName || existingVisit?.patientName || summary?.patientName;
@@ -2318,14 +2332,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     const patient = patients.find((p) => p.id === data.patientId);
+    const calcSubtotal = data.items.reduce((s, it) => s + ((Number(it.quantity) || 1) * (Number(it.unitPrice) || 0)), 0) + (Number(data.consultationFee) || 0);
+    const calcDiscount = data.discountType === 'percentage' && data.discountValue
+      ? Math.round((calcSubtotal * Math.min(100, Math.max(0, Number(data.discountValue)))) / 100)
+      : Math.min(calcSubtotal, Math.max(0, Number(data.discountValue) || 0));
+    const calcTaxable = Math.max(0, calcSubtotal - calcDiscount);
+    const calcTax = data.taxRate ? Math.round((calcTaxable * Number(data.taxRate)) / 100) : 0;
+    const calcTotal = Math.max(0, Math.round(calcTaxable + calcTax));
+
+    const existingInvForBalance = !data.isNewFee
+      ? invoices.find((i) => i.id === result.invoice.id || i.visitId === data.visitId)
+      : undefined;
+    const alreadyPaid = Number(existingInvForBalance?.paid ?? existingInvForBalance?.paidAmount ?? result.invoice.paid ?? 0);
+    const finalBalance = Math.max(0, calcTotal - alreadyPaid);
+
+    const enrichedFeeApproval: FeeApprovalRecord = {
+      ...result.feeApproval,
+      visitId: result.feeApproval.visitId || data.visitId,
+      consultationFee: Number(data.consultationFee) || result.feeApproval.consultationFee || 0,
+      items: result.feeApproval.items?.length ? result.feeApproval.items : (data.items as any),
+      discountType: data.discountType || result.feeApproval.discountType || 'amount',
+      discountValue: Number(data.discountValue) || 0,
+      discountReason: data.discountReason || result.feeApproval.discountReason || '',
+      discountAmount: calcDiscount,
+      subtotal: calcSubtotal,
+      tax: calcTax,
+      finalPayable: calcTotal,
+      total: calcTotal,
+      status: 'Approved'
+    };
+    result.feeApproval = enrichedFeeApproval;
+
     const enrichedInvoice: Invoice = {
       ...result.invoice,
-      patientId: result.invoice.patientId || data.patientId,
+      visitId: result.invoice.visitId || data.visitId,
+      feeApprovalId: result.invoice.feeApprovalId || enrichedFeeApproval.id,
+      patientId: result.invoice.patientId || data.patientId || 'PAT-TEMP',
       patientName: result.invoice.patientName || (data as any).patientName || patient?.name || 'Patient',
       doctorName: result.invoice.doctorName || (data as any).doctorName || 'Consulting Doctor',
-      subtotal: result.invoice.subtotal || result.invoice.total || 0,
-      total: result.invoice.total || 0,
-      balance: result.invoice.balance !== undefined ? result.invoice.balance : result.invoice.total || 0
+      subtotal: calcSubtotal,
+      discount: calcDiscount,
+      discountReason: data.discountReason || '',
+      tax: calcTax,
+      total: calcTotal,
+      paid: alreadyPaid,
+      paidAmount: alreadyPaid,
+      balance: finalBalance,
+      status: finalBalance <= 0 && calcTotal > 0 ? 'Paid' : (alreadyPaid > 0 ? 'Partial' : 'Pending')
     };
     result.invoice = enrichedInvoice;
 
@@ -2806,13 +2859,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     // 2. Identify and complete all matching tokens for this patient encounter
+    const embeddedCloseMatch = (visitId || targetTokenId || '').match(/\b([WT]-\d+)\b/i);
+    const extractedCloseToken = embeddedCloseMatch ? embeddedCloseMatch[1].toUpperCase() : undefined;
+
     const tokensToComplete = tokens.filter((t) =>
       t.status !== 'Completed' && (
         t.visitId === visitId ||
         t.visitId === completedVisit.id ||
+        (extractedCloseToken && t.tokenNumber === extractedCloseToken) ||
         (targetTokenId && (t.tokenNumber === targetTokenId || t.id === targetTokenId)) ||
-        (patientId && t.patientId === patientId) ||
-        (patientName && t.patientName && t.patientName.toLowerCase() === patientName.toLowerCase())
+        (patientId && (t.patientId === patientId || t.id === patientId || t.tokenNumber === patientId)) ||
+        (patientName && t.patientName && t.patientName !== 'Patient' && t.patientName.toLowerCase() === patientName.toLowerCase())
       )
     );
 
@@ -3093,9 +3150,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const updatedInvoice: Invoice = targetInvoice ? {
         ...targetInvoice,
+        paid: newPaidAmount,
         paidAmount: newPaidAmount,
         balance: newBalance,
-        status: newStatus as any,
+        status: (newBalance <= 0 ? 'Paid' : newPaidAmount > 0 ? 'Partial' : 'Pending') as Invoice['status'],
         payments: [...(targetInvoice.payments || []), payment]
       } : {
         id: data.invoiceId,
@@ -3109,6 +3167,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         discount: 0,
         tax: 0,
         total: data.amount,
+        paid: data.amount,
         paidAmount: data.amount,
         balance: 0,
         status: 'Paid',
@@ -3118,8 +3177,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       result = { payment, invoice: updatedInvoice, receiptNumber };
     }
 
+    // Always merge with existing local invoice so API response never wipes out items, discount, or paid amount
+    const existingTargetInv = invoices.find((inv) => inv.id === data.invoiceId);
+    const prevPaidAmt = Number(existingTargetInv?.paid ?? existingTargetInv?.paidAmount ?? 0);
+    const mergedPaidAmt = existingTargetInv
+      ? prevPaidAmt + Number(data.amount || 0)
+      : Number(result.invoice.paid ?? (result.invoice as any).paidAmount ?? data.amount ?? 0);
+    const mergedTotal = Number(existingTargetInv?.total ?? result.invoice.total ?? data.amount ?? 0);
+    const mergedBalance = Math.max(0, mergedTotal - mergedPaidAmt);
+    const mergedInvoice: Invoice = existingTargetInv ? {
+      ...existingTargetInv,
+      ...result.invoice,
+      items: existingTargetInv.items?.length ? existingTargetInv.items : result.invoice.items,
+      subtotal: existingTargetInv.subtotal ?? result.invoice.subtotal,
+      discount: existingTargetInv.discount ?? result.invoice.discount ?? 0,
+      discountReason: existingTargetInv.discountReason || result.invoice.discountReason,
+      tax: existingTargetInv.tax ?? result.invoice.tax ?? 0,
+      total: mergedTotal,
+      paid: mergedPaidAmt,
+      paidAmount: mergedPaidAmt,
+      balance: mergedBalance,
+      status: (mergedBalance <= 0 ? 'Paid' : mergedPaidAmt > 0 ? 'Partial' : 'Pending') as Invoice['status'],
+      paymentMethod: data.paymentMethod || existingTargetInv.paymentMethod,
+      payments: [...(existingTargetInv.payments || []), result.payment],
+    } : {
+      ...result.invoice,
+      paid: mergedPaidAmt,
+      paidAmount: mergedPaidAmt,
+      balance: mergedBalance,
+      status: (mergedBalance <= 0 ? 'Paid' : 'Partial') as Invoice['status'],
+    };
+    result.invoice = mergedInvoice;
+
     setPayments((prev) => [result.payment, ...prev.filter((p) => p.id !== result.payment.id)]);
     setInvoices((prev) => prev.map((inv) => (inv.id === result.invoice.id ? result.invoice : inv)));
+    saveInvoiceToDb(result.invoice).catch(() => { });
 
     // Update patient state
     setPatients((prev) =>

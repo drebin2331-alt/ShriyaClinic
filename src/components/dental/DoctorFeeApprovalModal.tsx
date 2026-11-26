@@ -29,7 +29,7 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
   defaultDoctorName,
   onFeeApproved
 }) => {
-  const { approveFee, addToast, doctors, patients, visits, tokens } = useApp();
+  const { approveFee, addToast, doctors, patients, visits, tokens, invoices, feeApprovals } = useApp();
   const { currentUser } = useAuth();
 
   const targetPatientId = patient?.id || patientId;
@@ -41,11 +41,23 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
     (targetVisitId ? visits.find((v) => v.id === targetVisitId) : undefined) ||
     (targetPatientId ? visits.find((v) => v.patientId === targetPatientId && v.status !== 'Cancelled') : undefined);
 
+  const todayDateStr = new Date().toISOString().split('T')[0];
   const existingFeeApproval =
     resolvedVisit?.feeApproval ||
-    (resolvedPatient?.feeApprovals && resolvedPatient.feeApprovals.find((f) => f.visitId === resolvedVisit?.id));
+    (resolvedPatient?.feeApprovals && resolvedPatient.feeApprovals.find((f) => f.visitId === resolvedVisit?.id || f.visitId === targetVisitId)) ||
+    feeApprovals.find((f) =>
+      (targetVisitId && f.visitId === targetVisitId) ||
+      (resolvedVisit?.id && f.visitId === resolvedVisit.id) ||
+      (targetPatientId && f.patientId === targetPatientId && f.date === todayDateStr)
+    );
   const existingInvoice =
-    (resolvedPatient?.invoices || []).find((inv) => inv.visitId === resolvedVisit?.id || (resolvedVisit?.invoiceId && inv.id === resolvedVisit.invoiceId)) ||
+    (resolvedPatient?.invoices || []).find((inv) => inv.visitId === resolvedVisit?.id || inv.visitId === targetVisitId || (resolvedVisit?.invoiceId && inv.id === resolvedVisit.invoiceId)) ||
+    invoices.find((inv) =>
+      (targetVisitId && inv.visitId === targetVisitId) ||
+      (resolvedVisit?.id && inv.visitId === resolvedVisit.id) ||
+      (resolvedVisit?.invoiceId && inv.id === resolvedVisit.invoiceId) ||
+      (targetPatientId && inv.patientId === targetPatientId && inv.date === todayDateStr)
+    ) ||
     (resolvedVisit?.invoiceId ? (patients.flatMap(p => p.invoices || []).find(inv => inv.id === resolvedVisit?.invoiceId)) : undefined);
   const isAlreadyApproved = Boolean(existingFeeApproval?.status === 'Approved' || resolvedVisit?.invoiceId || existingInvoice);
 
@@ -209,11 +221,6 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (isAlreadyApproved && mode === 'new') {
-      addToast('Duplicate Fee Blocked', 'Fees for this visit have already been approved and invoiced. Please switch to Edit mode to modify charges or concessions.', 'warning');
-      return;
-    }
 
     if (calculatedDiscount > 0 && (!discountReason || !discountReason.trim())) {
       addToast('Discount Justification Required', 'Please provide a valid clinic authorization reason for the discount.', 'warning');
@@ -636,28 +643,49 @@ export const DoctorFeeApprovalModal: React.FC<DoctorFeeApprovalModalProps> = ({
 
           {/* Actions */}
           <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 sm:py-2 rounded-xl text-slate-500 hover:bg-slate-100 font-bold cursor-pointer text-center text-xs"
-            >
-              Cancel
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2.5 sm:py-2 rounded-xl text-slate-500 hover:bg-slate-100 font-bold cursor-pointer text-center text-xs"
+              >
+                Cancel
+              </button>
+
+              {isAlreadyApproved && mode === 'edit' && (
+                <button
+                  type="button"
+                  onClick={() => handleSwitchMode('new')}
+                  className="px-3.5 py-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold text-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add New Bill
+                </button>
+              )}
+
+              {isAlreadyApproved && mode === 'new' && (
+                <button
+                  type="button"
+                  onClick={() => handleSwitchMode('edit')}
+                  className="px-3.5 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs cursor-pointer"
+                >
+                  ← Edit Existing Bill
+                </button>
+              )}
+            </div>
 
             <ClayButton
               variant="mint"
               type="submit"
-              disabled={isSubmitting || (calculatedDiscount > 0 && !discountReason.trim()) || (isAlreadyApproved && mode === 'new')}
+              disabled={isSubmitting || (calculatedDiscount > 0 && !discountReason.trim())}
               icon={<CheckCircle2 className="w-4 h-4" />}
               className="w-full sm:w-auto justify-center py-2.5 sm:py-2 text-xs"
             >
               {isSubmitting
                 ? 'Processing...'
-                : isAlreadyApproved && mode === 'new'
-                  ? 'Fee Already Approved for this Visit ✓'
-                  : mode === 'edit'
-                    ? `Update Existing Invoice (₹${(Number(finalPayable) || 0).toLocaleString()})`
-                    : `Authorize & Approve Fee (₹${(Number(finalPayable) || 0).toLocaleString()})`}
+                : mode === 'edit'
+                  ? `Update Existing Bill (₹${(Number(finalPayable) || 0).toLocaleString()})`
+                  : `Authorize & Approve New Bill (₹${(Number(finalPayable) || 0).toLocaleString()})`}
             </ClayButton>
           </div>
         </form>

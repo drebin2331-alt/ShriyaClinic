@@ -107,12 +107,28 @@ export default function handler(req, res) {
   // 2. Consultations actions (start, complete, fee-approval)
   if (pathStr.startsWith('consultations/start')) {
     const visitId = body.visitId || body.visitIdOrToken || `VIS-${Date.now()}`;
+    const tokenNumber = body.tokenNumber || body.visitIdOrToken;
     return res.status(200).json({
       visit: {
         id: visitId,
+        patientId: body.patientId || 'PAT-TEMP',
+        patientName: body.patientName || 'Patient',
+        doctorId: body.doctorId || 'doc-1',
+        doctorName: body.doctorName || 'Consulting Doctor',
+        tokenId: tokenNumber,
         status: 'In Consultation',
         consultationStartTime: nowIso
-      }
+      },
+      token: tokenNumber ? {
+        id: body.tokenId || tokenNumber,
+        tokenNumber,
+        patientId: body.patientId || 'PAT-TEMP',
+        patientName: body.patientName || 'Patient',
+        doctorId: body.doctorId || 'doc-1',
+        doctorName: body.doctorName || 'Consulting Doctor',
+        status: 'In Consultation',
+        startedAt: nowIso
+      } : undefined
     });
   }
 
@@ -156,9 +172,22 @@ export default function handler(req, res) {
   }
 
   if (pathStr.startsWith('consultations/fee-approval')) {
-    const total = (body.items || []).reduce((s, it) => s + (it.quantity * it.unitPrice), 0) + (body.consultationFee || 0);
-    const feeApprovalId = body.feeApprovalId || `FA-${body.visitId ? String(body.visitId).replace(/[^a-zA-Z0-9-]/g, '') : Date.now()}`;
-    const invoiceId = body.invoiceId || (body.visitId ? `INV-${String(body.visitId).replace(/[^a-zA-Z0-9-]/g, '')}` : `INV-${Date.now()}`);
+    const itemsTotal = (body.items || []).reduce((s, it) => s + ((Number(it.quantity) || 1) * (Number(it.unitPrice) || 0)), 0);
+    const consultationFee = Number(body.consultationFee) || 0;
+    const subtotal = itemsTotal + consultationFee;
+    const rawDiscountVal = Math.max(0, Number(body.discountValue) || 0);
+    const discountAmount = body.discountType === 'percentage'
+      ? Math.round((subtotal * Math.min(100, rawDiscountVal)) / 100)
+      : Math.min(subtotal, rawDiscountVal);
+    const taxable = Math.max(0, subtotal - discountAmount);
+    const taxRate = Math.max(0, Number(body.taxRate) || 0);
+    const taxAmount = taxRate > 0 ? Math.round((taxable * taxRate) / 100) : 0;
+    const total = Math.max(0, Math.round(taxable + taxAmount));
+
+    const cleanVisit = body.visitId ? String(body.visitId).replace(/[^a-zA-Z0-9-]/g, '') : '';
+    const uniqueSuffix = body.isNewFee ? `-${Date.now()}` : '';
+    const feeApprovalId = body.feeApprovalId || (cleanVisit ? `FA-${cleanVisit}${uniqueSuffix}` : `FA-${Date.now()}`);
+    const invoiceId = body.invoiceId || (cleanVisit ? `INV-${cleanVisit}${uniqueSuffix}` : `INV-${Date.now()}`);
     return res.status(200).json({
       feeApproval: {
         id: feeApprovalId,
@@ -166,6 +195,15 @@ export default function handler(req, res) {
         patientId: body.patientId || 'PAT-TEMP',
         patientName: body.patientName || 'Patient',
         invoiceId,
+        consultationFee,
+        items: body.items || [],
+        discountType: body.discountType || 'amount',
+        discountValue: rawDiscountVal,
+        discountReason: body.discountReason || '',
+        discountAmount,
+        subtotal,
+        tax: taxAmount,
+        finalPayable: total,
         status: 'Approved',
         date: todayStr,
         total
@@ -173,13 +211,18 @@ export default function handler(req, res) {
       invoice: {
         id: invoiceId,
         visitId: body.visitId,
+        feeApprovalId,
         patientId: body.patientId || 'PAT-TEMP',
         patientName: body.patientName || 'Patient',
         doctorName: body.doctorName || 'Consulting Doctor',
-        status: 'Unpaid',
+        status: 'Pending',
         date: todayStr,
-        subtotal: total,
+        subtotal,
+        discount: discountAmount,
+        discountReason: body.discountReason || '',
+        tax: taxAmount,
         total,
+        paid: 0,
         balance: total,
         items: body.items || []
       }
@@ -360,6 +403,7 @@ export default function handler(req, res) {
       discount: 0,
       tax: 0,
       total: amount,
+      paid: amount,
       paidAmount: amount,
       balance: 0,
       status: 'Paid',

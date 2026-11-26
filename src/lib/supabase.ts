@@ -633,7 +633,7 @@ export const saveInvoiceToDb = async (inv: Invoice): Promise<void> => {
     discount: Number(inv.discount) || 0,
     tax: Number(inv.tax) || 0,
     total: Number(inv.total) || 0,
-    paid: Number(inv.paid) || 0,
+    paid: Number(inv.paid ?? (inv as any).paidAmount) || 0,
     balance: Number(inv.balance) || 0,
     status: dbStatus,
     due_date: inv.dueDate || null

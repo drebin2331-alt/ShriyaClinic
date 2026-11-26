@@ -325,7 +325,13 @@ export const PatientProfileView: React.FC = () => {
   );
 
   const activeToken = tokens.find(
-    (t) => (t.patientId === patient.id || (t.patientName && patient.name && t.patientName.toLowerCase() === patient.name.toLowerCase())) &&
+    (t) => (
+      t.patientId === patient.id ||
+      t.id === patient.id ||
+      t.tokenNumber === patient.id ||
+      (patient.opNumber && t.tokenNumber === patient.opNumber) ||
+      (t.patientName && t.patientName !== 'Patient' && patient.name && t.patientName.toLowerCase() === patient.name.toLowerCase())
+    ) &&
       t.status !== 'Completed' && t.status !== 'Cancelled'
   );
 
@@ -2894,8 +2900,16 @@ export const PatientProfileView: React.FC = () => {
                     </div>
 
                     <div className="space-y-1 text-right mt-2 sm:mt-0">
+                      {(inv.discount || 0) > 0 && (
+                        <>
+                          <div>Subtotal: <strong className="tabular-nums text-slate-600">₹{formatINR(inv.subtotal || (inv.total + (inv.discount || 0)))}</strong></div>
+                          <div className="text-emerald-700">
+                            Discount{inv.discountReason ? ` (${inv.discountReason})` : ''}: <strong className="tabular-nums">-₹{formatINR(inv.discount)}</strong>
+                          </div>
+                        </>
+                      )}
                       <div>Total: <strong className="tabular-nums text-slate-900">₹{formatINR(inv.total)}</strong></div>
-                      <div>Paid: <strong className="tabular-nums text-emerald-700">₹{formatINR(inv.paid || (inv as any).paidAmount)}</strong></div>
+                      <div>Paid: <strong className="tabular-nums text-emerald-700">₹{formatINR((inv.paid || (inv as any).paidAmount) || (inv.status === 'Paid' || (inv.balance <= 0 && inv.total > 0) ? Math.max(0, (inv.total || 0) - (inv.balance || 0)) : 0))}</strong></div>
                       <div>Balance: <strong className="tabular-nums text-rose-700 font-bold">₹{formatINR(inv.balance)}</strong></div>
                     </div>
                   </div>

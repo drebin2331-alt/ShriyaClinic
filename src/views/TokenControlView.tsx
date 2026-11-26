@@ -42,6 +42,7 @@ export const TokenControlView: React.FC = () => {
     visits, 
     doctors, 
     patients, 
+    invoices = [],
     callToken, 
     startConsultation, 
     completeConsultation, 
@@ -81,21 +82,48 @@ export const TokenControlView: React.FC = () => {
   const todayDateStr = new Date().toISOString().split('T')[0];
 
   // Filter tokens: only checked-in patients for TODAY'S clinic queue (unless user explicitly toggles history)
-  const activeTokens = tokens.filter((t) => {
-    if (!showAllDatesHistory) {
-      const tokenDate = t.date || (t.createdAt && t.createdAt.includes('T') ? t.createdAt.split('T')[0] : todayDateStr);
-      if (tokenDate !== todayDateStr) {
-        return false;
+  const activeTokens = tokens
+    .filter((t) => {
+      if (!showAllDatesHistory) {
+        const tokenDate = t.date || (t.createdAt && t.createdAt.includes('T') ? t.createdAt.split('T')[0] : todayDateStr);
+        if (tokenDate !== todayDateStr) {
+          return false;
+        }
       }
-    }
-    if (currentUser.role === 'doctor' && currentUser.doctorId) {
-      return t.doctorId === currentUser.doctorId;
-    }
-    if (doctorFilter !== 'ALL') {
-      return t.doctorId === doctorFilter;
-    }
-    return true;
-  });
+      if (currentUser.role === 'doctor' && currentUser.doctorId) {
+        return t.doctorId === currentUser.doctorId;
+      }
+      if (doctorFilter !== 'ALL') {
+        return t.doctorId === doctorFilter;
+      }
+      return true;
+    })
+    .map((t) => {
+      const realPat = (!t.patientName || t.patientName === 'Patient') && t.patientId ? patients.find((p) => p.id === t.patientId) : undefined;
+      const realDoc = (!t.doctorName || t.doctorName === 'Consulting Doctor') && t.doctorId ? doctors.find((d) => d.id === t.doctorId) : undefined;
+
+      // Retroactive guard: if a visit/invoice for this token is already Completed/Paid, treat token as Completed
+      const isAlreadyClosedVisit = visits.some(
+        (v) => (v.status === 'Completed' || v.status === 'Closed') &&
+          ((t.visitId && v.id === t.visitId) || (t.tokenNumber && v.tokenId === t.tokenNumber))
+      );
+      const isAlreadyPaidTokenInvoice = t.tokenNumber && invoices.some(
+        (inv) => (inv.status === 'Paid' || (inv.balance <= 0 && inv.total > 0)) &&
+          (inv.id.includes(`vis-${t.tokenNumber}-`) || (t.visitId && inv.visitId === t.visitId))
+      );
+      const effectiveStatus = (t.status === 'In Consultation' || t.status === 'Reception Follow-up') && (isAlreadyClosedVisit || isAlreadyPaidTokenInvoice)
+        ? ('Completed' as const)
+        : t.status;
+
+      if (!realPat && !realDoc && effectiveStatus === t.status) return t;
+      return {
+        ...t,
+        status: effectiveStatus,
+        patientName: realPat?.name || t.patientName,
+        patientPhone: realPat?.phone || t.patientPhone,
+        doctorName: realDoc?.name || t.doctorName,
+      };
+    });
 
   // Current in consultation token
   const currentInConsultation = activeTokens.find((t) => t.status === 'In Consultation');
@@ -113,7 +141,7 @@ export const TokenControlView: React.FC = () => {
   const priorityRank = { Emergency: 0, Urgent: 1, Normal: 2 };
   
   const waitingQueue = activeTokens
-    .filter((t) => t.status === 'Waiting' || t.status === 'On Hold' || t.status === 'Called')
+    .filter((t) => t.status === 'Waiting' || t.status === 'On Hold')
     .sort((a, b) => {
       const pDiff = (priorityRank[a.priority] ?? 2) - (priorityRank[b.priority] ?? 2);
       if (pDiff !== 0) return pDiff;
@@ -128,27 +156,46 @@ export const TokenControlView: React.FC = () => {
   });
   const completedQueue = activeTokens.filter((t) => t.status === 'Completed');
 
-  const handleOpenPatientProfile = (patientId: string, forceOpenIntake = false) => {
-    const pat = patients.find((p) => p.id === patientId);
-    if (pat) {
-      setSelectedPatientForDetail(pat);
-      const isIntakeDone = Boolean(
-        pat.caseSheetCompleted ||
-        pat.dentalHistory?.caseSheetCompleted ||
-        pat.dentalHistory?.completedAt ||
-        (pat.id && (
-          localStorage.getItem(`smilecare_intake_completed_${pat.id}`) === 'true' ||
-          sessionStorage.getItem(`smilecare_intake_completed_${pat.id}`) === 'true'
-        ))
-      );
+  const handleOpenPatientProfile = (patientId: string, forceOpenIntake = false, fallbackToken?: QueueToken) => {
+    const tok = fallbackToken || activeTokens.find((t) => t.patientId === patientId);
+    const pat =
+      patients.find((p) => p.id === patientId) ||
+      (tok?.patientPhone ? patients.find((p) => p.phone === tok.patientPhone) : undefined) ||
+      (tok?.patientName && tok.patientName !== 'Patient'
+        ? patients.find((p) => p.name?.toLowerCase() === tok.patientName.toLowerCase())
+        : undefined);
 
-      if (!isIntakeDone && (forceOpenIntake || (pat.totalVisits === 0 && pat.status === 'New Patient'))) {
-        setShouldOpenCaseSheetOnProfile(true);
-      } else {
-        setShouldOpenCaseSheetOnProfile(false);
-      }
-      setActiveView('patient-detail');
+    const targetPatient: PatientRecord = pat || {
+      id: (patientId && patientId !== 'PAT-TEMP' ? patientId : tok?.id) || `pat-${Date.now()}`,
+      name: (tok?.patientName && tok.patientName !== 'Patient' ? tok.patientName : 'Walk-in Patient'),
+      phone: tok?.patientPhone || '',
+      age: 0,
+      gender: 'Other',
+      opNumber: tok?.opNumber || '',
+      status: 'New Patient',
+      totalVisits: 0,
+      medicalHistory: '',
+      allergies: '',
+      dentalHistory: {},
+    };
+
+    setSelectedPatientForDetail(targetPatient);
+    const isIntakeDone = Boolean(
+      targetPatient.caseSheetCompleted ||
+      targetPatient.dentalHistory?.caseSheetCompleted ||
+      targetPatient.dentalHistory?.completedAt ||
+      (targetPatient.id && (
+        localStorage.getItem(`smilecare_intake_completed_${targetPatient.id}`) === 'true' ||
+        sessionStorage.getItem(`smilecare_intake_completed_${targetPatient.id}`) === 'true'
+      ))
+    );
+
+    if (forceOpenIntake || (!isIntakeDone && targetPatient.totalVisits === 0 && targetPatient.status === 'New Patient')) {
+      setShouldOpenCaseSheetOnProfile(true);
+    } else {
+      setShouldOpenCaseSheetOnProfile(false);
     }
+    setActiveView('patient-detail');
   };
 
   const handleConfirmComplete = () => {
@@ -242,7 +289,7 @@ export const TokenControlView: React.FC = () => {
                         <ClayButton
                           variant="mint"
                           size="md"
-                          onClick={() => handleOpenPatientProfile(currentInConsultation.patientId, true)}
+                          onClick={() => handleOpenPatientProfile(currentInConsultation.patientId, true, currentInConsultation)}
                           icon={<Sparkles className="w-4 h-4 text-amber-200" />}
                         >
                           Fill First Visit Intake Form 📋
@@ -251,7 +298,7 @@ export const TokenControlView: React.FC = () => {
                         <ClayButton
                           variant="primary"
                           size="md"
-                          onClick={() => handleOpenPatientProfile(currentInConsultation.patientId)}
+                          onClick={() => handleOpenPatientProfile(currentInConsultation.patientId, false, currentInConsultation)}
                           icon={<FileText className="w-4 h-4" />}
                         >
                           Open Patient Profile (EMR)
@@ -639,7 +686,7 @@ export const TokenControlView: React.FC = () => {
                       <ClayButton
                         variant="accent"
                         size="sm"
-                        onClick={() => handleOpenPatientProfile(tok.patientId, true)}
+                        onClick={() => handleOpenPatientProfile(tok.patientId, true, tok)}
                         icon={<Sparkles className="w-3.5 h-3.5 text-amber-600" />}
                         title="Open First Visit Clinical Intake Form"
                       >
@@ -650,7 +697,7 @@ export const TokenControlView: React.FC = () => {
                     <ClayButton
                       variant="secondary"
                       size="sm"
-                      onClick={() => handleOpenPatientProfile(tok.patientId)}
+                      onClick={() => handleOpenPatientProfile(tok.patientId, false, tok)}
                       icon={<FileText className="w-3.5 h-3.5" />}
                     >
                       EMR
